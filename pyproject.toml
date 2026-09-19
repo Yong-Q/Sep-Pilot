@@ -6,6 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "BiMemAgent"
 version = "0.2.0"
 description = "Multi-agent harness for membrane-separation material workflows. Claude SDK based."
+authors = [{ name = "Yong-Q" }]
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
 dependencies = [
     "anthropic>=0.90.0",

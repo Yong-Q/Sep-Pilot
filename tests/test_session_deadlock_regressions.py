@@ -295,6 +295,25 @@ def test_workflow_compiler_returns_concrete_arguments_and_default_receipt(tmp_pa
     }
 
 
+def test_workflow_compiler_scopes_relative_dag_paths_to_conversation(tmp_path):
+    root = tmp_path / 'runs' / 'alice' / 'c1'
+    changes = _serial_directory_workflow(Path('relative-placeholder'))
+    producer = changes[0]['node']
+    producer['arguments']['output_dir'] = 'cof_structures'
+    producer['expected_outputs'] = [{
+        'kind': 'directory', 'path': 'cof_structures',
+        'pattern': '*.cif', 'min_count': 1,
+    }]
+
+    compilation = compile_workflow_changes(changes, get_registry(), tmp_path, root)
+    generated = compilation.changes[0]['node']
+    consumer = compilation.changes[1]['node']
+
+    assert generated['arguments']['output_dir'] == str(root / 'cof_structures')
+    assert generated['expected_outputs'][0]['path'] == str(root / 'cof_structures')
+    assert consumer['arguments']['cif_dir'] == str(root / 'cof_structures')
+
+
 def test_workflow_compiler_reports_unknown_tool_as_contract_error(tmp_path):
     changes = [{'operation': 'upsert', 'step_id': 'unknown', 'node': {
         'agent': 'analyst', 'tool': 'missing_tool', 'arguments': {},

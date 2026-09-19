@@ -69,11 +69,16 @@ class AgentConfig:
 
     @property
     def raspa_path(self) -> str:
-        return self._tools_config.get("raspa", {}).get("path", "/opt/raspa")
+        return self._tools_config.get("raspa", {}).get("path", "/home/user/RASPA2/simulations")
 
     @property
     def pormake_path(self) -> str:
         return self._tools_config.get("pormake", {}).get("path", "/opt/pormake")
+
+    @property
+    def pormake_python(self) -> str:
+        configured = self._tools_config.get("pormake", {}).get("python")
+        return configured or str(Path(self.pormake_path) / "bin" / "python")
 
     @property
     def conda_path(self) -> str:
@@ -84,34 +89,34 @@ class AgentConfig:
         """Load config from env/settings.json (third-party proxy format)."""
         env_dir = Path(env_dir) if env_dir else ENV_DIR
         settings_path = env_dir / "settings.json"
-        
+
         if not settings_path.exists():
             raise FileNotFoundError(f"No settings.json found at {settings_path}")
-        
+
         with open(settings_path, "r", encoding="utf-8") as f:
             raw = json.load(f)
-        
+
         env = raw.get("env", {})
         config = cls(
             api_key=env.get("ANTHROPIC_AUTH_TOKEN", os.environ.get("ANTHROPIC_API_KEY", "")),
             base_url=env.get("ANTHROPIC_BASE_URL", ""),
             model=env.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
         )
-        
+
         # Apply overrides
         for key, value in overrides.items():
             if hasattr(config, key):
                 setattr(config, key, value)
-        
+
         return config
-    
+
     @classmethod
     def from_env(cls, **overrides: Any) -> AgentConfig:
         """Create config from environment variables with overrides."""
         # Try env dir first
         if ENV_DIR.exists() and (ENV_DIR / "settings.json").exists():
             return cls.from_env_dir(**overrides)
-        
+
         config = cls(
             api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
             base_url=os.environ.get("ANTHROPIC_BASE_URL", ""),

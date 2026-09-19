@@ -681,7 +681,7 @@ def _exec_henry(p: Dict[str, Any]) -> Any:
     ])
 
     command = f"""set -euo pipefail
-RASPA_DIR=/home/user/RASPA2/simulations
+RASPA_DIR={config.raspa_path}
 export LD_LIBRARY_PATH=$RASPA_DIR/lib:$LD_LIBRARY_PATH
 run_sim() {{
   if command -v stdbuf >/dev/null 2>&1; then
@@ -960,7 +960,7 @@ def _exec_md_optimize(p: Dict[str, Any]) -> Any:
     # Runs on the login/slurm node via python module (lammps-interface + LAMMPS).
     command = f"""set -euo pipefail
 mkdir -p {shlex.quote(work_dir)}
-source /home/user/.conda/etc/profile.d/conda.sh && conda activate Agent
+source {config.conda_path} && conda activate Agent
 python3 - <<'BIMEM_MD_SCRIPT' 2>&1 | tee {shlex.quote(work_dir)}/md_result.json
 import sys, json
 sys.path.insert(0, '{config.project_root.parent}')
@@ -1016,14 +1016,17 @@ def _exec_structure_gen(p: Dict[str, Any]) -> Any:
     topologies = [str(x).strip() for x in (p.get("topologies") or []) if str(x).strip()]
     per_topology = int(p.get("structures_per_topology", 0) or 0)
 
-    # Get conda path from config
-    conda_path = config.conda_path
+    pormake_python = Path(config.pormake_python)
+    if not pormake_python.is_file() or not os.access(pormake_python, os.X_OK):
+        return {"blocked": True, "executed": False,
+                "error": f"configured pormake interpreter is unavailable: {pormake_python}"}
 
     # Project-local generator is the authoritative implementation and supports
     # topology filters/max-atoms. The old external script silently ignored both.
     pormake_script = str(config.project_root / "pormake_generate_topo.py")
 
     import shlex
+    _python = shlex.quote(str(pormake_python))
     _py = shlex.quote(pormake_script)
     _out = shlex.quote(str(output_dir))
     if topologies:
@@ -1032,20 +1035,19 @@ def _exec_structure_gen(p: Dict[str, Any]) -> Any:
         for i, topo in enumerate(topologies):
             count = per_topology or (quotient + (1 if i < remainder else 0))
             commands.append(
-                f"python3 {_py} generate --type {shlex.quote(material_type)} "
+                f"{_python} {_py} generate --type {shlex.quote(material_type)} "
                 f"--n {count} --max-atoms {max_atoms} --output-dir {_out} "
                 f"--topo {shlex.quote(topo)}"
             )
         generate_cmd = "\n".join(commands)
     else:
         generate_cmd = (
-            f"python3 {_py} generate --type {shlex.quote(material_type)} "
+            f"{_python} {_py} generate --type {shlex.quote(material_type)} "
             f"--n {int(n_structures)} --max-atoms {max_atoms} --output-dir {_out}"
         )
 
     command = f"""set -euo pipefail
 mkdir -p {_out}
-source {conda_path} && conda activate pormake
 {{
 {generate_cmd}
 }} 2>&1 | tee {_out}/generation.log
@@ -1569,7 +1571,7 @@ print(json.dumps(asdict(result), indent=2))
     command = f"""set -euo pipefail
 mkdir -p {work_dir}
 cd {work_dir}
-source /home/user/.conda/etc/profile.d/conda.sh && conda activate Agent
+source {config.conda_path} && conda activate Agent
 python3 -c "{python_cmd}" 2>&1 | tee {work_dir}/result.json
 echo "Binding energy calculation for {gas} on {cif_path} completed"
 """
@@ -2729,7 +2731,7 @@ def _legacy_exec_ml_active_learning(p: Dict[str, Any]) -> Any:
 
     work_dir = _ws("ml")
     script = f"""set -euo pipefail
-source /home/user/.conda/etc/profile.d/conda.sh && conda activate Agent
+source {config.conda_path} && conda activate Agent
 python3 -c "
 import numpy as np, json, os, joblib, glob, random, sys
 sys.path.insert(0, '{config.project_root}')
@@ -4275,13 +4277,12 @@ def _exec_ga_optimization(p: Dict[str, Any]) -> Any:
 
     # Get tool paths from config
     zeo_path = config.zeopp_path
-    conda_path = config.conda_path
+    pormake_python = config.pormake_python
 
     script = f"""set -euo pipefail
 mkdir -p {abs_output_dir}
 export ZEO_PATH={zeo_path}
-source {conda_path} && conda activate pormake
-python3 /home/user/gcmc_agent/BiMemAgent-claude-sdk/tools/pormake_ga_v3.py --target-selectivity {target_selectivity} --target-uptake {target_uptake} --pop-size {pop_size} --n-generations {n_generations} --output-dir {abs_output_dir} --ml-model-dir {abs_ml_model_dir}
+{pormake_python} /home/user/gcmc_agent/BiMemAgent-claude-sdk/tools/pormake_ga_v3.py --target-selectivity {target_selectivity} --target-uptake {target_uptake} --pop-size {pop_size} --n-generations {n_generations} --output-dir {abs_output_dir} --ml-model-dir {abs_ml_model_dir}
 """
     return slurm.submit_and_wait(job_name="ga_optimization", command=script, work_dir=abs_output_dir, timeout_minutes=15, partition="compute", cpus_per_task=16, walltime="02:00:00")
 

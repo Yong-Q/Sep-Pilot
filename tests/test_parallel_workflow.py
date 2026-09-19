@@ -42,6 +42,33 @@ def test_pending_patch_does_not_persist_user_pause(factory):
     assert rt.snapshot()['nodes']['a']['status'] == 'pending'
 
 
+def test_start_and_tick_requires_a_real_root_claim(factory):
+    rt = factory([node('a', path='/shared')])
+    blocker = factory([node('blocker', tool='write_file',
+                            args={'path': '/shared', 'content': 'held'})], cid='c2')
+    blocker.start(1)
+    assert blocker.store.claim(blocker.workflow_id, 'blocker')
+
+    blocked = rt.start_and_tick(1)
+
+    assert blocked['scheduled'] is False
+    assert blocked['status'] == 'waiting_dispatch'
+    assert 'resource lease conflict' in blocked['blocked_nodes']['a'][0]
+
+
+def test_start_and_tick_reports_dispatch_only_after_root_claim(factory):
+    rt = factory([node('a')])
+    gate = threading.Event()
+    rt.main.registry.get('read_file').execute = lambda args: gate.wait(5) or {'content': 'done'}
+
+    receipt = rt.start_and_tick(1)
+
+    assert receipt['scheduled'] is True
+    assert receipt['dispatch_started'] is True
+    assert receipt['root_nodes']['a']['token'] is True
+    gate.set()
+
+
 def test_goal_metadata_reconciles_but_science_does_not(factory):
     rt = factory([node('a')])
     rt.start(1)

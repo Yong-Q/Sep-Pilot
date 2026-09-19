@@ -280,6 +280,43 @@ class WorkflowStore:
                              'resources': copy.deepcopy(resources), 'owner_pid': os.getpid()}
             return copy.deepcopy(node)
 
+    def claim_blockers(self, workflow_id, step_id):
+        """Explain why a pending node cannot currently acquire a lease."""
+        data = self.snapshot()
+        workflow = data.get('workflows', {}).get(workflow_id, {})
+        node = workflow.get('nodes', {}).get(step_id)
+        if not node:
+            return ['runtime node is missing']
+        blockers = []
+        if workflow.get('status') != 'active':
+            blockers.append('workflow status is ' + str(workflow.get('status')))
+        if workflow.get('user_paused'):
+            blockers.append('workflow is paused by user control')
+        if node.get('status') != 'pending':
+            blockers.append('node status is ' + str(node.get('status')))
+        running = sum(
+            item.get('status') == 'running'
+            for candidate in data.get('workflows', {}).values()
+            for item in candidate.get('nodes', {}).values()
+        )
+        if running >= self.max_running:
+            blockers.append(f'global worker capacity is full ({running}/{self.max_running})')
+        waiting = [dep for dep in node.get('contract', {}).get('depends_on', [])
+                   if workflow.get('nodes', {}).get(dep, {}).get('status') != 'succeeded']
+        if waiting:
+            blockers.append('dependencies not succeeded: ' + ', '.join(waiting))
+        resources = node.get('contract', {}).get('resources', {})
+        conflicts_found = sorted({
+            f'{requested} conflicts with {held}'
+            for lease in data.get('leases', {}).values()
+            for requested in resources
+            for held in lease.get('resources', {})
+            if conflicts(requested, held)
+        })
+        if conflicts_found:
+            blockers.append('resource lease conflict: ' + '; '.join(conflicts_found))
+        return blockers or ['node was not claimed; retry executor tick']
+
     def update(self, workflow_id, step_id, token, fields, release=False):
         with json_transaction(self.path) as data:
             workflow = data.get('workflows', {}).get(workflow_id, {})
@@ -537,6 +574,32 @@ class ParallelWorkflow:
         self._emit('workflow_started', {'plan_version': plan_version}, f'start:{plan_version}')
         return {'status': 'scheduled', 'plan_version': plan_version, 'workflow_id': self.workflow_id,
                 'delivery_owner': 'lead-orchestrator', 'negotiation_owner': 'lead-orchestrator'}
+
+    def start_and_tick(self, plan_version, jobs=(), paused=False):
+        """Activate a plan and prove that at least one root entered dispatch."""
+        receipt = self.start(plan_version)
+        if receipt.get('scheduled') is False:
+            return receipt
+        self.tick(jobs=jobs, paused=paused)
+        state = self.snapshot()
+        roots = {
+            step_id: node for step_id, node in state.get('nodes', {}).items()
+            if not node.get('contract', {}).get('depends_on')
+        }
+        dispatched = {
+            step_id: {'status': node.get('status'), 'token': bool(node.get('token'))}
+            for step_id, node in roots.items() if node.get('token')
+        }
+        if dispatched:
+            return {**receipt, 'scheduled': True, 'dispatch_started': True,
+                    'root_nodes': dispatched}
+        blocked = {
+            step_id: self.store.claim_blockers(self.workflow_id, step_id)
+            for step_id in roots
+        }
+        return {**receipt, 'status': 'waiting_dispatch', 'scheduled': False,
+                'dispatch_started': False, 'blocked_nodes': blocked,
+                'reason': 'No root node acquired an execution lease.'}
 
     def revalidate_outputs(self,step_id,expected_outputs,completed_job_id=None):
         """Repair a stopped generator's artifact contract from actual proof."""

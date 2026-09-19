@@ -12,13 +12,20 @@ class WorkflowContractError(ValueError):
                         'executed': False, **details}
 
 
-def canonical_arguments(arguments, project_root):
+def canonical_arguments(arguments, project_root, relative_root=None):
     from .workspace import PATH_ARGUMENTS, resolve_project_path
     result = copy.deepcopy(arguments)
+    base = Path(relative_root or project_root).resolve()
     for key in PATH_ARGUMENTS & set(result):
         value = result[key]
         if isinstance(value, str) and value:
-            result[key] = str(resolve_project_path(value, project_root))
+            path = Path(value).expanduser()
+            if path.is_absolute():
+                result[key] = str(path.resolve())
+            elif path.parts and path.parts[0] == 'runs':
+                result[key] = str(resolve_project_path(value, project_root))
+            else:
+                result[key] = str((base / path).resolve())
     return result
 
 
@@ -126,7 +133,7 @@ def resolve_workflow_placeholders(changes, conversation_root, existing_steps=())
     return result
 
 
-def canonical_expected_outputs(outputs, project_root):
+def canonical_expected_outputs(outputs, project_root, relative_root=None):
     """Normalize explicitly project-anchored output paths once.
 
     Bare names remain relative to the node artifact directory. Paths beginning
@@ -134,14 +141,21 @@ def canonical_expected_outputs(outputs, project_root):
     project-relative and must not later be appended to ``output_dir`` again.
     """
     anchored = {'runs', 'data', 'tmp', 'output', 'outputs', 'reports', 'gcmc_output'}
+    base = Path(relative_root or project_root).resolve()
     normalized = []
     for value in outputs or []:
         item = copy.deepcopy(value)
         raw = item if isinstance(item, str) else item.get('path')
         path = Path(str(raw)).expanduser()
         parts = path.parts
-        if path.is_absolute() or (parts and parts[0] in anchored):
-            resolved = str((path if path.is_absolute() else Path(project_root) / path).resolve())
+        if path.is_absolute() or relative_root is not None or (parts and parts[0] in anchored):
+            if path.is_absolute():
+                target = path
+            elif parts and parts[0] == 'runs':
+                target = Path(project_root) / path
+            else:
+                target = base / path
+            resolved = str(target.resolve())
             if isinstance(item, str): item = resolved
             else: item['path'] = resolved
         normalized.append(item)

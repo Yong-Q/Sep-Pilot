@@ -283,6 +283,8 @@ def test_structure_generator_uses_local_topology_aware_script(tmp_path: Path, mo
     })
     command = captured["command"]
     assert "pormake_generate_topo.py" in command
+    assert "/home/user/.conda/envs/pormake/bin/python" in command
+    assert "conda activate" not in command
     for topology in ("utk", "hxg", "bto", "cds", "cdt", "srs", "eta"):
         assert f"--topo {topology}" in command
     assert command.count("--n 6") == 7
@@ -291,4 +293,11 @@ def test_structure_generator_uses_local_topology_aware_script(tmp_path: Path, mo
 
 def test_agent_config_loads_workspace_tool_paths():
     config = AgentConfig(api_key="unit-test")
-    assert config.conda_path == "/home/user/.conda/etc/profile.d/conda.sh"
+    assert config.conda_path == "/opt/conda/miniconda/3-python3.9.13/etc/profile.d/conda.sh"
+    assert config.pormake_python == "/home/user/.conda/envs/pormake/bin/python"
+    assert config.raspa_path == "/home/user/RASPA2/simulations"
+
+
+def test_live_registry_has_no_retired_conda_initialization_path():
+    source = Path(registry_module.__file__).read_text()
+    assert "/home/user/.conda/etc/profile.d/conda.sh" not in source

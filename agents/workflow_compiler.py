@@ -312,9 +312,10 @@ def compile_workflow_changes(changes, registry, project_root, conversation_root,
         if change.get("operation") != "upsert" or not change.get("node"):
             continue
         node = change["node"]
-        node["arguments"] = canonical_arguments(node.get("arguments", {}), project_root)
+        node["arguments"] = canonical_arguments(
+            node.get("arguments", {}), project_root, conversation_root)
         node["expected_outputs"] = canonical_expected_outputs(
-            node.get("expected_outputs", []), project_root)
+            node.get("expected_outputs", []), project_root, conversation_root)
         change["node"] = complete_compute_contract(
             node, change["step_id"], project_root, conversation_root)
 

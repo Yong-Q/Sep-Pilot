@@ -26,7 +26,7 @@ from auth import (
     save_model_connection, config_for_user, migrate_auth_storage, load_tokens,
 )
 
-app = FastAPI(title="BiMemAgent API", description="多用户会话隔离、持久化混合串并行编排与全生命周期协调", version="3.4.63")
+app = FastAPI(title="BiMemAgent API", description="多用户会话隔离、持久化混合串并行编排与全生命周期协调", version="3.4.65")
 
 # Durable lifecycle mailboxes survive the API process.  That is necessary for
 # long scheduler jobs, but a pre-restart notification from a conversation with
@@ -434,7 +434,7 @@ def _ensure_session(conv):
         conv.session._chain_state_is_primary = True
         conv.session._chain_jobs = lambda: [j for j in _watch.list()
             if (j.get('username'), j.get('conv_id')) == (conv.username, conv.conv_id)]
-        conv.session._on_workflow_start = lambda plan_version: _ensure_workflow_runtime(conv).start(plan_version)
+        conv.session._on_workflow_start = lambda plan_version: _start_workflow_runtime(conv, plan_version)
         conv.session._on_resource_review = lambda request: _review_resources(conv, request)
         conv.session._on_workflow_message = lambda step_id, text, kind='comment', message_id=None: _ensure_workflow_runtime(conv).send(step_id, text, kind, message_id)
         conv.session._on_workflow_resolve = lambda step_id, decision_id, verification_call_id: _ensure_workflow_runtime(conv).resolve_local_write(step_id, decision_id, verification_call_id)
@@ -1336,6 +1336,14 @@ class WorkflowExecutionRequest(BaseModel):
     plan_version: int
 
 
+def _start_workflow_runtime(conv, plan_version):
+    runtime = _ensure_workflow_runtime(conv)
+    jobs = [job for job in _watch.list()
+            if (job.get('username'), job.get('conv_id')) == (conv.username, conv.conv_id)]
+    return runtime.start_and_tick(plan_version, jobs=jobs,
+                                  paused=bool(conv.interrupt_requested))
+
+
 class WorkerMessageRequest(BaseModel):
     text: str
     kind: str = 'comment'
@@ -1348,7 +1356,7 @@ async def execute_parallel_workflow(conv_id: str, request: WorkflowExecutionRequ
     if conv is None: raise HTTPException(404, 'conversation not found')
     if conv.is_processing or conv.interrupt_requested: raise HTTPException(409, 'main turn busy or user paused; approve through main chat')
     try:
-        result = _ensure_workflow_runtime(conv).start(request.plan_version)
+        result = _start_workflow_runtime(conv, request.plan_version)
         conv.session.task_complete = False
         conv.conversation_active = True
         conv.session._checkpoint('workflow_api_start')

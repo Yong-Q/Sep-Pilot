@@ -93,7 +93,7 @@ def render_sbatch_script(
     logs_dir = os.path.join(work_dir, "logs")
     output = output or f"{logs_dir}/{job_name}_%j.out"
     error = error or f"{logs_dir}/{job_name}_%j.err"
-    
+
     lines = [
         "#!/bin/bash",
         f"#SBATCH -J {job_name}",
@@ -117,19 +117,19 @@ def render_sbatch_script(
         f"mkdir -p {shlex.quote(logs_dir)}",
         f"cd {shlex.quote(work_dir)}",
     ])
-    
+
     if modules:
         for mod in modules:
             lines.append(f"module load {mod} 2>/dev/null || true")
-    
+
     if env_exports:
         for key, val in env_exports.items():
             lines.append(f"export {key}={shlex.quote(val)}")
-    
+
     if extra_directives:
         for d in extra_directives:
             lines.append(f"#SBATCH {d}")
-    
+
     lines.extend(["", command, ""])
     return "\n".join(lines)
 
@@ -163,11 +163,11 @@ def submit_sbatch_local(script_content: str, work_dir: str) -> Dict[str, Any]:
     """Submit a SLURM job locally via sbatch."""
     script_path = os.path.join(work_dir, "submit.sh")
     os.makedirs(work_dir, exist_ok=True)
-    
+
     with open(script_path, "w") as f:
         f.write(script_content)
     os.chmod(script_path, 0o755)
-    
+
     try:
         result = subprocess.run(
             ["sbatch", script_path],
@@ -212,16 +212,16 @@ def submit_sbatch_remote(
     if runtime_path.exists():
         with open(runtime_path) as f:
             remote_cfg = json.load(f).get("remote_slurm", {})
-    
+
     host = host or remote_cfg.get("host", "gpu2")
     submit_command = remote_cfg.get("submit_command", "sbatch")
-    
+
     script_path = os.path.join(work_dir, "submit.sh")
     os.makedirs(work_dir, exist_ok=True)
-    
+
     with open(script_path, "w") as f:
         f.write(script_content)
-    
+
     try:
         result = subprocess.run(
             ["ssh", host, submit_command, script_path],
@@ -1065,7 +1065,7 @@ def submit_and_return(
 
 # ── GCMC-specific helpers ──────────────────────────────────────────
 
-RASPA_SHARE = "/home/user/RASPA2/simulations/share/raspa"
+RASPA_SHARE = str(Path(get_config().raspa_path) / "share" / "raspa")
 # Project-LOCAL mirror of the RASPA force-field + molecule-definition trees.
 # Everything GCMC needs is copied in here once; jobs then stage per-run LOCAL
 # copies into their working directory (RASPA2 checks ./force_field.def,
@@ -1443,33 +1443,33 @@ def _cif_has_charges(cif_path: str) -> bool:
 
 def _find_charged_cif(cif_path: str) -> str:
     """Find a charged version of the CIF file.
-    
+
     Searches for *_pacman.cif, *_pacman_pacman.cif, *_pacman_pacman_pacman.cif
     in the same directory and parent directories.
     Returns the path to the charged CIF, or original path if none found.
     """
     from pathlib import Path
-    
+
     path = Path(cif_path)
     stem = path.stem
     parent = path.parent
-    
+
     # Check if current file has charges
     if _cif_has_charges(cif_path):
         return cif_path
-    
+
     # Search for charged versions in same directory
     patterns = [
         f"{stem}_pacman.cif",
-        f"{stem}_pacman_pacman.cif", 
+        f"{stem}_pacman_pacman.cif",
         f"{stem}_pacman_pacman_pacman.cif",
     ]
-    
+
     for pattern in patterns:
         candidate = parent / pattern
         if candidate.exists() and _cif_has_charges(str(candidate)):
             return str(candidate)
-    
+
     # Search in parent directory
     parent_parent = parent.parent
     if parent_parent.exists():
@@ -1477,14 +1477,14 @@ def _find_charged_cif(cif_path: str) -> str:
             candidate = parent_parent / pattern
             if candidate.exists() and _cif_has_charges(str(candidate)):
                 return str(candidate)
-    
+
     # Search in cifs directory
     cifs_dir = Path("/home/user/gcmc_agent/cifs")
     if cifs_dir.exists():
         for cif_file in cifs_dir.rglob("*.cif"):
             if stem in cif_file.stem and _cif_has_charges(str(cif_file)):
                 return str(cif_file)
-    
+
     return cif_path
 
 def validate_gcmc_inputs(
@@ -1530,7 +1530,7 @@ def validate_gcmc_inputs(
                 "请换用未损坏的 CIF（如 pacman_04201447_clean/ 下的版本），"
                 "或检查 PACMAN 生成/后处理步骤。"
             )
-        
+
         # Check if CIF has charges when gas requires them
         if gas:
             preset = _gas_preset(str(gas).upper())
@@ -1869,7 +1869,7 @@ def submit_gcmc_isotherm(
             }
     # Script references the stable staged copy (survives temp-dir cleanup).
     script_cif = stable_cif
-    
+
     # Generate pressure points. Interface is in **bar**; RASPA's
     # `ExternalPressure` is in **Pa**, so convert bar → Pa (× 1e5) before
     # writing the simulation.input. Passing bar values straight through made
@@ -1906,7 +1906,7 @@ def submit_gcmc_isotherm(
             print(f"  ⚠️ pre-stage failed for {cif_name} P={_p:.2e}: {e}", flush=True)
 
     # Build RASPA simulation script
-    raspa_dir = "/home/user/RASPA2/simulations"
+    raspa_dir = get_config().raspa_path
 
     script_lines = [
         "#!/bin/bash",
@@ -2060,7 +2060,7 @@ def submit_gcmc_isotherm(
         # `test -f $WORK_BASE/job.done` — vs. a vanished job that failed. ──
         "echo \"$SLURM_JOB_ID\" > \"$WORK_BASE/job.done\"",
     ]
-    
+
     command = "\n".join(script_lines)
     job_name = slurm_kwargs.pop("job_name", f"gcmc_{cif_name}_{gas}")
 
@@ -2144,7 +2144,7 @@ def submit_gcmc_batch(
     if not cifs:
         return {"submitted": False, "failed": True, "error": f"No CIF files found in {cif_dir}"}
 
-    raspa_dir = "/home/user/RASPA2/simulations"
+    raspa_dir = config.raspa_path
     if output_dir:
         work_dir = str(Path(output_dir).resolve())
     else:
