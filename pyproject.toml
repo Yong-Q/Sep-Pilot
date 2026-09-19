@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "BiMemAgent"
+version = "0.2.0"
+description = "Multi-agent harness for membrane-separation material workflows. Claude SDK based."
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.90.0",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=1.10,<3",
+    "jsonschema>=4.17.0",
+    "bcrypt>=4.0.0",
+    "cryptography>=42.0.0",
+]
+
+[tool.setuptools]
+packages = ["bimem_agent", "agents"]
+
+[project.scripts]
+bimem-agent = "agents.cli:main"

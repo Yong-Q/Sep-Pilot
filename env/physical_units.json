@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "constants": {"boltzmann_J_per_K":1.380649e-23,"avogadro_per_mol":6.02214076e23,"elementary_charge_C":1.602176634e-19},
+  "sources":["https://www.bipm.org/en/measurement-units/si-defining-constants","https://docs.lammps.org/units.html"],
+  "energy_J_per_particle":{"J/particle":1.0,"eV":1.602176634e-19,"kJ/mol":1.6605390671738466e-21,"kcal/mol":6.947695457055374e-21,"kelvin_energy":1.380649e-23},
+  "length_m":{"m":1.0,"nm":1e-9,"angstrom":1e-10},
+  "pressure_Pa":{"Pa":1.0,"kPa":1000.0,"MPa":1000000.0,"bar":100000.0,"atm":101325.0},
+  "time_s":{"s":1.0,"ns":1e-9,"ps":1e-12,"fs":1e-15},
+  "engine_units":{"lammps_real":{"energy":"kcal/mol","length":"angstrom","time":"fs","pressure":"atm"},"lammps_metal":{"energy":"eV","length":"angstrom","time":"ps","pressure":"bar"},"towhee":{"energy":"kelvin_energy","length":"angstrom"}},
+  "limits":["Plain K is thermodynamic temperature, not an energy conversion unit.","Unit conversion does not convert 9-6 to 12-6, sigma conventions, harmonic prefactors, mixing or 1-4 scaling.","Reduced LJ units require explicit reference scales and cannot be inferred."]
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "excluded_nodes": [],
+  "preferred_nodes": [],
+  "allowed_states": [
+    "idle",
+    "mix"
+  ],
+  "max_age_seconds": 300,
+  "tool_profiles": {}
+}
