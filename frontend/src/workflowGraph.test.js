@@ -1,4 +1,4 @@
-import { graphViewportKey, retainGraph, selectGraph } from './workflowGraph';
+import { graphViewportKey, loadCachedWorkflow, retainGraph, saveCachedWorkflow, selectGraph } from './workflowGraph';
 
 const snapshot = (version = 1, conv = 'a', username = 'u') => ({
   scope: { username, conv_id: conv },
@@ -101,4 +101,22 @@ test('viewport identity tracks topology but ignores runtime status updates', () 
   expect(graphViewportKey(workflow, replaced)).not.toBe(graphViewportKey(workflow, initial));
   expect(graphViewportKey({ scope: { username: 'u', conv_id: 'b' } }, initial))
     .not.toBe(graphViewportKey(workflow, initial));
+});
+
+test('a complete graph survives a hard refresh through compact browser storage', () => {
+  const values = {};
+  const storage = {
+    getItem: key => values[key] || null,
+    setItem: (key, value) => { values[key] = value; },
+  };
+  const workflow = retainGraph(null, snapshot(4));
+  workflow.lines = [{ steps: Array.from({ length: 100 }, (_, i) => ({ step_id: `history-${i}` })) }];
+
+  expect(saveCachedWorkflow(storage, workflow)).toBe(true);
+  const restored = loadCachedWorkflow(storage, 'u', 'a');
+
+  expect(restored.display_graph.nodes).toHaveLength(2);
+  expect(restored.display_graph.version).toBe(4);
+  expect(restored.lines).toBeUndefined();
+  expect(loadCachedWorkflow(storage, 'u', 'other')).toBeNull();
 });

@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Background, Controls, Handle, MarkerType, MiniMap, Position, ReactFlow } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './App.css';
-import { graphViewportKey, selectGraph, retainGraph } from './workflowGraph';
+import { graphViewportKey, loadCachedWorkflow, saveCachedWorkflow, selectGraph, retainGraph } from './workflowGraph';
 import { readJsonResponse } from './apiResponse';
 
 const API = '/api';
@@ -377,26 +375,6 @@ function nodeTasks(node) {
   return [{ task_id: node.step_id, label: node.description || node.step_id, status: nodeStatus(node), job_id: '', path: '' }];
 }
 
-function WorkflowNode({ data, selected }) {
-  const status = data.status;
-  const meta = NODE_STATUS[status] || [status, '○'];
-  return (
-    <div className={'workflow-node status-' + status + (selected ? ' selected' : '')}
-         title={'原始状态: ' + status + '\n依赖: ' + (data.dependencies.join(', ') || '无')}>
-      <Handle type="target" position={Position.Left} className="workflow-handle" />
-      <div className="workflow-node-index">{String(data.stage).padStart(2, '0')}</div>
-      <div className="workflow-node-copy">
-        <b>{data.label}</b>
-        <small>{data.agent} · {data.taskCount} 项</small>
-      </div>
-      <div className="workflow-node-state" title={meta[0]}>{meta[1]}</div>
-      <Handle type="source" position={Position.Right} className="workflow-handle" />
-    </div>
-  );
-}
-
-const WORKFLOW_NODE_TYPES = { workflow: WorkflowNode };
-
 function graphGeometry(levels) {
   const nodeWidth = 152, nodeHeight = 54, columnGap = 76, rowGap = 30, padding = 22;
   const tallest = Math.max(1, ...levels.map(level => level.length));
@@ -414,6 +392,65 @@ function graphGeometry(levels) {
     });
   });
   return { width, height, nodeWidth, nodeHeight, positions };
+}
+
+const DAG_COLORS = {
+  running: '#22d3ee', submitted: '#22d3ee', waiting_jobs: '#22d3ee',
+  prefinish: '#f59e0b', completed: '#22c55e', succeeded: '#22c55e',
+  failed: '#ef4444', cancelled: '#71717a', uncertain: '#eab308',
+  needs_resources: '#eab308', planning: '#a78bfa', planning_queued: '#a78bfa',
+  paused: '#f59e0b', pending: '#64748b',
+};
+
+function StaticWorkflowGraph({ nodes, graph, selectedStepId, onSelect }) {
+  const colorFor = status => DAG_COLORS[status] || '#64748b';
+  const short = (value, size) => String(value || '').length > size
+    ? String(value).slice(0, size - 1) + '…' : String(value || '');
+  const edges = nodes.flatMap(node => nodeDependencies(node).map(dep => {
+    const from = graph.positions[dep], to = graph.positions[node.step_id];
+    if (!from || !to) return null;
+    const status = nodeStatus(node);
+    return { id: dep + '->' + node.step_id, status,
+      x1: from.x + graph.nodeWidth, y1: from.y + graph.nodeHeight / 2,
+      x2: to.x, y2: to.y + graph.nodeHeight / 2 };
+  }).filter(Boolean));
+  return <svg className="stable-dag-svg" viewBox={`0 0 ${graph.width} ${graph.height}`}
+              preserveAspectRatio="xMidYMid meet" role="img" aria-label="持久化有向编排图">
+    <defs>{Object.entries(DAG_COLORS).map(([status, color]) =>
+      <marker key={status} id={'dag-arrow-' + status} markerWidth="8" markerHeight="8"
+              refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L8,4 L0,8 z" fill={color} />
+      </marker>)}</defs>
+    {edges.map(edge => {
+      const middle = (edge.x1 + edge.x2) / 2;
+      const tone = DAG_COLORS[edge.status] ? edge.status : 'pending';
+      return <path key={edge.id} className="stable-dag-edge"
+        d={`M ${edge.x1} ${edge.y1} C ${middle} ${edge.y1}, ${middle} ${edge.y2}, ${edge.x2} ${edge.y2}`}
+        stroke={colorFor(edge.status)} markerEnd={`url(#dag-arrow-${tone})`} />;
+    })}
+    {nodes.map((node, index) => {
+      const position = graph.positions[node.step_id] || { x: 0, y: 0 };
+      const status = nodeStatus(node), color = colorFor(status);
+      const selected = selectedStepId === node.step_id;
+      const meta = NODE_STATUS[status] || [status, '○'];
+      return <g key={node.step_id} className="stable-dag-node" tabIndex="0" role="button"
+                transform={`translate(${position.x} ${position.y})`}
+                onClick={() => onSelect(node.step_id)} onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') onSelect(node.step_id);
+                }}>
+        <title>{`${nodeLabel(node)}\n状态: ${status}\n依赖: ${nodeDependencies(node).join(', ') || '无'}`}</title>
+        <rect width={graph.nodeWidth} height={graph.nodeHeight} rx="8"
+              fill="#131720" stroke={color} strokeWidth={selected ? 2.6 : 1.35} />
+        <rect width={graph.nodeWidth} height="3" rx="2" fill={color} />
+        <rect x="9" y="15" width="25" height="25" rx="6" fill="#10131a" stroke={color} opacity=".95" />
+        <text x="21.5" y="31" textAnchor="middle" className="stable-dag-index">{String(index + 1).padStart(2, '0')}</text>
+        <text x="42" y="23" className="stable-dag-label">{short(nodeLabel(node), 18)}</text>
+        <text x="42" y="39" className="stable-dag-meta">{short(agentDisplayName(node.agent || node.contract?.agent || '待分配'), 13)} · {nodeTasks(node).length} 项</text>
+        <circle cx="139" cy="27" r="9" fill={color} opacity=".13" />
+        <text x="139" y="31" textAnchor="middle" fill={color} className="stable-dag-state">{meta[1]}</text>
+      </g>;
+    })}
+  </svg>;
 }
 
 function timestampMs(value) {
@@ -445,6 +482,7 @@ function OperationsDrawer({ workflow, partial, processing }) {
   const lifetime = workflow.lifecycle || {};
   const patch = workflow.pending_workflow_patch;
   const runtimeNodes = Object.entries(workflow.parallel_runtime?.nodes || {}).map(([step_id, node]) => ({ step_id, ...node }));
+  const liveReports = workflow.parallel_runtime?.live_reports || [];
   const stepById = new Map(steps.map(step => [step.step_id, step]));
   const approvedNodes = (goal.approved_nodes || []).map(contract => {
     const recorded = stepById.get(contract.step_id) || {};
@@ -459,9 +497,9 @@ function OperationsDrawer({ workflow, partial, processing }) {
   // authoritative graph data; flat calls stay in the tool/event sections.
   const displayGraph = workflow.display_graph || selectGraph(workflow);
   const nodes = displayGraph.nodes || [];
+  const viewportIdentity = graphViewportKey(workflow, displayGraph);
   const unstructuredHistoryCount = nodes.length ? 0 : steps.length;
-  const graphLevels = workflowLevels(nodes);
-  const graph = graphGeometry(graphLevels);
+  const graph = useMemo(() => graphGeometry(workflowLevels(nodes)), [viewportIdentity]);
   const activeStates = new Set(['running', 'submitted', 'waiting_jobs', 'waiting_prerequisite', 'uncertain', 'prefinish', 'needs_resources']);
   const activeNodes = nodes.filter(n => activeStates.has(nodeStatus(n)));
   const operations = (workflow.recent_operations || []).slice(-10).reverse();
@@ -505,39 +543,6 @@ function OperationsDrawer({ workflow, partial, processing }) {
   const selectedArgs = selectedNode?.arguments || selectedNode?.contract?.arguments || {};
   const selectedPaths = selectedNode?.path_manifest || {};
   const selectedTasks = selectedNode ? nodeTasks(selectedNode) : [];
-  const flowNodes = nodes.map(node => ({
-    id: node.step_id,
-    type: 'workflow',
-    position: graph.positions[node.step_id] || { x: 0, y: 0 },
-    data: {
-      label: nodeLabel(node),
-      status: nodeStatus(node),
-      dependencies: nodeDependencies(node),
-      taskCount: nodeTasks(node).length,
-      agent: agentDisplayName(node.agent || node.contract?.agent || '待分配'),
-      stage: nodes.findIndex(item => item.step_id === node.step_id) + 1,
-    },
-    selected: selectedStepId === node.step_id,
-    draggable: false,
-  }));
-  const flowEdges = nodes.flatMap(node => nodeDependencies(node).map(dep => {
-    if (!graph.positions[dep] || !graph.positions[node.step_id]) return null;
-    const status = nodeStatus(node);
-    const active = ['running', 'submitted', 'waiting_jobs'].includes(status);
-    const color = status === 'failed' ? '#ef4444'
-      : status === 'prefinish' ? '#f59e0b'
-      : ['succeeded', 'completed'].includes(status) ? '#22c55e'
-      : active ? '#22d3ee' : '#64748b';
-    return {
-      id: dep + '->' + node.step_id,
-      source: dep,
-      target: node.step_id,
-      type: 'smoothstep',
-      animated: active,
-      markerEnd: { type: MarkerType.ArrowClosed, color, width: 14, height: 14 },
-      style: { stroke: color, strokeWidth: active ? 1.8 : 1.35, opacity: status === 'succeeded' ? 0.65 : 0.85 },
-    };
-  }).filter(Boolean));
   const graphHeight = Math.min(510, Math.max(250, graph.height + 42));
 
   return (
@@ -605,37 +610,8 @@ function OperationsDrawer({ workflow, partial, processing }) {
                 <b>尚未形成结构化 DAG</b>
                 <span>{unstructuredHistoryCount ? `检测到 ${unstructuredHistoryCount} 条历史 tool 记录，已避免把它们误画成编排节点。` : '编排批准后会在这里显示有向节点、分支与汇合。'}</span>
               </div>}
-              {nodes.length > 0 && <ReactFlow
-                key={graphViewportKey(workflow, displayGraph)}
-                nodes={flowNodes}
-                edges={flowEdges}
-                nodeTypes={WORKFLOW_NODE_TYPES}
-                onNodeClick={(_, node) => setSelectedStepId(node.id)}
-                fitView
-                fitViewOptions={{ padding: 0.24, duration: 360 }}
-                minZoom={0.35}
-                maxZoom={1.8}
-                nodesDraggable={false}
-                nodesConnectable={false}
-                panOnScroll
-                zoomOnScroll
-                proOptions={{ hideAttribution: true }}
-                aria-label="可缩放的有向编排图"
-              >
-                <Background gap={18} size={1} color="rgba(148,163,184,.10)" />
-                <Controls showInteractive={false} position="bottom-left" />
-                {nodes.length > 10 && <MiniMap
-                  pannable zoomable position="bottom-right"
-                  nodeColor={node => {
-                    const status = node.data?.status;
-                    if (status === 'failed') return '#ef4444';
-                    if (status === 'prefinish') return '#f59e0b';
-                    if (['completed', 'succeeded'].includes(status)) return '#22c55e';
-                    if (['running', 'submitted', 'waiting_jobs'].includes(status)) return '#22d3ee';
-                    return '#64748b';
-                  }}
-                />}
-              </ReactFlow>}
+              {nodes.length > 0 && <StaticWorkflowGraph nodes={nodes} graph={graph}
+                selectedStepId={selectedStepId} onSelect={setSelectedStepId} />}
             </div>
             {selectedNode && <div className={'runtime-node-inspector status-' + selectedStatus}>
               <div className="runtime-inspector-head">
@@ -673,6 +649,18 @@ function OperationsDrawer({ workflow, partial, processing }) {
               </details>}
             </div>}
           </section>
+
+          {liveReports.length > 0 && <section className="runtime-section">
+            <div className="runtime-section-title"><span>实时报告</span><span className="runtime-section-note">{liveReports.length} 个分片</span></div>
+            <div className="runtime-report-list">
+              {liveReports.map((report, index) => <details className="runtime-details runtime-live-report"
+                key={report.step_id} open={report.role === 'assembly' || (liveReports.length === 1 && index === 0)}>
+                <summary>{report.title || report.step_id}<span>{report.role === 'assembly' ? '汇总' : '分片'} · {report.status}</span></summary>
+                <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: '28rem', overflow: 'auto' }}>{report.content}</pre>
+                {report.report_file && <div className="runtime-path"><span>持久化文件</span><code title={report.report_file}>{report.report_file}</code></div>}
+              </details>)}
+            </div>
+          </section>}
 
           <section className="runtime-section">
             <div className="runtime-section-title"><span>最近工具</span><span className="runtime-section-note">{operations.length} 条</span></div>
@@ -891,6 +879,7 @@ export default function App() {
     workflowSnapshotRef.current[key] = revision;
     const merged = retainGraph(workflowCacheRef.current[key], next);
     workflowCacheRef.current[key] = merged;
+    saveCachedWorkflow(localStorage, merged);
     setWorkflow(merged);
   }, []);
 
@@ -965,6 +954,13 @@ export default function App() {
   // load messages when conversation switches
   useEffect(() => {
     if (!user || !convId) return;
+    const cacheKey = JSON.stringify([user, convId]);
+    const cached = loadCachedWorkflow(localStorage, user, convId);
+    if (cached && !workflowCacheRef.current[cacheKey]) {
+      workflowCacheRef.current[cacheKey] = cached;
+      workflowSnapshotRef.current[cacheKey] = Number(cached.snapshot_at || 0);
+      setWorkflow(cached);
+    }
     let active = true;
     fetch(API + '/conversations/' + convId, { headers: authHeaders() })
       .then(r => r.ok ? readJsonResponse(r) : null)

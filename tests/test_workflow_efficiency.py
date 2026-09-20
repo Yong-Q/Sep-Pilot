@@ -1,6 +1,7 @@
 from agents.workflow_patch import workflow_efficiency_issues, canonical_expected_outputs, operational_patch
 from agents.parallel_workflow import resources_for, conflicts
 from agents.registry import get_registry
+from agents.workflow_compiler import expand_parallel_report_nodes
 
 
 def node(step_id, tool, arguments, depends_on=None, outputs=None):
@@ -93,6 +94,76 @@ def test_dynamic_report_contract_uses_upstream_step_evidence(tmp_path):
                     depends_on=["inspect", "convert"], outputs=[str(report)])
     resources = resources_for(contract, tmp_path, tmp_path / "session")
     assert {item["key"]: item["mode"] for item in resources}["path:" + str(report.resolve())] == "write"
+
+
+def test_parallel_report_expands_independent_source_fragments(tmp_path):
+    report = tmp_path / 'session' / 'report.md'
+    changes = [
+        {'operation': 'upsert', 'step_id': 'a', 'node': node(
+            'a', 'read_file', {'path': str(tmp_path / 'a.txt')}, outputs=[str(tmp_path / 'a.out')])},
+        {'operation': 'upsert', 'step_id': 'b', 'node': node(
+            'b', 'read_file', {'path': str(tmp_path / 'b.txt')}, outputs=[str(tmp_path / 'b.out')])},
+        {'operation': 'upsert', 'step_id': 'final', 'node': node(
+            'final', 'generate_scientific_report', {
+                'source_steps': ['a', 'b'], 'output_path': str(report), 'title': 'Results',
+            }, depends_on=['a', 'b'], outputs=[str(report)])},
+    ]
+
+    expanded = expand_parallel_report_nodes(changes, tmp_path / 'session')
+    nodes = {change['step_id']: change['node'] for change in expanded}
+
+    assert nodes['final__fragment__a']['depends_on'] == ['a']
+    assert nodes['final__fragment__b']['depends_on'] == ['b']
+    assert nodes['final']['depends_on'] == [
+        'final__fragment__a', 'final__fragment__b']
+    assert nodes['final']['arguments']['output_path'] == str(report)
+    assert nodes['final']['report_role'] == 'assembly'
+    assert nodes['final__fragment__a']['report_role'] == 'fragment'
+    assert nodes['final__fragment__a']['report_parent'] == 'final'
+    assert nodes['final']['arguments']['report_mode'] == 'assembly'
+    assert nodes['final__fragment__a']['arguments']['report_mode'] == 'fragment'
+
+
+def test_parallel_report_keeps_single_source_contract_compatible(tmp_path):
+    report = tmp_path / 'session' / 'report.md'
+    changes = [{'operation': 'upsert', 'step_id': 'final', 'node': node(
+        'final', 'generate_scientific_report', {
+            'source_steps': ['a'], 'output_path': str(report), 'title': 'Results',
+        }, depends_on=['a'], outputs=[str(report)])}]
+
+    assert expand_parallel_report_nodes(changes, tmp_path / 'session') == changes
+
+
+def test_parallel_report_patch_adds_ml_branch_without_replacing_existing_fragments(tmp_path):
+    root = tmp_path / 'session'
+    report = root / 'report.md'
+    initial = expand_parallel_report_nodes([{
+        'operation': 'upsert', 'step_id': 'final', 'node': node(
+            'final', 'generate_scientific_report', {
+                'source_steps': ['simulation', 'analysis'],
+                'output_path': str(report), 'title': 'Results',
+            }, depends_on=['simulation', 'analysis'], outputs=[str(report)])
+    }], root)
+    existing = [change['node'] for change in initial]
+    ml = node('train_ml', 'ml_train', {
+        'data_csv': str(root / 'training.csv'), 'target': 'uptake',
+        'model_type': 'RF', 'output_dir': str(root / 'ml'),
+    }, depends_on=['analysis'], outputs=[str(root / 'ml')])
+    patch = expand_parallel_report_nodes([
+        {'operation': 'upsert', 'step_id': 'train_ml', 'node': ml},
+        {'operation': 'upsert', 'step_id': 'final', 'node': node(
+            'final', 'generate_scientific_report', {
+                'source_steps': ['simulation', 'analysis', 'train_ml'],
+                'output_path': str(report), 'title': 'Results',
+            }, depends_on=['simulation', 'analysis', 'train_ml'], outputs=[str(report)])},
+    ], root, existing_steps=existing)
+    changed = {change['step_id']: change['node'] for change in patch}
+
+    assert changed['final__fragment__simulation'] == existing[0]
+    assert changed['final__fragment__analysis'] == existing[1]
+    assert changed['final__fragment__train_ml']['depends_on'] == ['train_ml']
+    assert changed['final']['depends_on'][-1] == 'final__fragment__train_ml'
+    assert changed['final']['arguments']['report_mode'] == 'assembly'
 
 
 def test_report_schema_names_missing_output_path_instead_of_vague_anyof_error():

@@ -30,6 +30,7 @@ RELEASE_SOURCE_FILES = (
     'agents/orchestration_chain.py', 'agents/workflow_view.py',
     'agents/reflection_progress.py', 'agents/output_contract.py',
     'agents/project_validation.py', 'agents/registry.py', 'agents/recovery.py',
+    'agents/result_validation.py',
     'agents/state_io.py', 'agents/task_line.py', 'agents/job_watch.py',
     'agents/slurm.py', 'agents/node_inventory.py', 'agents/resource_review.py',
     'pormake_generate_topo.py', 'tools/stage_pormake_outputs.py',
@@ -75,6 +76,8 @@ def main():
     parser.add_argument('--pid', type=int, required=True)
     parser.add_argument('--expected-version', required=True)
     parser.add_argument('--maintenance-interrupted', action='store_true')
+    parser.add_argument('--model-concurrency', type=int, choices=range(1, 9),
+                        help='Temporary model-call concurrency for the replacement process.')
     args = parser.parse_args()
     root = ROOT
     release_sources = release_source_hashes(root)
@@ -82,6 +85,8 @@ def main():
     if (proc / 'cwd').resolve() != root or b'uvicorn\x00api:app' not in (proc / 'cmdline').read_bytes():
         raise RuntimeError('PID is not the api:app server in this exact project')
     env = dict(item.split('=', 1) for item in (proc / 'environ').read_bytes().decode().split('\0') if '=' in item)
+    if args.model_concurrency is not None:
+        env['BIMEM_MODEL_CALL_CONCURRENCY'] = str(args.model_concurrency)
     python = running_python(proc, env, sys.executable)
     def status(endpoint):
         with urllib.request.urlopen('http://127.0.0.1:8000/' + endpoint, timeout=3) as response:
@@ -155,6 +160,8 @@ def main():
                     raise RuntimeError('release sources changed during startup; verification required')
                 release_state = {'pid': child.pid, 'root': str(root), 'version': health['version'],
                     'log': str(log_path), 'updated_at': time.time(), 'source_sha256': release_sources}
+                release_state['model_call_concurrency'] = int(
+                    env.get('BIMEM_MODEL_CALL_CONCURRENCY', '1'))
                 if args.maintenance_interrupted:
                     release_state['maintenance_interrupted_scopes'] = [list(scope) for scope in sorted(final_frozen)]
                 write_checkpoint(root / 'logs/api_backend_state.json', release_state)

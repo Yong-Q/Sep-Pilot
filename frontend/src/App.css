@@ -186,6 +186,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
 .runtime-graph-recovered { margin: -2px 0 8px; padding: 6px 9px; border-left: 2px solid #38bdf8; border-radius: 3px 7px 7px 3px; color: #94a3b8; background: rgba(14,165,233,.07); font-size: .54rem; line-height: 1.4; }
 .runtime-graph-planning { margin: -2px 0 8px; padding: 6px 9px; border-left: 2px solid #a78bfa; border-radius: 3px 7px 7px 3px; color: #c4b5fd; background: rgba(139,92,246,.075); font-size: .54rem; line-height: 1.4; }
 .runtime-graph-viewport { position: relative; min-height: 164px; border: 1px solid rgba(100,116,139,.2); border-radius: 11px; background-color: #0b0d13; background-image: linear-gradient(rgba(148,163,184,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.035) 1px, transparent 1px), radial-gradient(circle at 50% 50%, rgba(56,189,248,.055), transparent 68%); background-size: 18px 18px, 18px 18px, auto; overflow: hidden; box-shadow: inset 0 0 34px rgba(0,0,0,.34); }
+.stable-dag-svg { display: block; width: 100%; height: 100%; min-height: 164px; }
+.stable-dag-edge { fill: none; stroke-width: 1.6; opacity: .84; vector-effect: non-scaling-stroke; }
+.stable-dag-node { cursor: pointer; outline: none; }
+.stable-dag-node:focus rect:first-of-type { stroke-width: 2.8; }
+.stable-dag-index { fill: #dbeafe; font: 650 9px ui-monospace, SFMono-Regular, monospace; }
+.stable-dag-label { fill: #eef2f7; font: 650 9px system-ui, sans-serif; }
+.stable-dag-meta { fill: #818898; font: 7px system-ui, sans-serif; }
+.stable-dag-state { font: 650 9px system-ui, sans-serif; }
 .runtime-graph-empty { min-height: 164px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 20px; }.runtime-graph-empty b { color: var(--text-secondary); font-size: .68rem; }.runtime-graph-empty span { max-width: 310px; color: var(--text-muted); font-size: .57rem; line-height: 1.5; }
 .runtime-graph-viewport .react-flow { color: var(--text); }
 .runtime-graph-viewport .react-flow__pane { cursor: grab; }

@@ -30,10 +30,19 @@ def authoritative_line(line, runtime):
                     job_ids=list(actual.get('job_ids', [])), state_authority='workflow_executor',
                     execution_plan_version=actual.get('execution_plan_version', runtime.get('plan_version')),
                     error=actual.get('error'), result_ref=copy.deepcopy(actual.get('result_ref')),
-                    node_verification=copy.deepcopy(actual.get('node_verification')))
+                    node_verification=copy.deepcopy(actual.get('node_verification')),
+                    resolved_arguments=copy.deepcopy(actual.get('resolved_arguments')),
+                    runtime_input_bindings=copy.deepcopy(actual.get('runtime_input_bindings', [])),
+                    runtime_binding_fingerprint=actual.get('runtime_binding_fingerprint'))
         if actual.get('path_manifest'):
             step['path_manifest'] = copy.deepcopy(actual['path_manifest'])
             step['output_files'] = list(actual['path_manifest'].get('output_files', []))
+        if actual.get('contract', {}).get('tool') == 'generate_scientific_report':
+            receipt = actual.get('result') or {}
+            step['report_receipt'] = copy.deepcopy({key: receipt.get(key) for key in (
+                'report_file', 'output_path', 'source_steps', 'source_step',
+                'source_attempt_fingerprint', 'evidence_fingerprint',
+                'fragment_fingerprint', 'fragment_manifest') if receipt.get(key) is not None})
     return result
 
 
@@ -54,6 +63,7 @@ def bind_result_handoff(session, runtime_getter):
         step_id, expected_outputs, completed_job_id=completed_job_id)
     session._on_workflow_finish = lambda step_id, evidence_call_ids, conclusion: runtime_getter().finish_node(
         step_id, evidence_call_ids, conclusion)
+    session._on_workflow_runtime_repair = lambda step_id: runtime_getter().repair_runtime_inputs(step_id)
 
 
 def restore_approved_nodes(goal, runtime, owner):

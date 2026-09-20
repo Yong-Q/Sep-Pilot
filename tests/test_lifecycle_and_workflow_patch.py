@@ -15,12 +15,39 @@ from agents.session import Session
 from agents.state_io import compact_checkpoint_evidence, apply_evidence_references, write_checkpoint
 from agents.task_line import TaskLineStore
 from agents.workflow_patch import WorkflowContractError, patched_graph
+from agents.workflow_view import authoritative_line
 
 
 def node(agent='analyst', tool='run_cdft', depends_on=None):
     return {'agent': agent, 'tool': tool,
             'arguments': {'action': 'pipeline', 'cif_dir': 'charged', 'gas': 'Kr', 'temperature': 298},
             'depends_on': depends_on or [], 'expected_outputs': ['results.csv'], 'resource_locks': ['cdft-workdir']}
+
+
+def test_authoritative_report_delivery_uses_compact_receipt():
+    contract = {
+        'step_id': 'report', 'agent': 'communicator',
+        'tool': 'generate_scientific_report',
+        'arguments': {'source_steps': ['fragment'], 'output_path': '/owned/report.md',
+                      'title': 'Final', 'report_mode': 'assembly'},
+        'depends_on': ['fragment'], 'expected_outputs': ['/owned/report.md'],
+        'resource_locks': [], 'report_role': 'assembly',
+    }
+    line = {'username': 'u', 'conv_id': 'c', 'steps': [contract]}
+    runtime = {'username': 'u', 'conv_id': 'c', 'plan_version': 2,
+               'status': 'completed', 'nodes': {'report': {
+                   'contract': contract, 'status': 'succeeded',
+                   'result': {'report_file': '/owned/report.md',
+                              'report_preview': 'large prose must stay out of the durable graph',
+                              'fragment_manifest': [{'step_id': 'fragment',
+                                                     'fragment_fingerprint': 'abc'}]},
+               }}}
+
+    receipt = authoritative_line(line, runtime)['steps'][0]['report_receipt']
+
+    assert receipt['report_file'] == '/owned/report.md'
+    assert receipt['fragment_manifest'][0]['fragment_fingerprint'] == 'abc'
+    assert 'report_preview' not in receipt
 
 
 def test_two_lifetime_receivers_and_agent_serialization(tmp_path):
@@ -35,6 +62,59 @@ def test_two_lifetime_receivers_and_agent_serialization(tmp_path):
     restart = LifecycleStore(tmp_path / 'lifecycle.json')
     assert restart.snapshot()['events']['one']['payload']['workflow']['steps'][0]['arguments']['gas'] == 'Kr'
     assert restart.snapshot()['events']['one']['supervisor'] == 'delivered'
+
+
+def test_current_validation_dossier_precedes_historical_warnings(tmp_path):
+    store = LifecycleStore(tmp_path / 'lifecycle.json')
+    store.emit('role_unresponsive', {'receiver': 'main_chat'}, event_id='old-warning')
+    store.emit('worker_validation_dossier_ready', {
+        'step_id': 'calc', 'validation_dossier': {'evidence_call_id': 'fresh'},
+    }, event_id='fresh-dossier')
+
+    assert [event['event_id'] for event in store.pending()][:2] == [
+        'fresh-dossier', 'old-warning']
+
+
+def test_recoverable_failure_precedes_historical_warnings(tmp_path):
+    store = LifecycleStore(tmp_path / 'lifecycle.json')
+    store.emit('role_unresponsive', {'receiver': 'main_chat'}, event_id='old-warning')
+    store.emit('worker_recovery_ready', {
+        'step_id': 'downstream',
+        'recovery': {'tool': 'repair_workflow_runtime_inputs'},
+    }, event_id='fresh-recovery')
+
+    assert [event['event_id'] for event in store.pending()][:2] == [
+        'fresh-recovery', 'old-warning']
+
+
+def test_recovery_capability_obsoletes_matching_internal_user_question():
+    from agents.lifecycle import obsolete_internal_question_for_recovery
+
+    checkpoints = []
+    session = SimpleNamespace(
+        _pending_user_interaction={
+            'tool': 'user_decision',
+            'params': {'related_nodes': ['collect']},
+        },
+        _waiting_for_user_input=True,
+        context={},
+        _checkpoint=lambda reason: checkpoints.append(reason),
+    )
+    event = {
+        'kind': 'worker_recovery_ready',
+        'event_id': 'recovery-1',
+        'payload': {
+            'step_id': 'collect',
+            'requires_user': False,
+            'recovery': {'tool': 'repair_workflow_runtime_inputs'},
+        },
+    }
+
+    assert obsolete_internal_question_for_recovery(session, event)
+    assert session._pending_user_interaction is None
+    assert session._waiting_for_user_input is False
+    assert session.context['obsolete_internal_question']['event_id'] == 'recovery-1'
+    assert checkpoints == ['obsolete_internal_question_for_recovery']
 
 
 def test_supervisor_is_distinct_from_resource_monitor_and_cannot_submit():

@@ -3711,6 +3711,8 @@ _SCHEMAS = {
         "schema":{"type":"object","properties":{"step_id":{"type":"string","minLength":1},"expected_outputs":{"type":"array","items":OUTPUT_SCHEMA,"minItems":1},"completed_job_id":{"type":"string","pattern":"^[0-9]+$","description":"Optional restore of an archived verified generator result after all newer attempts are confirmed stopped. Original file identities are frozen from actual historical proof; no replay or inclusion of extra files."}},"required":["step_id","expected_outputs"],"additionalProperties":False}},
     "finish_workflow_node":{"description":"Complete a prefinish node only after the scientific owner has checked actual results/conditions with fresh real tools. Requires scoped evidence IDs and a factual validation conclusion; code rechecks artifacts. This is a completion operation, not a classifier bool. Never treat job exit alone as scientific success.",
         "schema":{"type":"object","properties":{"step_id":{"type":"string","minLength":1},"evidence_call_ids":{"type":"array","items":{"type":"string"},"minItems":1},"conclusion":{"type":"string","minLength":10}},"required":["step_id","evidence_call_ids","conclusion"],"additionalProperties":False}},
+    "repair_workflow_runtime_inputs":{"description":"Main Agent recovery tool for a stopped failed DAG node whose concrete input path is available in a succeeded direct dependency receipt. It only refines an already approved path to one unique existing descendant, records provenance, clears the internal failure pause, and resumes once. Use this for timestamped work_dir/output paths; do not ask the user for internal paths.",
+        "schema":{"type":"object","properties":{"step_id":{"type":"string","minLength":1}},"required":["step_id"],"additionalProperties":False}},
     "retarget_queued_job":{"description":"Main chat scheduling control for an authorized node/resource move: update the same owned PENDING job, verify CPU/RAM/partition and journal receipt. memory_mb may only equal the operator-owned profile for that tool. Never cancel/resubmit or change science parameters; no data-path lock bypass.",
         "schema":{"type":"object","properties":{"job_id":{"type":"string","pattern":"^[0-9]+$"},"nodelist":{"type":"string","pattern":"^[A-Za-z0-9_.-]+$"},"partition":{"type":"string","pattern":"^[A-Za-z0-9_.-]+$"},"memory_mb":{"type":"integer","minimum":64,"description":"Optional finite RAM profile for this tool; kernel verifies it against env/node_policy.json."}},"required":["job_id","nodelist","partition"],"additionalProperties":False}},
     "resource_health": {
@@ -3877,6 +3879,7 @@ _SCHEMAS = {
                 "output_path": {"type": "string", "minLength": 1, "description": "Session-owned Markdown output path"},
                 "title": {"type": "string", "minLength": 1},
                 "instructions": {"type": "string", "description": "Reporting scope; cannot override or invent tool evidence"},
+                "report_mode": {"type": "string", "enum": ["fragment", "assembly"], "description": "Compiler-owned parallel report role"},
             },
             "anyOf": [
                 {"required": ["work_dir"]},
@@ -3999,6 +4002,7 @@ def _exec_generate_report(p: Dict[str, Any]) -> Any:
     from pathlib import Path
 
     if p.get("source_steps"):
+        import hashlib
         import json
         import os
         import tempfile
@@ -4009,15 +4013,99 @@ def _exec_generate_report(p: Dict[str, Any]) -> Any:
         current_step = context.get('step_id', '')
         if not username or not conv_id or not current_step:
             return {"error": "generic evidence report requires an owned workflow node context"}
-        store = WorkflowStore(get_config().project_root / 'data/state/parallel_workflows.json')
+        recovery_path = Path(context.get('recovery_path') or '')
+        owned_session_root = recovery_path.parent.resolve() if recovery_path.name else None
+        project_root = (owned_session_root.parents[2] if owned_session_root and
+                        len(owned_session_root.parents) >= 3 else
+                        Path(get_config().project_root).resolve())
+        store = WorkflowStore(project_root / 'data/state/parallel_workflows.json')
         state = store.snapshot(store.identity(username, conv_id))
         current = state.get('nodes', {}).get(current_step, {})
         dependencies = set(current.get('contract', {}).get('depends_on', []))
         source_steps = list(p['source_steps'])
         if not set(source_steps) <= dependencies:
             return {"error": "source_steps must be completed direct dependencies of this report node"}
+        own_root = owned_session_root or (project_root / 'runs' / username / conv_id).resolve()
+        if own_root.name != conv_id or own_root.parent.name != username:
+            return {"error": "report execution context does not match the owned session root"}
+
+        def publish(text, immutable=False):
+            output = Path(p['output_path']).resolve()
+            if not output.is_relative_to(own_root):
+                return None, {"error": "report output_path must stay inside the current user/session root",
+                              "session_root": str(own_root)}
+            output.parent.mkdir(parents=True, exist_ok=True)
+            if immutable and output.exists():
+                existing = output.read_text(encoding='utf-8')
+                if existing != text:
+                    return None, {"error": "immutable report fragment already exists with different content",
+                                  "output_path": str(output)}
+                return output, None
+            fd, temporary = tempfile.mkstemp(prefix=output.name + '.', dir=str(output.parent))
+            try:
+                with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+                    stream.write(text)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                os.replace(temporary, output)
+            finally:
+                if os.path.exists(temporary):
+                    os.unlink(temporary)
+            return output, None
+
+        report_mode = p.get('report_mode') or current.get('contract', {}).get('report_role') or 'fragment'
+        if report_mode == 'assembly':
+            fragments = []
+            for step_id in source_steps:
+                node = state.get('nodes', {}).get(step_id, {})
+                if node.get('status') != 'succeeded':
+                    return {"error": f"report fragment is not succeeded: {step_id}"}
+                contract = node.get('contract', {})
+                if (contract.get('report_role') or contract.get('arguments', {}).get('report_mode')) != 'fragment':
+                    return {"error": f"assembly dependency is not a report fragment: {step_id}"}
+                receipt = node.get('result') or {}
+                fragment_path = Path(receipt.get('report_file') or receipt.get('output_path') or '')
+                try:
+                    resolved = fragment_path.resolve()
+                except Exception:
+                    return {"error": f"invalid report fragment path: {step_id}"}
+                if not fragment_path.is_file() or not resolved.is_relative_to(own_root):
+                    return {"error": f"owned report fragment missing: {step_id}"}
+                source_step = receipt.get('source_step')
+                source = state.get('nodes', {}).get(source_step, {})
+                if not source_step or source.get('status') != 'succeeded':
+                    return {"error": f"report fragment source is unavailable: {step_id}"}
+                if receipt.get('source_attempt_fingerprint') != source.get('execution_fingerprint'):
+                    return {"error": f"report fragment references a stale source attempt: {step_id}"}
+                content = resolved.read_text(encoding='utf-8')
+                if receipt.get('fragment_fingerprint') != hashlib.sha256(content.encode()).hexdigest():
+                    return {"error": f"report fragment content fingerprint mismatch: {step_id}"}
+                fragments.append({
+                    'step_id': step_id, 'source_step': source_step,
+                    'source_attempt_fingerprint': receipt['source_attempt_fingerprint'],
+                    'fragment_fingerprint': receipt['fragment_fingerprint'],
+                    'report_file': str(resolved), 'content': content,
+                })
+            title = p['title'].strip()
+            sections = [f'# {title}', '', p.get('instructions',
+                'This live report is assembled from completed, evidence-scoped workflow branches.'), '']
+            for fragment in fragments:
+                sections.extend([fragment['content'].strip(), ''])
+            text = '\n'.join(sections).rstrip() + '\n'
+            output, error = publish(text)
+            if error:
+                return error
+            return {
+                "status": "success", "report_file": str(output), "output_path": str(output),
+                "output_files": [str(output)], "source_steps": source_steps,
+                "fragment_manifest": [{k: value for k, value in fragment.items() if k != 'content'}
+                                      for fragment in fragments],
+                "report_preview": text[:24000],
+            }
+
+        if report_mode == 'fragment' and len(source_steps) != 1:
+            return {"error": "report fragments require exactly one direct source step"}
         evidence_rows = []
-        own_root = (get_config().project_root / 'runs' / username / conv_id).resolve()
         for step_id in source_steps:
             node = state.get('nodes', {}).get(step_id, {})
             if node.get('status') != 'succeeded':
@@ -4045,6 +4133,7 @@ def _exec_generate_report(p: Dict[str, Any]) -> Any:
                 'params': evidence.get('params', {}),
                 'result': rendered[:12000],
                 'evidence_path': str(resolved),
+                'evidence_fingerprint': hashlib.sha256(evidence_path.read_bytes()).hexdigest(),
             })
         title = p['title'].strip()
         lines = [f"# {title}", "", "## 验收范围", "",
@@ -4059,23 +4148,22 @@ def _exec_generate_report(p: Dict[str, Any]) -> Any:
                           "- 工具结果：", "```json", row['result'], "```"])
         lines.extend(["", "## 结论边界", "",
                       f"已汇总 {len(evidence_rows)} 个成功节点的原始证据。科学解释与最终结论须与上述工具结果一致；无证据项不视为通过。", ""])
-        output = Path(p['output_path']).resolve()
-        if not output.is_relative_to(own_root):
-            return {"error": "report output_path must stay inside the current user/session root",
-                    "session_root": str(own_root)}
-        output.parent.mkdir(parents=True, exist_ok=True)
-        fd, temporary = tempfile.mkstemp(prefix=output.name + '.', dir=str(output.parent))
-        try:
-            with os.fdopen(fd, 'w', encoding='utf-8') as stream:
-                stream.write('\n'.join(lines))
-                stream.flush()
-                os.fsync(stream.fileno())
-            os.replace(temporary, output)
-        finally:
-            if os.path.exists(temporary):
-                os.unlink(temporary)
-        return {"status": "success", "report_file": str(output), "output_files": [str(output)],
-                "source_steps": source_steps, "evidence_count": len(evidence_rows)}
+        text = '\n'.join(lines)
+        output, error = publish(text, immutable=report_mode == 'fragment')
+        if error:
+            return error
+        receipt = {"status": "success", "report_file": str(output), "output_path": str(output),
+                   "output_files": [str(output)], "source_steps": source_steps,
+                   "evidence_count": len(evidence_rows), "report_preview": text[:24000]}
+        if report_mode == 'fragment':
+            source = state['nodes'][source_steps[0]]
+            receipt.update(
+                source_step=source_steps[0],
+                source_attempt_fingerprint=source.get('execution_fingerprint'),
+                evidence_fingerprint=evidence_rows[0]['evidence_fingerprint'],
+                fragment_fingerprint=hashlib.sha256(text.encode()).hexdigest(),
+            )
+        return receipt
 
     work_dir = p.get("work_dir", "")
     material = p.get("material", "Unknown")
@@ -4929,6 +5017,7 @@ _EXECUTORS = {
     "discard_workflow_patch": lambda p: {"blocked": True, "executed": False, "error": "owned main chat Session must withdraw the proposal"},
     "revalidate_workflow_node_outputs": lambda p: {"blocked":True,"executed":False,"error":"owned main chat Session must verify runtime artifacts"},
     "finish_workflow_node": lambda p: {"blocked":True,"executed":False,"error":"owned runtime must verify node completion"},
+    "repair_workflow_runtime_inputs": lambda p: {"blocked":True,"executed":False,"error":"owned main chat Session must repair runtime inputs"},
     "request_user_decision": lambda p: {"error": "main chat Session must handle user negotiation"},
     "reconcile_watched_job": lambda p: {"error": "main chat Session must handle dispatch reconciliation"},
     "supervisor_decision": lambda p: p,

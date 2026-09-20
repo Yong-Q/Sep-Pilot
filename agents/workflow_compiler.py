@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,82 @@ SAFE_SCHEMA_DEFAULT_ARGUMENTS = frozenset({
 class WorkflowCompilation:
     changes: list[dict[str, Any]]
     defaults_applied: list[dict[str, Any]]
+
+
+def expand_parallel_report_nodes(changes, conversation_root, existing_steps=()):
+    """Split a multi-source final report into independent fragment branches."""
+    from .workflow_patch import WorkflowContractError
+
+    result = copy.deepcopy(changes)
+    existing_by_id = {step.get('step_id'): step for step in existing_steps or ()}
+    occupied = set(existing_by_id)
+    occupied.update(change.get('step_id') for change in result)
+    expanded = []
+    for change in result:
+        if change.get('operation') != 'upsert' or not change.get('node'):
+            expanded.append(change)
+            continue
+        report_id = change.get('step_id')
+        node = change['node']
+        arguments = node.get('arguments', {})
+        sources = list(arguments.get('source_steps') or [])
+        if node.get('tool') != 'generate_scientific_report' or len(sources) < 2:
+            expanded.append(change)
+            continue
+        if sources != list(node.get('depends_on', [])):
+            raise WorkflowContractError('parallel report sources must be direct dependencies', {
+                'step_id': report_id,
+                'source_steps': sources,
+                'depends_on': node.get('depends_on', []),
+                'next_action': 'Use the same ordered direct dependencies for source_steps and depends_on.',
+            })
+        fragment_ids = []
+        for source in sources:
+            fragment_id = f'{report_id}__fragment__{source}'
+            if fragment_id in occupied:
+                prior = existing_by_id.get(fragment_id, {})
+                prior_args = prior.get('arguments', {})
+                owned_fragment = (
+                    (prior.get('report_role') or prior_args.get('report_mode')) == 'fragment'
+                    and prior.get('report_parent') == report_id
+                    and prior_args.get('source_steps') == [source]
+                )
+                if not owned_fragment:
+                    raise WorkflowContractError('parallel report fragment identity collides with an existing node', {
+                        'step_id': report_id, 'fragment_step_id': fragment_id,
+                        'next_action': 'Rename the report or conflicting workflow node.',
+                    })
+            occupied.add(fragment_id)
+            fragment_ids.append(fragment_id)
+            digest = hashlib.sha256(f'{report_id}\0{source}'.encode()).hexdigest()[:20]
+            fragment_path = str(Path(conversation_root) / 'reports' / 'fragments' / f'{digest}.md')
+            fragment_arguments = {
+                'source_steps': [source],
+                'output_path': fragment_path,
+                'title': f"{arguments.get('title', 'Scientific report')} · {source}",
+                'report_mode': 'fragment',
+            }
+            if arguments.get('instructions'):
+                fragment_arguments['instructions'] = arguments['instructions']
+            fragment = {
+                'step_id': fragment_id,
+                'agent': node.get('agent', 'communicator'),
+                'tool': 'generate_scientific_report',
+                'arguments': fragment_arguments,
+                'depends_on': [source],
+                'expected_outputs': [fragment_path],
+                'resource_locks': [],
+                'report_role': 'fragment',
+                'report_parent': report_id,
+                'report_source': source,
+            }
+            expanded.append({'operation': 'upsert', 'step_id': fragment_id, 'node': fragment})
+        node['depends_on'] = fragment_ids
+        node['arguments']['source_steps'] = fragment_ids
+        node['arguments']['report_mode'] = 'assembly'
+        node['report_role'] = 'assembly'
+        expanded.append(change)
+    return expanded
 
 
 def materialize_safe_defaults(node, registry, step_id):
@@ -306,8 +383,10 @@ def compile_workflow_changes(changes, registry, project_root, conversation_root,
         resolve_workflow_placeholders,
     )
 
-    compiled = resolve_workflow_placeholders(
+    compiled = expand_parallel_report_nodes(
         changes, conversation_root, existing_steps=existing_steps)
+    compiled = resolve_workflow_placeholders(
+        compiled, conversation_root, existing_steps=existing_steps)
     for change in compiled:
         if change.get("operation") != "upsert" or not change.get("node"):
             continue

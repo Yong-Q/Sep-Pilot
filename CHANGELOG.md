@@ -2,6 +2,20 @@
 
 This file records user-visible changes to Sep-Pilot. Implementation details and private deployment information are maintained separately.
 
+## v3.4.76 — 2026-09-20
+
+- Added dedicated report workers that generate evidence-scoped fragments while independent calculations continue.
+- Added live report previews to the workflow panel and durable compact receipts for restart recovery.
+- Added stale-attempt and cross-session protections before final report assembly.
+- Supported workflow patches that add machine-learning branches and append their validated results to the final report.
+
+## v3.4.74 — 2026-09-20
+
+- Added one-pass, Agent-reviewed result dossiers for scheduler-backed calculations.
+- Bound validation evidence to the exact DAG node, attempt, job receipts, contract, and result root.
+- Added native result checks for structure generation, charge assignment, cDFT, GCMC, MD, and electronic DFT without relying on output filenames or generic error words.
+- Kept recoverable result anomalies inside the Agent workflow and prevented validation from resubmitting completed jobs.
+
 ## v3.4.73 — 2026-09-20
 
 - Automatically cleared stale cache-review pauses while an unchanged workflow node is still running or validating.

@@ -512,17 +512,8 @@ def complete_compute_contract(node, step_id, project_root, conversation_root):
     base = Path(args['job_work_dir']).resolve()
     actual = Path(args.get('output') or base / 'results.csv')
     actual = (actual if actual.is_absolute() else Path(project_root) / actual).resolve()
-    if not result.get('expected_outputs'):
-        result['expected_outputs'] = [{'kind': 'file', 'path': str(actual)}]
-    def covers_csv(value):
-        target = output_path(value, base)
-        contract = normalize_output(value)
-        if contract['kind'] == 'directory':
-            return target == actual.parent and contract.get('min_count', 1) == 1 and fnmatchcase(actual.name, contract.get('pattern', '*'))
-        return target.parent == actual.parent and fnmatchcase(actual.name, target.name)
-    if not any(covers_csv(value) for value in result['expected_outputs']):
-        # The path is entirely determined by run_cdft itself.  Requiring the
-        # model to copy it into expected_outputs caused blind compile retries;
-        # make the compiler authoritative for this mechanical field.
-        result['expected_outputs'].append({'kind': 'file', 'path': str(actual)})
+    # pipeline/submit has one executor-defined final acceptance artifact.
+    # Raw ``*.data`` files are solver internals in a timestamped child and must
+    # never become an additional hard DAG condition guessed by the model.
+    result['expected_outputs'] = [{'kind': 'file', 'path': str(actual)}]
     return result

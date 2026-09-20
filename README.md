@@ -6,7 +6,7 @@
 
 From a scientific question to an executable workflow, live progress, and traceable results — in one workspace.
 
-[![Release](https://img.shields.io/badge/release-v3.4.73-6C63FF?style=for-the-badge)](https://github.com/Yong-Q/Sep-Pilot/tree/release/v3.4.73)
+[![Release](https://img.shields.io/badge/release-v3.4.76-6C63FF?style=for-the-badge)](https://github.com/Yong-Q/Sep-Pilot/releases/tag/v3.4.76)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Research](https://img.shields.io/badge/use-research_only-00A98F?style=for-the-badge)](#license)
 [![Tests](https://img.shields.io/badge/tests-529_passed-2EA44F?style=for-the-badge)](#quality)
@@ -28,6 +28,7 @@ Sep-Pilot helps researchers plan, launch, follow, and review computational mater
 | 🧪 | **Specialist agents** | Coordinate agents for structures, force fields, adsorption, molecular simulation, and data analysis. |
 | 🖥️ | **HPC execution** | Launch and follow long-running calculations on a configured research cluster. |
 | ♻️ | **Task recovery** | Continue interrupted work and handle recoverable failures without losing completed results. |
+| 📝 | **Live reports** | Read evidence-backed report sections as workflow branches finish, then receive one updated final report. |
 | 📦 | **Result handoff** | Feed structures, tables, trajectories, and other outputs into the next scientific task. |
 | 🔎 | **Evidence tracking** | Keep calculations, files, scheduler receipts, and conclusions connected for later review. |
 | 👥 | **Session isolation** | Maintain separate goals, files, workflows, and history for each user session. |
@@ -102,7 +103,7 @@ python -m agents -i
 
 ## Quality
 
-Release `v3.4.73` passed 529 backend tests, frontend tests and production build validation, registered-tool smoke checks, and a sanitized-export privacy scan.
+Release `v3.4.76` passed 172 workflow backend checks, 12 frontend checks, production build validation, and a sanitized-export privacy scan.
 
 ## License
 

@@ -71,10 +71,10 @@ def test_cdft_defaults_are_disjoint_and_verified_before_approval(tmp_path):
     assert a['expected_outputs'][0]['path'] == str(Path(a['arguments']['job_work_dir']) / 'results.csv')
     node['expected_outputs'] = [{'kind': 'directory', 'path': 'wrong', 'pattern': 'output*.dat', 'min_count': 10}]
     repaired = complete_compute_contract(node, 'kr', tmp_path, root)
-    assert repaired['expected_outputs'][-1] == {
+    assert repaired['expected_outputs'] == [{
         'kind': 'file',
         'path': str(Path(repaired['arguments']['job_work_dir']) / 'results.csv'),
-    }
+    }]
 
 
 def test_workflow_compiler_resolves_session_and_upstream_path_placeholders(tmp_path):

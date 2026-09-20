@@ -26,7 +26,7 @@ from auth import (
     save_model_connection, config_for_user, migrate_auth_storage, load_tokens,
 )
 
-app = FastAPI(title="BiMemAgent API", description="多用户会话隔离、持久化混合串并行编排与全生命周期协调", version="3.4.73")
+app = FastAPI(title="BiMemAgent API", description="多用户会话隔离、持久化混合串并行编排与全生命周期协调", version="3.4.76")
 
 # Durable lifecycle mailboxes survive the API process.  That is necessary for
 # long scheduler jobs, but a pre-restart notification from a conversation with
@@ -298,6 +298,9 @@ def _workflow_state(conv) -> Dict[str, Any]:
         pass
     from agents.workflow_view import authoritative_line
     runtime = conv.session._runtime_snapshot() if conv.session and conv.session._runtime_snapshot else {}
+    if runtime:
+        from agents.parallel_workflow import runtime_summary
+        runtime = {**runtime, 'live_reports': runtime_summary(runtime).get('live_reports', [])}
     lines = [authoritative_line(line, runtime) for line in lines]
     from agents.orchestration_chain import read_last_graph
     from agents.workspace import session_root
@@ -353,7 +356,7 @@ def _workflow_state(conv) -> Dict[str, Any]:
         "recovery": conv.session.recovery_gate.snapshot() if conv.session else {},
         "lifecycle": conv.session._lifecycle_state() if conv.session else {},
         "pending_workflow_patch": conv.session._pending_workflow_patch if conv.session else None,
-        "parallel_runtime": conv.session._runtime_snapshot() if conv.session and conv.session._runtime_snapshot else {},
+        "parallel_runtime": runtime,
         "graph_projection": graph_projection,
         "current_activity": {
             "agent": conv.current_agent or "lead-orchestrator",
@@ -1604,6 +1607,30 @@ async def _dispatch_lifecycle_once():
                     if event.get('main_chat') not in {'delivered', 'obsolete'}:
                         store.receipt(event['event_id'], 'main_chat', 'obsolete', details)
                     continue
+                if (event['kind'] == 'worker_validation_dossier_ready'
+                        and event.get('supervisor') in {'pending', 'retry'}):
+                    dossier = event.get('payload', {}).get('validation_dossier') or {}
+                    store.receipt(event['event_id'], 'supervisor', 'delivered', {
+                        'next_action': 'advance_dependencies' if dossier.get('verdict') == 'pass' else 'diagnose_and_fix',
+                        'reason': 'executor-bound validation dossier is already kernel verified',
+                        'evidence_refs': [dossier.get('evidence_call_id')],
+                        'scientific_review': {'passed': dossier.get('verdict') == 'pass', 'issues': dossier.get('failed_items', [])},
+                    })
+                    event = store.snapshot().get('events', {}).get(event['event_id'], event)
+                if (event['kind'] == 'worker_recovery_ready'
+                        and event.get('supervisor') in {'pending', 'retry'}):
+                    recovery = event.get('payload', {}).get('recovery') or {}
+                    store.receipt(event['event_id'], 'supervisor', 'delivered', {
+                        'next_action': 'diagnose_and_fix',
+                        'reason': 'durable workflow state exposes a bounded recovery capability',
+                        'evidence_refs': [event['event_id']],
+                        'suggested_changes': [{
+                            'action': 'call_tool', 'tool': recovery.get('tool'),
+                            'step_id': event.get('payload', {}).get('step_id'),
+                        }],
+                        'scientific_review': {'passed': True, 'issues': []},
+                    })
+                    event = store.snapshot().get('events', {}).get(event['event_id'], event)
                 if event.get('supervisor') in {'pending', 'retry'} and store.claim(event['event_id'], 'supervisor'):
                     _schedule_lifecycle(_supervise_lifecycle_event(conv, event))
                     continue
@@ -1627,6 +1654,9 @@ async def _dispatch_lifecycle_once():
                 if old_goal is not None and old_goal != conv.session.goal_contract.version and not reconciled_event:
                     store.receipt(event['event_id'], 'main_chat', 'obsolete', {'reason': 'user superseded the goal'})
                     continue
+                from agents.lifecycle import obsolete_internal_question_for_recovery
+                if obsolete_internal_question_for_recovery(conv.session, event):
+                    conv.current_status = '恢复工作流'
                 pending = conv.session._pending_user_interaction or {}
                 if conv.session._awaiting_plan_approval or pending.get('tool') in {'failure_decision', 'workflow_patch_decision', 'user_decision'}:
                     store.receipt(event['event_id'], 'main_chat', 'waiting_user', {'negotiation_owner': 'lead-orchestrator'})

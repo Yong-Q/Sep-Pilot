@@ -55,3 +55,41 @@ export function graphViewportKey(workflow = {}, graph = selectGraph(workflow)) {
     scope.username || '', scope.conv_id || '', Number(graph.version || 0), topology,
   ]);
 }
+
+const CACHE_PREFIX = 'sep_pilot_workflow_v1:';
+
+function cacheKey(username, convId) {
+  return CACHE_PREFIX + JSON.stringify([username || '', convId || '']);
+}
+
+// Keep only the durable display contract. Task history and evidence can be large
+// and are fetched from the server after the first paint.
+export function saveCachedWorkflow(storage, workflow = {}) {
+  const scope = workflow.scope || {};
+  const graph = workflow.display_graph || selectGraph(workflow);
+  if (!storage || !scope.username || !scope.conv_id || !graph.nodes?.length) return false;
+  try {
+    storage.setItem(cacheKey(scope.username, scope.conv_id), JSON.stringify({
+      scope,
+      snapshot_at: Number(workflow.snapshot_at || 0),
+      goal_contract: workflow.goal_contract || {},
+      current_activity: workflow.current_activity || {},
+      display_graph: graph,
+    }));
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+export function loadCachedWorkflow(storage, username, convId) {
+  if (!storage || !username || !convId) return null;
+  try {
+    const value = JSON.parse(storage.getItem(cacheKey(username, convId)) || 'null');
+    if (value?.scope?.username !== username || value?.scope?.conv_id !== convId ||
+        !value.display_graph?.nodes?.length) return null;
+    return value;
+  } catch (_) {
+    return null;
+  }
+}

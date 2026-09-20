@@ -12,6 +12,30 @@ import threading
 
 from .state_io import json_transaction
 
+
+def obsolete_internal_question_for_recovery(session, event):
+    """Release an obsolete internal question when a bounded repair now exists."""
+    if (event.get('kind') != 'worker_recovery_ready'
+            or event.get('payload', {}).get('requires_user')
+            or not event.get('payload', {}).get('recovery', {}).get('tool')):
+        return False
+    pending = getattr(session, '_pending_user_interaction', None) or {}
+    if pending.get('tool') not in {'failure_decision', 'workflow_patch_decision', 'user_decision'}:
+        return False
+    step_id = event.get('payload', {}).get('step_id')
+    related = set((pending.get('params') or {}).get('related_nodes') or [])
+    if not step_id or step_id not in related:
+        return False
+    session.context['obsolete_internal_question'] = {
+        'event_id': event.get('event_id'),
+        'step_id': step_id,
+        'reason': 'bounded recovery capability superseded the internal question',
+    }
+    session._pending_user_interaction = None
+    session._waiting_for_user_input = False
+    session._checkpoint('obsolete_internal_question_for_recovery')
+    return True
+
 _event_wakeup=threading.Event()
 
 
@@ -146,6 +170,16 @@ class LifecycleStore:
                         'main_chat': 'pending', 'supervisor': 'pending'})
 
     def pending(self):
-        return [e for e in self.snapshot().get('events', {}).values()
-                if e.get('main_chat') not in {'delivered', 'obsolete'}
-                or e.get('supervisor') not in {'delivered', 'obsolete'}]
+        events = [e for e in self.snapshot().get('events', {}).values()
+                  if e.get('main_chat') not in {'delivered', 'obsolete'}
+                  or e.get('supervisor') not in {'delivered', 'obsolete'}]
+        # Current-attempt evidence can release a completed calculation and its
+        # dependents, so historical warnings must not starve this event.
+        priority = {
+            'worker_recovery_ready': 0,
+            'worker_validation_dossier_ready': 1,
+        }
+        return sorted(events, key=lambda event: (
+            priority.get(event.get('kind'), 2),
+            -float(event.get('time', 0) or 0),
+        ))

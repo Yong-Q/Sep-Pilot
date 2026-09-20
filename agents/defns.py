@@ -91,6 +91,7 @@ apply_workflow_patch = _tool('apply_workflow_patch')
 discard_workflow_patch = _tool('discard_workflow_patch')
 revalidate_workflow_node_outputs = _tool('revalidate_workflow_node_outputs')
 finish_workflow_node = _tool('finish_workflow_node')
+repair_workflow_runtime_inputs = _tool('repair_workflow_runtime_inputs')
 cancel_watched_job = _tool('cancel_watched_job')
 get_tool_schema = _tool('get_tool_schema')
 discover_forcefield = _tool('discover_forcefield')
@@ -458,7 +459,7 @@ handoff_to_xxx(task="具体的、有针对性的任务描述", context="与任�
     functions=[
         handoff_to_adsorption, handoff_to_analyst,
         handoff_to_communicator, handoff_to_harness, handoff_to_monitor,
-        handoff_to_patcher, retarget_queued_job, cancel_watched_job, apply_workflow_patch, discard_workflow_patch, revalidate_workflow_node_outputs, finish_workflow_node,
+        handoff_to_patcher, retarget_queued_job, cancel_watched_job, apply_workflow_patch, discard_workflow_patch, revalidate_workflow_node_outputs, finish_workflow_node, repair_workflow_runtime_inputs,
         *_GENERAL_TOOLS,
     ],
     handoff_to=["adsorption", "analyst", "communicator", "harness", "monitor", "patcher"],
@@ -763,6 +764,7 @@ SUPERVISOR = Agent(
 正在运行/结果未确认时只能wait_existing，不能建议重复提交。
 只有缺少或需要改变用户未明确的科研方法、材料/气体、温度、压力/组成或研究范围时，才可建议ask_user。
 schema、缺字段、路径、expected_outputs、依赖、agent归属、脚本、环境、资源调度和框架缺陷一律next_action=diagnose_and_fix；给出可执行修复，连续失败则要求主chat委派patcher，禁止把内部错误转给用户。
+worker_recovery_ready携带结构化recovery能力时，明确要求主chat调用其中指定的恢复工具；worker_failed若携带runtime_input_repair.available=true也同样处理。不得只调用execute_workflow或要求用户提供内部派生路径。
 有终态和验证产物时推进依赖，整体证据齐全才verified_complete。
 必须调用supervisor_decision给出结构化next_action/reason/evidence_refs/suggested_changes；不要输出自由文本思维链。
 科学审查必须区分“参数调查/协商”和“模型已准备可运行”。仅列出已知缺项并安全停止不等于错误提交；拒绝结论应引用回答中的实际错误主张及相反证据，不把未宣称的能力当错误。按当前问题适用的证据审查，不把金属氧化态规则套到纯有机客体，不输出未查证的原始系数意义。

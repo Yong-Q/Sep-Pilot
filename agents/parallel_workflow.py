@@ -22,7 +22,7 @@ from .workflow_patch import patched_graph
 from .output_contract import output_path, artifact_fact
 
 READ_ONLY = frozenset({'discover_forcefield', 'inspect_forcefield', 'validate_framework_charges', 'convert_physical_units', 'get_tool_schema', 'read_file', 'grep_search', 'inspect_path', 'inspect_run',
-    'query_literature', 'check_job', 'diagnose_job', 'list_my_jobs', 'resource_health', 'assess_job_resources', 'resource_review_decision'})
+    'inspect_workflow_result', 'query_literature', 'check_job', 'diagnose_job', 'list_my_jobs', 'resource_health', 'assess_job_resources', 'resource_review_decision'})
 KINDS = {'generate_structure': 'structures', 'run_pacman_charge': 'charged',
     'stage_cif_subset': 'structures', 'analyze_gcmc_screening': 'gcmc_analysis',
     'run_henry': 'gcmc', 'run_gcmc_isotherm': 'gcmc', 'run_gcmc_batch': 'gcmc',
@@ -33,6 +33,69 @@ KINDS = {'generate_structure': 'structures', 'run_pacman_charge': 'charged',
 ACTIVE = {'running', 'waiting_jobs', 'waiting_prerequisite', 'uncertain','prefinish'}
 RESOURCE_ARGUMENTS = frozenset({'memory_mb', 'nodelist', 'partition', 'num_processes',
                                 'cpus_per_task', 'resource_review_id'})
+
+# Runtime tools often create a timestamped child below an approved work root.
+# These are input parameters whose concrete value may therefore only be known
+# after an upstream node returns its durable receipt.
+_RUNTIME_INPUT_RESULTS = {
+    'job_work_dir': ('work_dir',),
+    'input_dir': ('output_dir', 'input_dir', 'work_dir'),
+    'cif_dir': ('output_dir', 'work_dir'),
+    'work_dir': ('output_dir', 'work_dir'),
+    'model_dir': ('model_dir', 'output_dir', 'work_dir'),
+    'data_csv': ('output_csv',),
+    'input_path': ('output_path', 'output_csv'),
+    'trajectory_path': ('trajectory_path',),
+}
+
+
+def dependency_runtime_arguments(node, states, project_root):
+    """Refine approved input roots from direct dependency receipts.
+
+    A refinement is accepted only when one unique, existing receipt path is
+    equal to or below the already approved argument. This lets a downstream
+    node consume a scheduler-created timestamp directory without granting the
+    runtime permission to redirect the workflow elsewhere.
+    """
+    contract = node.get('contract', node)
+    arguments = copy.deepcopy(contract.get('arguments', {}))
+    bindings = []
+    root = Path(project_root)
+
+    def absolute(value):
+        path = Path(str(value)).expanduser()
+        return (path if path.is_absolute() else root / path).resolve()
+
+    for target, result_keys in _RUNTIME_INPUT_RESULTS.items():
+        declared = arguments.get(target)
+        if not isinstance(declared, str) or not declared:
+            continue
+        approved = absolute(declared)
+        candidates = {}
+        for dependency in contract.get('depends_on', []):
+            upstream = states.get(dependency, {})
+            if upstream.get('status') != 'succeeded':
+                continue
+            receipt = result_object(upstream.get('result', {}))
+            for result_key in result_keys:
+                value = receipt.get(result_key)
+                if not isinstance(value, str) or not value:
+                    continue
+                candidate = absolute(value)
+                if (candidate.exists() and candidate != approved
+                        and candidate.is_relative_to(approved)):
+                    candidates[str(candidate)] = {
+                        'parameter': target,
+                        'source_step': dependency,
+                        'receipt_field': result_key,
+                        'approved_root': str(approved),
+                        'resolved_path': str(candidate),
+                    }
+        if len(candidates) == 1:
+            path, proof = next(iter(candidates.items()))
+            arguments[target] = path
+            bindings.append(proof)
+    return arguments, bindings
 
 
 def persisted_resource_review(node_state, step_id):
@@ -205,12 +268,37 @@ def runtime_summary(state, limit=24):
     ordered = sorted(state['nodes'].items(), key=lambda pair: (pair[1]['status'] == 'succeeded', -pair[1].get('updated_at', 0)))
     for _, node in ordered: counts[node['status']] = counts.get(node['status'], 0) + 1
     for key, node in ordered[:limit]:
+        result = result_object(node.get('result', {}))
+        result_paths = {name: result[name] for name in (
+            'work_dir', 'output_dir', 'input_dir', 'output_csv', 'output_path',
+            'model_dir', 'trajectory_path', 'report_file') if isinstance(result.get(name), str)}
         nodes[key] = {'status': node['status'], 'phase':node.get('phase'), 'agent':node.get('contract',{}).get('agent'), 'tool':node.get('contract',{}).get('tool'), 'result_ref': node.get('result_ref'),
                      'job_ids': node.get('job_ids', []), 'path_manifest': node.get('path_manifest'),
+                     'result_paths': result_paths,
                      'error': str(node.get('error', ''))[:500],
                      'message_ids': list(node.get('messages', {}))[-4:]}
+    live_reports = []
+    for step_id, node in state['nodes'].items():
+        if node.get('contract', {}).get('tool') != 'generate_scientific_report':
+            continue
+        result = result_object(node.get('result', {}))
+        preview = result.get('report_preview')
+        if isinstance(preview, str) and preview:
+            live_reports.append({
+                'step_id': step_id,
+                'role': node.get('contract', {}).get('report_role') or
+                        node.get('contract', {}).get('arguments', {}).get('report_mode', 'report'),
+                'parent': node.get('contract', {}).get('report_parent'),
+                'status': node.get('status'),
+                'title': node.get('contract', {}).get('arguments', {}).get('title', step_id),
+                'report_file': result.get('report_file', ''),
+                'content': preview[:24000],
+                'updated_at': node.get('updated_at') or node.get('started_at'),
+            })
+    live_reports.sort(key=lambda item: (item['role'] != 'assembly', item['step_id']))
     return {'status': state['status'], 'plan_version': state['plan_version'], 'user_paused': state.get('user_paused', False), 'counts': counts,
-            'nodes': nodes, 'omitted_nodes': max(0, len(ordered)-limit), 'details': 'query conversation workflow API or authoritative files'}
+            'nodes': nodes, 'live_reports': live_reports,
+            'omitted_nodes': max(0, len(ordered)-limit), 'details': 'query conversation workflow API or authoritative files'}
 
 
 class WorkflowStore:
@@ -432,6 +520,101 @@ class WorkflowStore:
         with json_transaction(self.path) as data:
             data['workflows'][workflow_id]['outbox'][event_id]['sent'] = True
 
+    def materialize_dependency_inputs(self, workflow_id, project_root):
+        """Persist currently valid dependency-derived arguments on successors.
+
+        The approved contract remains the static fallback.  This runtime layer
+        is refreshed from durable direct-dependency receipts and removed when
+        its source path is no longer valid, so restarts never depend on an
+        in-memory handoff and stale paths are never kept as authority.
+        """
+        changed = []
+        with json_transaction(self.path) as data:
+            workflow = data.get('workflows', {}).get(workflow_id)
+            if not workflow:
+                return changed
+            states = workflow.get('nodes', {})
+            for step_id, node in states.items():
+                if node.get('status') in {'running', 'waiting_jobs', 'waiting_prerequisite', 'uncertain', 'prefinish'}:
+                    continue
+                resolved, bindings = dependency_runtime_arguments(node, states, project_root)
+                fingerprint = (hashlib.sha256(json.dumps(
+                    bindings, sort_keys=True).encode()).hexdigest() if bindings else None)
+                if bindings:
+                    if (node.get('resolved_arguments') != resolved
+                            or node.get('runtime_binding_fingerprint') != fingerprint):
+                        node.update(
+                            resolved_arguments=resolved,
+                            runtime_input_bindings=bindings,
+                            runtime_binding_fingerprint=fingerprint,
+                            runtime_binding_updated_at=time.time(),
+                        )
+                        changed.append(step_id)
+                elif any(key in node for key in (
+                        'resolved_arguments', 'runtime_input_bindings',
+                        'runtime_binding_fingerprint', 'runtime_binding_updated_at')):
+                    for key in ('resolved_arguments', 'runtime_input_bindings',
+                                'runtime_binding_fingerprint', 'runtime_binding_updated_at'):
+                        node.pop(key, None)
+                    changed.append(step_id)
+            return changed
+
+    def recover_runtime_bound_failures(self, workflow_id, project_root, only_step_id=None):
+        """Requeue stopped non-scheduler nodes when dependency receipts add a path.
+
+        This is a bounded repair, not a blind retry: the failed attempt must
+        have used the declared arguments, and each exact binding set is tried
+        at most once.
+        """
+        recovered = []
+        with json_transaction(self.path) as data:
+            workflow = data.get('workflows', {}).get(workflow_id)
+            if not workflow:
+                return recovered
+            for step_id, node in workflow.get('nodes', {}).items():
+                if only_step_id is not None and step_id != only_step_id:
+                    continue
+                contract = node.get('contract', {})
+                if (node.get('status') != 'failed'
+                        or is_submission(contract.get('tool', ''), contract.get('arguments', {}))
+                        or node.get('job_ids')):
+                    continue
+                resolved, bindings = dependency_runtime_arguments(
+                    node, workflow.get('nodes', {}), project_root)
+                if not bindings:
+                    continue
+                fingerprint = hashlib.sha256(json.dumps(
+                    bindings, sort_keys=True).encode()).hexdigest()
+                if fingerprint in node.get('runtime_binding_attempts', []):
+                    continue
+                attempted = node.get('effective_arguments') or contract.get('arguments', {})
+                if resolved == attempted:
+                    continue
+                previous = {key: copy.deepcopy(value) for key, value in node.items()
+                            if key != 'attempt_history'}
+                node.setdefault('attempt_history', []).append(previous)
+                node.setdefault('runtime_binding_attempts', []).append(fingerprint)
+                node['runtime_binding_recovery'] = {
+                    'bindings': bindings,
+                    'fingerprint': fingerprint,
+                    'failed_attempt_preserved': True,
+                    'recovered_at': time.time(),
+                }
+                for key in ('result', 'result_ref', 'evidence_call', 'error',
+                            'effective_arguments', 'tool_returned', 'dispatch_phase',
+                            'output_baseline', 'artifacts', 'validation_dossier'):
+                    node.pop(key, None)
+                node.update(status='pending', phase=None, job_ids=[])
+                workflow.get('branch_blockers', {}).pop(step_id, None)
+                recovered.append(step_id)
+            if recovered and not any(
+                    node.get('status') in {'failed', 'uncertain', 'validation_failed', 'needs_resources'}
+                    for node in workflow.get('nodes', {}).values()):
+                workflow['status'] = 'active'
+                workflow.pop('pause_reason', None)
+                workflow.pop('pause_kind', None)
+        return recovered
+
     def send(self, workflow_id, step_id, text, kind, message_id=None):
         if kind not in {'status', 'comment', 'change'} or not text.strip(): raise ValueError('message requires text and status/comment/change kind')
         message_id = message_id or uuid.uuid4().hex
@@ -474,6 +657,40 @@ class ParallelWorkflow:
         self.max_workers, self.futures, self.lock = max_workers, {}, threading.Lock()
 
     def snapshot(self): return self.store.snapshot(self.workflow_id)
+
+    def _materialize_runtime_bindings(self):
+        changed = self.store.materialize_dependency_inputs(
+            self.workflow_id, self.main.config.project_root)
+        if changed:
+            self.sync_chain('runtime_bindings_materialized:' + ','.join(sorted(changed)))
+        return changed
+
+    def repair_runtime_inputs(self, step_id):
+        """Agent-invoked repair using persisted direct-dependency receipts."""
+        state = self.snapshot()
+        if step_id not in state.get('nodes', {}):
+            raise ValueError('workflow node does not exist')
+        node = state['nodes'][step_id]
+        if node.get('status') != 'failed':
+            raise ValueError('runtime input repair requires a stopped failed node')
+        resolved, bindings = dependency_runtime_arguments(
+            node, state['nodes'], self.main.config.project_root)
+        if not bindings or resolved == (node.get('effective_arguments') or node['contract']['arguments']):
+            raise ValueError('no unique dependency receipt refines an approved input path')
+        recovered = self.store.recover_runtime_bound_failures(
+            self.workflow_id, self.main.config.project_root, only_step_id=step_id)
+        if recovered != [step_id]:
+            raise ValueError('runtime input repair was already attempted or state changed')
+        proof = self.snapshot()['nodes'][step_id]['runtime_binding_recovery']
+        self._step(step_id, status='pending', done=False,
+                   validation={'runtime_binding_recovery': proof})
+        self.sync_chain('agent_runtime_input_repair:' + step_id)
+        self.tick()
+        return {
+            'ok': True, 'step_id': step_id, 'status': self.snapshot()['nodes'][step_id]['status'],
+            'bindings': bindings, 'resumed': True, 'requires_user': False,
+            'next_action': 'The dependency-derived input is repaired; observe normal node execution and validation.',
+        }
 
     def _line(self):
         return self.task_lines.get_line(self.main._current_line_id, username=self.username, conv_id=self.conv_id) or {}
@@ -533,7 +750,8 @@ class ParallelWorkflow:
         if int(line.get('plan_version', 0)) != plan_version: raise ValueError('TaskLine plan version differs from approval')
         approved, _ = patched_graph(goal['approved_nodes'], [], self.main.config.project_root)
         nodes = [{key: copy.deepcopy(n[key]) for key in ('step_id', 'agent', 'tool', 'arguments',
-                  'depends_on', 'expected_outputs', 'resource_locks') if key in n} for n in approved]
+                  'depends_on', 'expected_outputs', 'resource_locks', 'report_role', 'report_parent',
+                  'report_source') if key in n} for n in approved]
         existing = self.snapshot()
         if self.main._on_resource_review and not any(n['status'] in ACTIVE for n in existing.get('nodes',{}).values()):
             unreviewed=[n for n in nodes if n['tool']=='run_cdft' and n['arguments'].get('action','pipeline') in {'pipeline','submit'} and not n['arguments'].get('resource_review_id')
@@ -664,6 +882,67 @@ class ParallelWorkflow:
                 return self._restore_verified_dataset(step_id, completed_job_id)
         state=self.snapshot();node=state['nodes'][step_id]
         args, result = node['contract']['arguments'], result_object(node.get('result', {}))
+        dossier = node.get('validation_dossier') or {}
+        if (node['contract']['tool'] != 'generate_structure'
+                and node['status'] in {'prefinish', 'validation_failed'}
+                and node.get('jobs_confirmed_terminal')
+                and dossier.get('verdict') == 'pass'
+                and dossier.get('evidence_call_id')):
+            base = artifact_base(node['contract'], self.main.config.project_root, self.root, result)
+            proposed = copy.deepcopy(node['contract'])
+            proposed['expected_outputs'] = [normalize_output(value) for value in expected_outputs]
+            if not proposed['expected_outputs']:
+                raise ValueError('result contract repair requires at least one dossier-backed output')
+            allowed = {str(Path(path).resolve()) for path in dossier.get('successful_artifacts', [])}
+            facts = self._artifacts(proposed, result)
+            files = set()
+            for path, fact in facts.items():
+                if not fact:
+                    continue
+                native_files = fact.get('files')
+                if native_files is None:
+                    files.add(str(Path(path).resolve()))
+                else:
+                    files.update(str(Path(item[0]).resolve()) for item in native_files)
+            if (not files or not all(fact and fact.get('size', 0) > 0 for fact in facts.values())
+                    or not files <= allowed):
+                raise ValueError('output repair may use only successful artifacts from the current validation dossier; '
+                                 f'proposed={sorted(files)} allowed={sorted(allowed)}')
+            proof = {'kind': 'validation_dossier_contract_repair',
+                     'evidence_call_id': dossier['evidence_call_id'],
+                     'job_ids': list(node.get('job_ids') or []),
+                     'before': copy.deepcopy(node['contract'].get('expected_outputs', [])),
+                     'after': copy.deepcopy(proposed['expected_outputs']),
+                     'science_arguments_unchanged': True, 'no_resubmission': True}
+            self.task_lines.repair_output_contract(
+                self.main._current_line_id, step_id, proposed['expected_outputs'], proof,
+                state['plan_version'])
+            self.store.update(self.workflow_id, step_id, node['token'], {
+                'contract': proposed, 'output_contract_repair': proof,
+                'validation_dossier': None,
+            })
+            for approved in self.main.goal_contract.approved_nodes:
+                if approved['step_id'] == step_id:
+                    approved['expected_outputs'] = copy.deepcopy(proposed['expected_outputs'])
+            self.sync_chain('validation_dossier_contract_repaired:' + step_id)
+            current = self.snapshot()['nodes'][step_id]
+            manifest = current.get('path_manifest') or node_path_manifest(
+                proposed, self.main.config.project_root, self.root, result,
+                current.get('result_ref'))
+            refreshed = self._create_validation_dossier(step_id, current, manifest, result)
+            self.store.update(self.workflow_id, step_id, current['token'], {
+                'validation_dossier': refreshed, 'path_manifest': manifest,
+            })
+            self._emit('worker_validation_dossier_ready', {
+                'step_id': step_id, 'contract': proposed,
+                'job_ids': current.get('job_ids', []),
+                'validation_dossier': refreshed,
+                'instruction': 'The output contract is repaired from this attempt dossier. Finish this node with the refreshed evidence_call_id.',
+            }, current['token'] + ':validation-dossier:' + refreshed.get('evidence_call_id', 'invalid'))
+            self.main._checkpoint('validation_dossier_output_contract_revalidated')
+            return {'ok': True, 'step_id': step_id, 'status': 'prefinish',
+                    'no_resubmission': True, 'actual_outputs': proposed['expected_outputs'],
+                    'evidence_call_id': refreshed.get('evidence_call_id')}
         native_output = bool(node['contract']['tool'] != 'generate_structure'
                              and result.get('job_id') and any(args.get(key) and result.get(key)
                              for key in ('output_csv', 'output_dir')))
@@ -902,6 +1181,18 @@ class ParallelWorkflow:
             if (call.get('time',0)<node['started_at'] or call.get('failed')
                     or call.get('tool') not in READ_ONLY|{'run_bash','run_cdft','validate_gcmc_results','revalidate_workflow_node_outputs'}):
                 raise ValueError('verification must use fresh successful inspection/validation tools')
+            if call.get('tool') == 'inspect_workflow_result':
+                dossier = call.get('result') or {}
+                expected_attempt = node.get('attempt_id') or node.get('token') or step_id
+                if (dossier.get('evidence_call_id') != call_id
+                        or dossier.get('workflow_id') != self.workflow_id
+                        or dossier.get('plan_version') != self.snapshot().get('plan_version')
+                        or dossier.get('step_id') != step_id
+                        or dossier.get('attempt_id') != expected_attempt
+                        or dossier.get('contract') != node.get('contract')
+                        or sorted(str(value) for value in dossier.get('job_ids', []))
+                           != sorted(str(value) for value in node.get('job_ids', []))):
+                    raise ValueError('validation dossier identity does not match the current workflow attempt')
             validation_call_ids.append(call_id)
             linked_output_evidence |= any(target in str(value) for target in targets for value in call.get('params',{}).values())
             if call['tool']=='run_cdft' and call['params'].get('action')!='collect':raise ValueError('submission is not result validation')
@@ -1006,6 +1297,33 @@ class ParallelWorkflow:
                 if event_id not in outbox:
                     self._emit(kinds[node['status']], {'step_id': step_id,
                         'requires_user': node['status'] in {'uncertain', 'validation_failed'}}, suffix)
+            # A failure notification may already have been consumed before a
+            # restart or before its upstream receipt became available. Emit a
+            # separate, capability-oriented action whenever the durable graph
+            # proves that the main Agent can now repair it. This pattern is
+            # intentionally generic: future recovery tools can publish the
+            # same event with a different tool/action contract.
+            if node.get('status') == 'failed' and node.get('token'):
+                resolved, bindings = dependency_runtime_arguments(
+                    node, state.get('nodes', {}), self.main.config.project_root)
+                attempted = node.get('effective_arguments') or node.get('contract', {}).get('arguments', {})
+                if bindings and resolved != attempted:
+                    fingerprint = hashlib.sha256(json.dumps(
+                        bindings, sort_keys=True).encode()).hexdigest()
+                    suffix = f"recovery:{node['token']}:{fingerprint[:16]}"
+                    event_id = f'runtime:{self.workflow_id}:{suffix}'
+                    if event_id not in outbox:
+                        self._emit('worker_recovery_ready', {
+                            'step_id': step_id,
+                            'requires_user': False,
+                            'recovery': {
+                                'action': 'rebind_dependency_outputs',
+                                'tool': 'repair_workflow_runtime_inputs',
+                                'bindings': bindings,
+                                'fingerprint': fingerprint,
+                                'instruction': 'Call the recovery tool for this step, then continue the workflow.',
+                            },
+                        }, suffix)
             node_key = hashlib.sha256(step_id.encode()).hexdigest()[:24]
             for message in node.get('messages', {}).values():
                 suffix = 'message:' + node_key + ':' + message['message_id']
@@ -1093,6 +1411,9 @@ class ParallelWorkflow:
         worker.context['assigned_node'] = copy.deepcopy(node)
         worker.context['dependency_results'] = {dep: {**(state['nodes'][dep].get('result_ref') or {}),
             'path_manifest': state['nodes'][dep].get('path_manifest'), 'job_ids': state['nodes'][dep].get('job_ids', []),
+            'result_paths': {key: result_object(state['nodes'][dep].get('result', {}))[key]
+                for key in ('work_dir', 'output_dir', 'input_dir', 'output_csv', 'output_path', 'model_dir', 'trajectory_path')
+                if isinstance(result_object(state['nodes'][dep].get('result', {})).get(key), str)},
             'status': state['nodes'][dep]['status'], 'tool': state['nodes'][dep]['contract']['tool'],
             'agent': state['nodes'][dep]['contract']['agent']} for dep in node.get('depends_on', [])}
         def checkpoint(saved, reason):
@@ -1167,6 +1488,18 @@ class ParallelWorkflow:
                     'effective_arguments': copy.deepcopy(args)})
                 self._step_metadata(step_id, token=token, resource_allocation=allocation,
                                     effective_arguments=copy.deepcopy(args))
+            runtime_args, runtime_bindings = dependency_runtime_arguments(
+                {'contract': {**node, 'arguments': args}}, self.snapshot()['nodes'],
+                self.main.config.project_root)
+            if runtime_bindings:
+                args = runtime_args
+                self.store.update(self.workflow_id, step_id, token, {
+                    'effective_arguments': copy.deepcopy(args),
+                    'runtime_input_bindings': runtime_bindings,
+                })
+                self._step_metadata(step_id, token=token,
+                                    effective_arguments=copy.deepcopy(args),
+                                    runtime_input_bindings=runtime_bindings)
             before = self._artifacts(node, {})
             if is_submission(node['tool'], args):
                 recovery_key = worker.recovery_gate.key(node['tool'], args, worker.goal_contract.version, step_id, worker.config.project_root)
@@ -1337,6 +1670,55 @@ class ParallelWorkflow:
         self.sync_chain('native_output_path_bound:' + step_id)
         return True
 
+    def _create_validation_dossier(self, step_id, current, manifest, result):
+        """Create one compact, executor-grounded dossier without another model turn."""
+        try:
+            from . import result_validation
+            state = self.snapshot()
+            payload = copy.deepcopy(current)
+            payload.update(
+                workflow_id=self.workflow_id,
+                plan_version=state.get('plan_version'),
+                step_id=step_id,
+                result=copy.deepcopy(result),
+                path_manifest=copy.deepcopy(manifest),
+            )
+            dossier = result_validation.build_validation_dossier(
+                payload,
+                current.get('attempt_id') or current.get('token') or step_id,
+                self.root / 'evidence',
+            )
+            # Full inventory stays in immutable evidence. Runtime/events carry
+            # only what the scientific owner needs for one decision.
+            compact = {key: copy.deepcopy(dossier.get(key)) for key in (
+                'schema_version', 'workflow_id', 'plan_version', 'step_id',
+                'attempt_id', 'job_ids', 'tool', 'contract', 'generated_at', 'counts',
+                'success_ratio', 'required_success_ratio', 'samples',
+                'successful_artifacts', 'failed_items', 'method_facts',
+                'diagnostic_excerpts', 'requires_agent_review',
+                'verdict', 'reasons', 'evidence_call_id',
+                'evidence_path',
+            )}
+            compact['inventory'] = {key: copy.deepcopy(dossier.get('inventory', {}).get(key))
+                                    for key in ('root', 'file_count', 'total_bytes',
+                                                'escaped_paths', 'truncated', 'reasons')}
+            return compact
+        except Exception as error:
+            return {
+                'schema_version': 1, 'workflow_id': self.workflow_id,
+                'plan_version': self.snapshot().get('plan_version'),
+                'step_id': step_id,
+                'attempt_id': current.get('attempt_id') or current.get('token') or step_id,
+                'job_ids': list(current.get('job_ids') or []),
+                'tool': current.get('contract', {}).get('tool', ''),
+                'generated_at': time.time(), 'counts': None,
+                'samples': [], 'failed_items': [], 'verdict': 'invalid',
+                'requires_agent_review': True, 'diagnostic_excerpts': [],
+                'reasons': [f'validation collector failed: {error}'],
+                'evidence_call_id': '', 'evidence_path': '',
+                'inventory': {'root': manifest.get('result_dir', ''), 'truncated': False},
+            }
+
     def _settle(self, step_id, token, result):
         self._apply_batch_success_threshold(step_id, token)
         self._bind_native_result_path(step_id, token, result)
@@ -1354,6 +1736,8 @@ class ParallelWorkflow:
         if reason or entry.get('status') == 'failed':
             reason = reason or entry.get('error')
             unknown_jobs = bool(entry.get('job_ids')) and not current.get('jobs_confirmed_terminal')
+            _resolved, runtime_bindings = dependency_runtime_arguments(
+                current, self.snapshot()['nodes'], self.main.config.project_root)
             self.store.update(self.workflow_id, step_id, token, {'status': 'uncertain' if unknown_jobs else 'failed', 'error': reason}, release=not unknown_jobs)
             line_step = next((item for item in self._line().get('steps', [])
                               if item.get('step_id') == step_id), {})
@@ -1366,7 +1750,12 @@ class ParallelWorkflow:
             self._step(step_id, status='uncertain' if unknown_jobs else 'failed',
                        done=False, validation=validation)
             self.store.pause(self.workflow_id, 'failed node requires diagnosis and plan review', step_id=step_id)
-            self._emit('worker_failed', {'step_id': step_id, 'error': reason, 'evidence_call': current.get('evidence_call')}, token + ':failed')
+            self._emit('worker_failed', {'step_id': step_id, 'error': reason,
+                'evidence_call': current.get('evidence_call'),
+                'runtime_input_repair': ({'available': True, 'bindings': runtime_bindings,
+                    'tool': 'repair_workflow_runtime_inputs',
+                    'instruction': 'Main Agent should call repair_workflow_runtime_inputs for this step and continue without asking the user.'}
+                    if runtime_bindings and not unknown_jobs else {'available': False})}, token + ':failed')
             return
         if entry.get('status') in {'submitted', 'reserved', 'uncertain'}:
             if not entry.get('job_ids'):
@@ -1407,12 +1796,15 @@ class ParallelWorkflow:
                     fact != baseline.get(path) and fact['mtime_ns'] >= int(current['started_at'] * 1e9)
                     ) for path, fact in artifacts.items())
         if is_submission(current['contract']['tool'],current['contract']['arguments']) and not current.get('node_verification'):
+            validation_dossier = self._create_validation_dossier(step_id, current, manifest, obj)
             self.store.update(self.workflow_id,step_id,token,{'status':'prefinish','phase':'prefinish','artifacts':artifacts,
-                'machine_output_check':valid,'path_manifest':manifest,'verification_owner':current['contract']['agent']})
+                'machine_output_check':valid,'path_manifest':manifest,'verification_owner':current['contract']['agent'],
+                'validation_dossier': validation_dossier})
             self._step(step_id,status='prefinish',done=False,path_manifest=manifest)
             self._emit('worker_prefinish',{'step_id':step_id,'contract':current['contract'],'result_ref':current.get('result_ref'),
                 'job_ids':current.get('job_ids',[]),'machine_output_check':valid,'verification_owner':current['contract']['agent'],
-                'instruction':'Execution ended, not finished. Validate native outputs and scientific conditions using real tools; repair output contracts if needed, then finish_workflow_node. Never resubmit a completed job.'},token+':prefinish')
+                'validation_dossier': validation_dossier,
+                'instruction':'Execution ended, not finished. Make one scientific decision from this DAG node contract and its attached dossier: native facts, deterministic samples, stdout/stderr and bounded file excerpts. Read only this node attempt and its executor-owned result root; never search another node, attempt, session, or historical result. The parser verdict is a hint, not the decision; ordinary error words alone never prove failure. If the actual outputs satisfy the contract, finish_workflow_node with the dossier evidence_call_id. Otherwise diagnose and repair only failed items. Use extra inspection only when the dossier is invalid or lacks evidence needed for the scientific decision, and keep that inspection inside this node result root. Never resubmit a completed job.'},token+':prefinish')
             return
         if not valid:
             # The function/jobs have stopped writing, so repair may acquire the
@@ -1434,6 +1826,7 @@ class ParallelWorkflow:
             validation={'output_contract': 'passed', 'runtime_token': token, 'execution_session': current.get('checkpoint_path')})
         self.store.update(self.workflow_id, step_id, token, {'status': 'succeeded', 'phase':'finish','artifacts': artifacts, 'path_manifest': manifest,
             'execution_fingerprint': execution_fingerprint(current['contract'], self.main)}, release=True)
+        self._materialize_runtime_bindings()
         self._emit('worker_completed', {'step_id': step_id, 'result_ref': current.get('result_ref'),
             'evidence_call': current.get('evidence_call'), 'origin_goal_version': current['origin_goal_version'],
             'runtime_completed': self.snapshot()['status'] == 'completed'}, token + ':completed')
@@ -1443,6 +1836,8 @@ class ParallelWorkflow:
             self.futures = {key: future for key, future in self.futures.items() if not future.done()}
             state = self.snapshot()
             if not state: return
+            self._materialize_runtime_bindings()
+            state = self.snapshot()
             if (state.get('status') == 'needs_user' and state.get('pause_kind') == 'input_changed'
                     and self.store.resume_unchanged_active(self.workflow_id)):
                 state = self.snapshot()
@@ -1452,6 +1847,43 @@ class ParallelWorkflow:
             gate = RecoveryGate(path=self.root / 'recovery_state.json')
             gate.sync_jobs(jobs)
             for step_id, node in state['nodes'].items():
+                dossier_state = node.get('validation_dossier') or {}
+                pending = self.main._pending_user_interaction or {}
+                params = pending.get('params') or {}
+                if (node['status'] == 'prefinish'
+                        and pending.get('tool') == 'user_decision'
+                        and step_id in params.get('related_nodes', [])
+                        and node.get('recovery_key')
+                        and params.get('recovery_key') == node.get('recovery_key')
+                        and dossier_state.get('verdict') in {'pass', 'recover'}):
+                    self.main.context['invalidated_user_decision'] = {
+                        'decision_id': params.get('decision_id'),
+                        'step_id': step_id,
+                        'reason': 'current-attempt validation dossier enables autonomous repair',
+                    }
+                    self.main._pending_user_interaction = None
+                    self.main._waiting_for_user_input = False
+                    self.main._checkpoint('obsolete_internal_result_repair_question')
+                if (node['status'] == 'prefinish'
+                        and (dossier_state.get('schema_version', 0) < 2
+                             or 'successful_artifacts' not in dossier_state)):
+                    manifest = node.get('path_manifest') or node_path_manifest(
+                        node['contract'], self.main.config.project_root, self.root,
+                        node.get('result', {}), node.get('result_ref'))
+                    dossier = self._create_validation_dossier(
+                        step_id, node, manifest, node.get('result', {}))
+                    self.store.update(self.workflow_id, step_id, node['token'], {
+                        'path_manifest': manifest, 'validation_dossier': dossier,
+                        'verification_owner': node['contract']['agent'],
+                    })
+                    self._emit('worker_validation_dossier_ready', {
+                        'step_id': step_id, 'contract': node['contract'],
+                        'result_ref': node.get('result_ref'),
+                        'job_ids': node.get('job_ids', []),
+                        'verification_owner': node['contract']['agent'],
+                        'validation_dossier': dossier,
+                        'instruction': 'Review only this DAG node attempt and its attached one-pass validation dossier. Do not search another task or result. If expected_outputs includes stale or intermediate paths, call revalidate_workflow_node_outputs with only dossier.successful_artifacts, then finish with the refreshed dossier evidence.',
+                    }, node['token'] + ':validation-dossier:' + dossier.get('evidence_call_id', 'invalid'))
                 if (node['status'] == 'needs_resources' and node.get('resource_retry_at')
                         and time.time() >= node['resource_retry_at'] and not paused
                         and not state.get('user_paused')):

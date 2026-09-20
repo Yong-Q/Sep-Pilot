@@ -6,6 +6,7 @@ dist/
 generated/
 runs/
 node_modules/
+.worktrees/
 .env
 .env.*
 !.env.example

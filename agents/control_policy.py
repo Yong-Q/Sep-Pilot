@@ -22,7 +22,7 @@ def require_user_control_source(source, owner):
 
 def role_denial(role, tool):
     from .parallel_workflow import READ_ONLY
-    if tool in JOB_CONTROL | {'apply_workflow_patch','discard_workflow_patch','revalidate_workflow_node_outputs','finish_workflow_node'} and role != 'lead-orchestrator':
+    if tool in JOB_CONTROL | {'apply_workflow_patch','discard_workflow_patch','revalidate_workflow_node_outputs','finish_workflow_node','repair_workflow_runtime_inputs'} and role != 'lead-orchestrator':
         return 'scheduler mutation belongs to main chat; observer/worker must send an evidence-backed proposal'
     if role in {'monitor', 'supervisor'} and tool not in READ_ONLY | {
             'task_line_query', 'recovery_state', 'lifecycle_state', 'supervisor_decision'}:
