@@ -11,7 +11,7 @@ From a scientific question to an executable workflow, live progress, and traceab
 [![Research](https://img.shields.io/badge/use-research_only-00A98F?style=for-the-badge)](#license)
 [![Tests](https://img.shields.io/badge/tests-514_passed-2EA44F?style=for-the-badge)](#quality)
 
-**[Features](#features) · [Scientific workflows](#scientific-workflows) · [Quick start](#quick-start) · [License](#license)**
+**[Features](#features) · [Scientific workflows](#scientific-workflows) · [Changelog](CHANGELOG.md) · [Quick start](#quick-start) · [License](#license)**
 
 </div>
 
