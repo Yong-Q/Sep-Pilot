@@ -25,7 +25,8 @@ def allocate_reviewed_resources(session, request, receipt):
         if not is_submission(node['tool'], node['arguments']):
             continue
         proposed = receipt.get('suggested_resources', {})
-        args = {**{k: v for k, v in proposed.items() if k in {'memory_mb','nodelist','partition','num_processes'}}, **node['arguments']}
+        declared = node['arguments']
+        args = {**{k: v for k, v in proposed.items() if k in {'memory_mb','nodelist','partition','num_processes'}}, **declared}
         budget = args.get('memory_mb') or proposed.get('memory_mb')
         requested_cpus = args.get('num_processes') or args.get('cpus_per_task') or proposed.get('num_processes')
         selected = profiled_resources(snapshot or {}, node['tool'], cpus=requested_cpus,
@@ -35,9 +36,20 @@ def allocate_reviewed_resources(session, request, receipt):
             cpus = requested_cpus or profile.get('default_cpus', 1)
             eligible = candidates(snapshot, cpus=cpus, memory_mb=budget,
                                  min_glibc=profile.get('min_glibc'), for_queue=True)
-            if args.get('nodelist'):
-                eligible = [n for n in eligible if n['name'] in args['nodelist'].split(',')]
-            partitions = [args['partition']] if args.get('partition') else profile.get('partition_preference') or sorted({p for n in eligible for p in n.get('partitions', [])})
+            # Explicit workflow constraints are mandatory.  A resource-agent
+            # suggestion is only a preference and must not deadlock a valid
+            # allocation when its partition/node conflicts with verified
+            # compatibility facts.
+            if declared.get('nodelist'):
+                eligible = [n for n in eligible if n['name'] in declared['nodelist'].split(',')]
+            if declared.get('partition'):
+                partitions = [declared['partition']]
+            else:
+                partitions = list(dict.fromkeys(
+                    ([proposed['partition']] if proposed.get('partition') else [])
+                    + (profile.get('partition_preference') or [])
+                    + sorted({p for n in eligible for p in n.get('partitions', [])})
+                ))
             targets = [(part, n) for part in partitions for n in eligible if part in n['partitions']]
             if targets:
                 part, target = targets[0]

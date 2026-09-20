@@ -33,3 +33,15 @@ export function retainGraph(previous, next) {
     oldDraft === newDraft && Number(newGraph.version || 0) < Number(oldGraph.version || 0));
   return { ...next, display_graph: keep ? { ...oldGraph, retained: true } : newGraph };
 }
+
+export function graphViewportKey(workflow = {}, graph = selectGraph(workflow)) {
+  const scope = workflow.scope || {};
+  const topology = (graph.nodes || []).map(node => [
+    node.step_id,
+    [...(node.depends_on || node.contract?.depends_on || [])].sort(),
+  ]);
+  return JSON.stringify([
+    scope.username || '', scope.conv_id || '', graph.source || '',
+    Number(graph.version || 0), topology,
+  ]);
+}

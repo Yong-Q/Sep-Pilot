@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Background, Controls, Handle, MarkerType, MiniMap, Position, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './App.css';
-import { selectGraph, retainGraph } from './workflowGraph';
+import { graphViewportKey, selectGraph, retainGraph } from './workflowGraph';
 import { readJsonResponse } from './apiResponse';
 
 const API = '/api';
@@ -606,6 +606,7 @@ function OperationsDrawer({ workflow, partial, processing }) {
                 <span>{unstructuredHistoryCount ? `检测到 ${unstructuredHistoryCount} 条历史 tool 记录，已避免把它们误画成编排节点。` : '编排批准后会在这里显示有向节点、分支与汇合。'}</span>
               </div>}
               {nodes.length > 0 && <ReactFlow
+                key={graphViewportKey(workflow, displayGraph)}
                 nodes={flowNodes}
                 edges={flowEdges}
                 nodeTypes={WORKFLOW_NODE_TYPES}

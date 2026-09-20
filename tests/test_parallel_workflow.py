@@ -370,6 +370,49 @@ def test_submitted_job_keeps_lease_unknown_cannot_release_then_fresh_output_unlo
     assert not rt.store.snapshot()['leases']
 
 
+def test_generator_can_revalidate_real_split_output_directories(factory, tmp_path):
+    output = tmp_path / 'runs' / 'tester' / 'c1' / 'generated'
+    contract = node('gen', tool='generate_structure', args={
+        'material_type': 'COF', 'n_structures': 2, 'output_dir': str(output),
+    }, outputs=[{'kind': 'directory', 'path': str(output), 'pattern': '*.cif', 'min_count': 2}])
+    contract['agent'] = 'harness'
+    rt = factory([contract])
+    rt.job_watch = SimpleNamespace(
+        list=lambda: [],
+        get=lambda job_id: {
+            'username': 'tester', 'conv_id': 'c1', 'terminal': True,
+            'failed': False, 'state': 'COMPLETED', 'work_dir': str(output),
+        },
+    )
+    rt.main._on_resource_review = lambda request: {
+        'status': 'ready', 'resource_review_id': 'review-generator',
+        'resource_allocations': {'gen': {'memory_mb': 4096, 'cpus': 2}},
+    }
+    rt.main.registry.get('generate_structure').execute = lambda args: {
+        'submitted': True, 'job_id': '42', 'output_dir': str(output),
+    }
+    rt.start(1); rt.tick()
+    eventually(lambda: rt.snapshot()['nodes']['gen']['status'] != 'running')
+    current = rt.snapshot()['nodes']['gen']
+    assert current['status'] == 'waiting_jobs', (current['status'], current.get('error'))
+    (output / 'large').mkdir(parents=True)
+    (output / 'small').mkdir()
+    (output / 'large' / 'a.cif').write_text('data_a')
+    (output / 'small' / 'b.cif').write_text('data_b')
+    rt.tick([{'job_id': '42', 'state': 'COMPLETED', 'terminal': True, 'failed': False}])
+    assert rt.snapshot()['nodes']['gen']['status'] == 'prefinish'
+
+    result = rt.revalidate_outputs('gen', [
+        {'kind': 'directory', 'path': str(output / 'large'), 'pattern': '*.cif', 'min_count': 1},
+        {'kind': 'directory', 'path': str(output / 'small'), 'pattern': '*.cif', 'min_count': 1},
+    ])
+
+    assert result['ok'] and result['verified_files'] == 2
+    assert rt.snapshot()['nodes']['gen']['status'] == 'prefinish'
+    verify_prefinish(rt, 'gen')
+    assert rt.snapshot()['nodes']['gen']['status'] == 'succeeded'
+
+
 @pytest.mark.parametrize('preexisting', [False, True])
 def test_missing_or_old_output_blocks_dependency_but_allows_repair(factory, tmp_path, preexisting):
     output = tmp_path / 'old.csv'

@@ -609,7 +609,8 @@ class ParallelWorkflow:
             return self._restore_verified_dataset(step_id, completed_job_id)
         state=self.snapshot();node=state['nodes'][step_id]
         args, result = node['contract']['arguments'], result_object(node.get('result', {}))
-        native_output = bool(result.get('job_id') and any(args.get(key) and result.get(key)
+        native_output = bool(node['contract']['tool'] != 'generate_structure'
+                             and result.get('job_id') and any(args.get(key) and result.get(key)
                              for key in ('output_csv', 'output_dir')))
         if node['contract']['tool'] == 'run_cdft' or native_output:
             if node['status'] not in {'prefinish', 'validation_failed'} or not node.get('jobs_confirmed_terminal'):

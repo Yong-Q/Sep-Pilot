@@ -1,4 +1,4 @@
-import { retainGraph, selectGraph } from './workflowGraph';
+import { graphViewportKey, retainGraph, selectGraph } from './workflowGraph';
 
 const snapshot = (version = 1, conv = 'a', username = 'u') => ({
   scope: { username, conv_id: conv },
@@ -52,4 +52,22 @@ test('late older plans cannot replace newer graph and matching states do update'
   const next = snapshot(3);
   next.parallel_runtime = { plan_version: 3, nodes: { input: { status: 'succeeded' } } };
   expect(retainGraph(snapshot(3), next).display_graph.nodes[0].status).toBe('succeeded');
+});
+
+test('viewport identity tracks topology but ignores runtime status updates', () => {
+  const workflow = { scope: { username: 'u', conv_id: 'a' } };
+  const initial = { source: 'workflow_draft', version: 1, nodes: [
+    { step_id: 'input', depends_on: [], status: 'draft' },
+    { step_id: 'result', depends_on: ['input'], status: 'draft' },
+  ] };
+  const statusOnly = { ...initial, nodes: initial.nodes.map(node => ({ ...node, status: 'running' })) };
+  const replaced = { ...initial, version: 2, nodes: [
+    ...initial.nodes,
+    { step_id: 'report', depends_on: ['result'], status: 'pending' },
+  ] };
+
+  expect(graphViewportKey(workflow, statusOnly)).toBe(graphViewportKey(workflow, initial));
+  expect(graphViewportKey(workflow, replaced)).not.toBe(graphViewportKey(workflow, initial));
+  expect(graphViewportKey({ scope: { username: 'u', conv_id: 'b' } }, initial))
+    .not.toBe(graphViewportKey(workflow, initial));
 });

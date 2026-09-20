@@ -132,6 +132,37 @@ def test_resource_agent_budget_can_submit_to_busy_capacity(tool):
     assert receipt['resource_allocations']['x']['memory_mb']==8192
 
 
+def test_resource_agent_hint_falls_back_to_verified_compatible_partition():
+    from agents.resource_review import allocate_reviewed_resources
+    snapshot = {'verified': True, 'stale': False, 'policy': {
+        'preferred_nodes': [], 'excluded_nodes': [], 'allowed_states': ['idle', 'mix'],
+        'tool_profiles': {'run_cdft': {'default_cpus': 40, 'min_glibc': '2.28',
+                                      'partition_preference': ['compute', 'bigcpu', 'long']}},
+    }, 'nodes': {
+        'compute-unverified': {'name': 'compute-unverified', 'partitions': ['compute'],
+            'states': ['idle'], 'cpus': {'idle': 96, 'total': 96}, 'memory_mib': 256000,
+            'memory': {'verified': True, 'available_for_scheduling_mib': 256000}, 'glibc': None},
+        'verified': {'name': 'verified', 'partitions': ['bigcpu', 'long'],
+            'states': ['idle'], 'cpus': {'idle': 256, 'total': 256}, 'memory_mib': 750000,
+            'memory': {'verified': True, 'available_for_scheduling_mib': 750000}, 'glibc': '2.39'},
+    }}
+    session = SimpleNamespace(
+        memory=SimpleNamespace(tool_call_log=[{'tool': 'resource_health', 'call_id': 'proof'}]),
+        _load_evidence_call=lambda call_id: {'result': json.dumps({'node_inventory': snapshot})},
+    )
+
+    receipt = allocate_reviewed_resources(session, {'nodes': [{
+        'step_id': 'cdft', 'tool': 'run_cdft',
+        'arguments': {'action': 'pipeline', 'memory_mb': 4096},
+    }]}, {'status': 'ready', 'resource_review_id': 'review', 'evidence_call_ids': ['proof'],
+         'suggested_resources': {'memory_mb': 24576, 'num_processes': 40, 'partition': 'compute'}})
+
+    assert receipt['status'] == 'ready'
+    assert receipt['resource_allocations']['cdft']['nodelist'] == 'verified'
+    assert receipt['resource_allocations']['cdft']['partition'] == 'bigcpu'
+    assert receipt['resource_allocations']['cdft']['memory_mb'] == 4096
+
+
 def test_common_scheduler_receives_reviewed_memory_without_cross_session_leak():
     from agents.slurm import render_sbatch_script
     from agents.watch_context import set_context, clear_context

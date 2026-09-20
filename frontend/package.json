@@ -1,9 +1,7 @@
 {
   "name": "bimemagent-frontend",
   "version": "1.0.0",
-  "author": "Yong-Q",
-  "license": "SEE LICENSE IN ../LICENSE",
-  "description": "Sep-Pilot web interface for molecular-simulation research workflows",
+  "description": "BiMemAgent Frontend - 膜材料智能研究助手",
   "main": "src/index.js",
   "scripts": {
     "start": "react-scripts start",
