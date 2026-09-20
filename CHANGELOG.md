@@ -2,6 +2,44 @@
 
 This file records user-visible changes to Sep-Pilot. Implementation details and private deployment information are maintained separately.
 
+## v3.4.73 — 2026-09-20
+
+- Automatically cleared stale cache-review pauses while an unchanged workflow node is still running or validating.
+- Kept completed scheduler work moving into agent-owned result validation without another user decision.
+
+## v3.4.72 — 2026-09-20
+
+- Kept the complete workflow graph visible when a same-version partial snapshot arrives.
+- Merged live executor status and scheduler job IDs into the persisted workflow topology.
+- Included compiled frontend assets in release integrity checks.
+
+## v3.4.71 — 2026-09-20
+
+- Treated resource-review receipt IDs as operational evidence rather than calculation inputs.
+- Added automatic migration for retry records created by earlier receipt-sensitive versions.
+- Prevented equivalent resource reviews from blocking verified calculation retries.
+
+## v3.4.70 — 2026-09-20
+
+- Reused verified resource-review receipts when retrying unchanged calculation nodes.
+- Prevented calculation tools from waiting on duplicate model-based resource reviews.
+- Applied the retry behavior consistently to all scheduler-submitting tools.
+
+## v3.4.69 — 2026-09-20
+
+- Fixed cDFT scheduling when an optional node-compatibility policy field is absent.
+- Kept task-specific batch sizes out of the global agent policy while retaining the generic success-rate rule.
+- Made partial-batch contract normalization idempotent across repeated result checks.
+- Improved autonomous handling of framework defaults and pre-submission failures.
+
+## v3.4.68 — 2026-09-20
+
+- Made batch calculations continue from scientifically valid successful outputs instead of requiring every attempted item to finish.
+- Added agent-owned batch review using task-specific criteria or a generic 60% default, with autonomous parameter repair, failed-item retry, or method fallback.
+- Added item-level attempted, successful, and failed charge-assignment records.
+- Added agent-owned sampling of up to three real outputs before downstream tasks continue.
+- Improved autonomous recovery so parameter, input, and method failures are diagnosed and repaired without interrupting the user when the scientific conditions are already clear.
+
 ## v3.4.67 — 2026-09-20
 
 - Kept workflow graphs visible while live state moves between planning, approved, and runtime views.

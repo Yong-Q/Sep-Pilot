@@ -18,6 +18,8 @@ import time
 import urllib.request
 
 
+ROOT = Path(__file__).resolve().parents[1]
+
 RELEASE_SOURCE_FILES = (
     'api.py', 'auth.py', 'agents/session.py', 'agents/scientific_review.py',
     'agents/defns.py', 'agents/goal_contract.py', 'agents/charge_contract.py',
@@ -31,9 +33,12 @@ RELEASE_SOURCE_FILES = (
     'agents/state_io.py', 'agents/task_line.py', 'agents/job_watch.py',
     'agents/slurm.py', 'agents/node_inventory.py', 'agents/resource_review.py',
     'pormake_generate_topo.py', 'tools/stage_pormake_outputs.py',
+    'tools/pacmof_batch.py',
     'tools/cdft/cDFT_Initialization/cdft_submit.py',
     'tools/cdft/cDFT_Initialization/data_input.py',
-    'frontend/build/index.html', 'frontend/public/avatars/avatars.json',
+    'frontend/build/index.html', 'frontend/build/asset-manifest.json',
+    *tuple(str(path.relative_to(ROOT)) for path in sorted((ROOT / 'frontend/build/static').rglob('*')) if path.is_file()),
+    'frontend/public/avatars/avatars.json',
     *tuple(f'frontend/public/avatars/anime-{index:02d}.png' for index in range(1, 11)),
     'agents/job_control.py', 'agents/control_policy.py',
     'scripts/restart_idle_backend.py',
@@ -71,7 +76,7 @@ def main():
     parser.add_argument('--expected-version', required=True)
     parser.add_argument('--maintenance-interrupted', action='store_true')
     args = parser.parse_args()
-    root = Path(__file__).resolve().parents[1]
+    root = ROOT
     release_sources = release_source_hashes(root)
     proc = Path('/proc') / str(args.pid)
     if (proc / 'cwd').resolve() != root or b'uvicorn\x00api:app' not in (proc / 'cmdline').read_bytes():

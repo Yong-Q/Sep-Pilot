@@ -15,8 +15,8 @@ SAFE_SCHEMA_DEFAULT_ARGUMENTS = frozenset({
     "format",
     "recursive",
     "max_files",
+    "completion_policy",
 })
-
 
 @dataclass(frozen=True)
 class WorkflowCompilation:

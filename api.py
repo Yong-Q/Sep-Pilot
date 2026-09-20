@@ -26,7 +26,7 @@ from auth import (
     save_model_connection, config_for_user, migrate_auth_storage, load_tokens,
 )
 
-app = FastAPI(title="BiMemAgent API", description="多用户会话隔离、持久化混合串并行编排与全生命周期协调", version="3.4.67")
+app = FastAPI(title="BiMemAgent API", description="多用户会话隔离、持久化混合串并行编排与全生命周期协调", version="3.4.73")
 
 # Durable lifecycle mailboxes survive the API process.  That is necessary for
 # long scheduler jobs, but a pre-restart notification from a conversation with

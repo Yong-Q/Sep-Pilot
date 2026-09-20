@@ -812,6 +812,7 @@ def _exec_charge(p: Dict[str, Any]) -> Any:
     cif_path = p.get("cif_path", "")
     charge_type = p.get("charge_type", "DDEC6")
     method = (p.get("method") or "pacmof").lower()
+    completion_policy = p.get("completion_policy") or "best_effort"
     config = get_config()
     # Session-isolated workspace: products live under runs/{user}/{conv}/charged
     try:
@@ -868,24 +869,14 @@ echo "Charge calculation completed"
         # PACMOF (CPU, fast, default): sklearn RF prediction in the `pacmof` env.
         # No GPU, no DDEC6 SCF — a batch of ~100 MOFs finishes in minutes.
         py = "/home/user/.conda/envs/pacmof/bin/python"
+        import shlex
+        batch_script = config.project_root / "tools" / "pacmof_batch.py"
         command = f"""set -euo pipefail
-mkdir -p {output_dir}
-{py} -c "
-import sys, glob, os
-sys.path.insert(0, '/home/user/pacmof')
-from pacmof.pacmof import get_charges_single_serial
-cifs = sorted(glob.glob('{cif_dir}/*.cif'))
-os.makedirs('{output_dir}', exist_ok=True)
-ok = 0
-for c in cifs:
-    try:
-        get_charges_single_serial(c, create_cif=True,
-            path_to_output_dir='{output_dir}', add_string='_pacmof')
-        ok += 1
-    except Exception as e:
-        print('FAILED', os.path.basename(c), str(e)[:200])
-print('PACMOF charges: %d/%d CIFs done' % (ok, len(cifs)))
-"
+mkdir -p {shlex.quote(str(output_dir))}
+{shlex.quote(py)} {shlex.quote(str(batch_script))} \
+  --cif-dir {shlex.quote(str(cif_dir))} \
+  --output-dir {shlex.quote(str(output_dir))} \
+  --completion-policy {shlex.quote(str(completion_policy))}
 echo "PACMOF charge calculation completed"
 """
         result = slurm.submit_and_return(
@@ -907,6 +898,9 @@ echo "PACMOF charge calculation completed"
         result["charged_cifs"] = [str(f) for f in charged_cifs]
         result["charge_method"] = method
         result["charge_suffix"] = suffix
+        manifest = output_path / "charge_manifest.json"
+        if manifest.is_file():
+            result["charge_manifest"] = str(manifest)
         # Read charge data from first CIF if available
         if charged_cifs:
             with open(charged_cifs[0]) as f:
@@ -1232,14 +1226,14 @@ def _exec_cdft(p: Dict[str, Any]) -> Any:
         from .node_inventory import node_inventory, candidates
         inventory = node_inventory(config.project_root, refresh=True)
         profile = inventory['policy']['tool_profiles']['run_cdft']
-        choices = candidates(inventory, cpus=resources.get('num_processes', profile['default_cpus']), min_glibc=profile['min_glibc'], memory_mb=p['memory_mb'])
+        choices = candidates(inventory, cpus=resources.get('num_processes', profile['default_cpus']), min_glibc=profile.get('min_glibc'), memory_mb=p['memory_mb'])
         if resources.get('nodelist'):
             choices=[node for node in choices if node['name'] in set(resources['nodelist'].split(','))]
         allowed_partitions = [resources['partition']] if resources.get('partition') else profile['partition_preference']
         targets = [(partition, node) for partition in allowed_partitions for node in choices if partition in node['partitions']]
         if not targets:
             queued = candidates(inventory, cpus=resources.get('num_processes', profile['default_cpus']),
-                                min_glibc=profile['min_glibc'], memory_mb=p['memory_mb'], for_queue=True)
+                                min_glibc=profile.get('min_glibc'), memory_mb=p['memory_mb'], for_queue=True)
             if resources.get('nodelist'):
                 queued = [node for node in queued if node['name'] in set(resources['nodelist'].split(','))]
             targets = [(partition, node) for partition in allowed_partitions for node in queued if partition in node['partitions']]
@@ -3097,6 +3091,7 @@ _SCHEMAS = {
                 "cif_dir": {"type": "string", "description": "CIF directory"},
                 "cif_path": {"type": "string", "description": "Single CIF path (alternative to cif_dir)"},
                 "method": {"type": "string", "enum": ["pacmof", "pacman"], "default": "pacmof", "description": "'pacmof' (default, fast CPU) or 'pacman' (GPU DDEC6/CM5)"},
+                "completion_policy": {"type": "string", "enum": ["best_effort", "strict"], "default": "best_effort", "description": "best_effort continues with scientifically valid successes and records failed items; strict requires the declared output count."},
                 "charge_type": {"type": "string", "description": "DDEC6 or CM5 (only used when method='pacman')"},
                 "scheduler": {"type": "string", "description": "local, pbs, remote_slurm"},
                 "output_dir": {"type": "string", "description": "Output directory"},

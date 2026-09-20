@@ -277,7 +277,7 @@ const NODE_STATUS = {
   draft: ['方案草案', '○'],
   completed: ['已完成', '✓'], succeeded: ['已完成', '✓'], prefinish: ['结果检查中', '◐'],
   failed: ['需要处理', '!'], running: ['正在执行', '▶'], submitted: ['计算进行中', '▶'],
-  pending: ['等待前一步', '○'], waiting_jobs: ['等待计算', '◌'], waiting_prerequisite: ['等待依赖', '○'],
+  pending: ['等待前一步', '○'], waiting_jobs: ['作业执行中', '◌'], waiting_prerequisite: ['等待依赖', '○'],
   needs_resources: ['准备计算资源', '◌'], uncertain: ['状态待核对', '?'], cancelled: ['已取消', '⊘'],
 };
 

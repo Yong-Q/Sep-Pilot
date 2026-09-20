@@ -69,6 +69,40 @@ def test_start_and_tick_reports_dispatch_only_after_root_claim(factory):
     gate.set()
 
 
+def test_restarting_same_plan_does_not_pause_a_live_scheduler_node(factory, tmp_path):
+    inputs = tmp_path / 'input'; work = tmp_path / 'work'
+    inputs.mkdir()
+    rt = factory([node('compute', tool='run_cdft', args={
+        'action': 'pipeline', 'cif_dir': str(inputs), 'gas': 'CO2',
+        'temperature': 298, 'job_work_dir': str(work),
+    }, outputs=[str(work / 'results.csv')])], cid='same-live-plan')
+    rt.start(1)
+    ticket = rt.store.claim(rt.workflow_id, 'compute')
+    rt.store.update(rt.workflow_id, 'compute', ticket['token'], {
+        'status': 'waiting_jobs', 'job_ids': ['42'], 'tool_returned': True,
+    })
+    rt.store.pause(rt.workflow_id, 'stale cache check', kind='input_changed')
+
+    receipt = rt.start(1)
+
+    assert receipt['status'] == 'already_active'
+    assert rt.snapshot()['status'] == 'active'
+    assert rt.snapshot()['nodes']['compute']['job_ids'] == ['42']
+
+
+def test_tick_clears_stale_cache_pause_while_node_is_in_prefinish(factory):
+    rt = factory([node('inspect')], cid='prefinish-cache-pause')
+    rt.start(1)
+    ticket = rt.store.claim(rt.workflow_id, 'inspect')
+    rt.store.update(rt.workflow_id, 'inspect', ticket['token'], {'status': 'prefinish'})
+    rt.store.pause(rt.workflow_id, 'stale cache check', kind='input_changed')
+
+    rt.tick()
+
+    assert rt.snapshot()['status'] == 'active'
+    assert rt.snapshot()['nodes']['inspect']['status'] == 'prefinish'
+
+
 def test_goal_metadata_reconciles_but_science_does_not(factory):
     rt = factory([node('a')])
     rt.start(1)
@@ -139,6 +173,49 @@ def test_reviewed_resources_reach_tool_and_failed_dispatch_releases_taskline_lea
     assert line_node['validation']['runtime_token'] is None
     assert line_node['validation']['resource_leases'] == []
     assert not rt.store.snapshot().get('leases')
+
+
+def test_retry_reuses_persisted_resource_review_without_calling_model_again(factory, tmp_path):
+    work = tmp_path / 'reviewed-retry'
+    inputs = tmp_path / 'charged'
+    inputs.mkdir()
+    contract = node('compute', tool='run_cdft', args={
+        'action': 'pipeline', 'cif_dir': str(inputs), 'gas': 'CO2',
+        'temperature': 298, 'job_work_dir': str(work),
+    }, outputs=[str(work / 'result.csv')])
+    rt = factory([contract], cid='reviewed-retry')
+    rt.start(1)
+    state_path = rt.store.path
+    with json_transaction(state_path) as data:
+        current = data['workflows'][rt.workflow_id]['nodes']['compute']
+        current['resource_review'] = {
+            'status': 'ready', 'resource_review_id': 'review-existing',
+            'evidence_call_ids': ['resource-proof'],
+        }
+        current['resource_allocation'] = {
+            'resource_review_id': 'review-existing', 'memory_mb': 8192,
+            'cpus': 8, 'nodelist': 'node15', 'partition': 'compute',
+            'evidence_call_ids': ['resource-proof'],
+        }
+        current['effective_arguments'] = {
+            **current['contract']['arguments'], 'resource_review_id': 'review-existing',
+            'memory_mb': 8192, 'num_processes': 8,
+            'nodelist': 'node15', 'partition': 'compute',
+        }
+    rt.main._on_resource_review = lambda request: pytest.fail('a verified retry must not call the model reviewer again')
+    calls = []
+    rt.main.registry.get('run_cdft').execute = lambda args: calls.append(copy.deepcopy(args)) or {
+        'error': 'controlled failure after proving dispatch arguments',
+    }
+
+    rt.tick()
+    eventually(lambda: bool(calls))
+    for future in list(rt.futures.values()):
+        future.result(timeout=5)
+
+    assert calls[0]['resource_review_id'] == 'review-existing'
+    assert calls[0]['memory_mb'] == 8192
+    assert calls[0]['num_processes'] == 8
 
 
 def test_resource_projection_failure_does_not_block_approved_tool(factory, tmp_path):
@@ -855,7 +932,7 @@ def test_native_scheduler_receipt_binds_generic_output_csv_without_resubmission(
     assert settled and settled[0][0] == 'pore'
 
 
-def test_native_scheduler_receipt_binds_output_directory_and_preserves_pattern(factory, tmp_path):
+def test_native_scheduler_receipt_binds_output_directory_and_uses_best_effort_count(factory, tmp_path):
     actual = tmp_path / 'runs' / 'tester' / 'c1' / 'charged_cifs'
     contract = node('charge', tool='run_pacman_charge', args={
         'cif_dir': str(tmp_path / 'runs' / 'tester' / 'c1' / 'subset_cifs'),
@@ -874,9 +951,13 @@ def test_native_scheduler_receipt_binds_output_directory_and_preserves_pattern(f
         'evidence_call': {'call_id': 'chargecall', 'result': receipt},
     })
     assert rt._bind_native_result_path('charge', claimed['token'], receipt)
+    rt._apply_batch_success_threshold('charge', claimed['token'])
+    rt._apply_batch_success_threshold('charge', claimed['token'])
     expected = rt.snapshot()['nodes']['charge']['contract']['expected_outputs']
     assert expected == [{'kind': 'directory', 'path': str(actual),
-                         'pattern': '*_pacmof.cif', 'min_count': 6}]
+                         'pattern': '*_pacmof.cif', 'min_count': 1}]
+    assert rt.snapshot()['nodes']['charge']['batch_success_policy']['outputs'][0] == {
+        'index': 0, 'declared_target_count': 6, 'artifact_presence_floor': 1}
     assert rt.snapshot()['nodes']['charge']['job_ids'] == ['77749']
 
 

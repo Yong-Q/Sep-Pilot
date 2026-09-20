@@ -74,7 +74,7 @@ def failure_reason(result):
     return ''
 
 
-def input_fingerprint(params, project_root):
+def _input_fingerprint(params, project_root, include_resource_review=False):
     """Bind a retry permit to exact arguments and bounded input provenance."""
     files = {}
     for key in ('cif', 'cif_path', 'cif_dir', 'input_path', 'input_dir', 'data_csv', 'path', 'work_dir'):
@@ -98,10 +98,17 @@ def input_fingerprint(params, project_root):
                 digest = f'stat:{stat.st_size}:{stat.st_mtime_ns}'
             files[str(candidate.resolve())] = digest
     # Renaming outputs/jobs is not a fix and must not grant a new permit.
-    effective_params = {k: v for k, v in params.items()
-                        if k not in {'output', 'output_dir', 'output_csv', 'job_work_dir', 'job_name', 'work_dir'}}
+    ignored = {'output', 'output_dir', 'output_csv', 'job_work_dir', 'job_name', 'work_dir'}
+    if not include_resource_review:
+        ignored.add('resource_review_id')
+    effective_params = {k: v for k, v in params.items() if k not in ignored}
     blob = json.dumps({'params': effective_params, 'files': files}, sort_keys=True, default=str)
     return hashlib.sha256(blob.encode()).hexdigest()
+
+
+def input_fingerprint(params, project_root):
+    """Fingerprint scientific inputs and real resource constraints, not receipt identity."""
+    return _input_fingerprint(params, project_root, include_resource_review=False)
 
 
 class RecoveryGate:
@@ -156,6 +163,16 @@ class RecoveryGate:
         with self.transaction() as data:
             entry = data.get(key)
             if entry:
+                # v3.4.70 and older included the evidence receipt identifier in
+                # the retry fingerprint. Migrate only when the stored digest is
+                # exactly reproducible by that legacy algorithm.
+                legacy = _input_fingerprint(entry.get('params', {}), entry.get('project_root') or '.',
+                                            include_resource_review=True)
+                if entry.get('fingerprint') == legacy:
+                    normalized = input_fingerprint(entry.get('params', {}), entry.get('project_root') or '.')
+                    entry['fingerprint'] = normalized
+                    if entry.get('approved_fingerprint') == legacy:
+                        entry['approved_fingerprint'] = normalized
                 status = entry['status']
                 resume_waiting_chain = status == 'completed_unverified' and entry.get('last_result', {}).get('chain_status') == 'waiting'
                 if status in {'reserved', 'submitted', 'uncertain', 'completed_unverified', 'completed'} and not resume_waiting_chain:

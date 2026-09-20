@@ -31,6 +31,29 @@ KINDS = {'generate_structure': 'structures', 'run_pacman_charge': 'charged',
     'build_guest_forcefield': 'ff', 'run_vasp': 'vasp', 'run_string_tst': 'tst',
     'run_external_potential': 'vext', 'calc_binding_energy': 'binding'}
 ACTIVE = {'running', 'waiting_jobs', 'waiting_prerequisite', 'uncertain','prefinish'}
+RESOURCE_ARGUMENTS = frozenset({'memory_mb', 'nodelist', 'partition', 'num_processes',
+                                'cpus_per_task', 'resource_review_id'})
+
+
+def persisted_resource_review(node_state, step_id):
+    """Return a prior evidence-backed allocation for an unchanged retry."""
+    allocation = copy.deepcopy(node_state.get('resource_allocation') or {})
+    effective = copy.deepcopy(node_state.get('effective_arguments') or {})
+    review_id = allocation.get('resource_review_id')
+    if (not review_id or effective.get('resource_review_id') != review_id
+            or not allocation.get('evidence_call_ids')):
+        return None
+    declared = node_state.get('contract', {}).get('arguments', {})
+    for key, value in declared.items():
+        if key not in RESOURCE_ARGUMENTS and effective.get(key) != value:
+            return None
+    return {
+        'status': 'ready', 'resource_review_id': review_id,
+        'evidence_call_ids': copy.deepcopy(allocation.get('evidence_call_ids', [])),
+        'resource_allocations': {step_id: allocation},
+        'effective_arguments': effective,
+        'reused': True,
+    }
 
 
 def same_scientific_contract(before, after):
@@ -376,6 +399,21 @@ class WorkflowStore:
             workflow = data.get('workflows', {}).get(workflow_id)
             if workflow: workflow['user_paused'] = bool(paused)
 
+    def resume_unchanged_active(self, workflow_id):
+        """Clear a stale cache-review pause without touching live node ownership."""
+        with json_transaction(self.path) as data:
+            workflow = data.get('workflows', {}).get(workflow_id)
+            if not workflow or not any(node.get('status') in ACTIVE for node in workflow.get('nodes', {}).values()):
+                return False
+            if any(node.get('status') in {'failed', 'uncertain', 'validation_failed'}
+                   for node in workflow.get('nodes', {}).values()):
+                return False
+            if workflow.get('pause_kind') == 'input_changed':
+                workflow['status'] = 'active'
+                workflow.pop('pause_reason', None)
+                workflow.pop('pause_kind', None)
+            return workflow.get('status') == 'active'
+
     def retire(self, workflow_id):
         """Authenticated conversation deletion cannot orphan a live writer."""
         with json_transaction(self.path) as data:
@@ -529,8 +567,17 @@ class ParallelWorkflow:
             if is_submission(node['tool'], node['arguments']) and not node.get('expected_outputs'):
                 raise ValueError('asynchronous compute nodes require explicit output contracts')
             node['resources'] = resources_for(node, self.main.config.project_root, self.root)
-        reusable = set()
         incoming = {n['step_id']: n for n in nodes}
+        unchanged_live_plan = (existing.get('plan_version') == plan_version
+            and set(incoming) == set(existing.get('nodes', {}))
+            and any(value.get('status') in ACTIVE for value in existing.get('nodes', {}).values())
+            and all(same_scientific_contract(existing['nodes'][key].get('contract', {}), contract)
+                    for key, contract in incoming.items()))
+        if unchanged_live_plan:
+            self.store.resume_unchanged_active(self.workflow_id)
+            return {'status': 'already_active', 'scheduled': True, 'workflow_id': self.workflow_id,
+                    'plan_version': plan_version, 'resubmitted': False}
+        reusable = set()
         for s in line.get('steps', []):
             prior = existing.get('nodes', {}).get(s['step_id'], {})
             unchanged_artifacts = prior.get('artifacts', {}) == self._artifacts(prior['contract'], prior.get('result', {})) if prior else False
@@ -832,6 +879,7 @@ class ParallelWorkflow:
                     'verification': copy.deepcopy(node['node_verification']),
                     'next_action': 'Use the stored verification receipt; no new validation or dispatch was performed.'}
         if node['status']!='prefinish':raise ValueError('finish requires an execution-ended node awaiting verification')
+        self._apply_batch_success_threshold(step_id, node['token'])
         self._bind_native_result_path(step_id, node['token'], node.get('result', {}))
         node = self.snapshot()['nodes'][step_id]
         if not evidence_call_ids or len(conclusion.strip())<10:raise ValueError('real validation evidence and a factual conclusion required')
@@ -1086,7 +1134,12 @@ class ParallelWorkflow:
             if is_submission(node['tool'], args) and self.main._on_resource_review:
                 # Review a successor only when its dependencies are real and
                 # it is about to dispatch, not while preparing another branch.
-                receipt=self.main._on_resource_review({'kind':'before_submission','nodes':[node],'goal_version':worker.goal_contract.version})
+                prior = self.snapshot()['nodes'][step_id]
+                receipt = persisted_resource_review(prior, step_id)
+                if receipt:
+                    args = copy.deepcopy(receipt['effective_arguments'])
+                else:
+                    receipt=self.main._on_resource_review({'kind':'before_submission','nodes':[node],'goal_version':worker.goal_contract.version})
                 if receipt.get('status')!='ready':
                     retries = self.snapshot()['nodes'][step_id].get('resource_review_attempts', 0) + 1
                     retryable = receipt.get('status') == 'waiting_resources' or receipt.get('status') == 'review_retry' and retries < 3
@@ -1169,6 +1222,52 @@ class ParallelWorkflow:
             facts[str(output_path(name, base))] = artifact_fact(name, base)
         return facts
 
+    def _apply_batch_success_threshold(self, step_id, token):
+        """Replace hard batch counts with a one-time artifact-presence floor.
+
+        Scientific sufficiency belongs to the responsible agent's sampled
+        result review; this mechanical contract only rejects an empty batch.
+        """
+        node = self.snapshot()['nodes'][step_id]
+        if node.get('batch_success_policy'):
+            return node
+        contract, args = node['contract'], node['contract']['arguments']
+        policy = {'mode': args.get('completion_policy', 'best_effort'),
+                  'decision_owner': 'responsible_agent', 'applied_once': True, 'outputs': []}
+        revised, changed = copy.deepcopy(contract), False
+        if (contract['tool'] != 'generate_structure'
+                and is_submission(contract['tool'], args)
+                and policy['mode'] != 'strict'):
+            from .output_contract import normalize_output
+            for index, output in enumerate(revised.get('expected_outputs', [])):
+                spec = normalize_output(output)
+                if spec['kind'] != 'directory':
+                    continue
+                target = max(1, int(spec.get('min_count', 1)))
+                required = 1
+                policy['outputs'].append({'index': index, 'declared_target_count': target,
+                                          'artifact_presence_floor': required})
+                if target != required:
+                    revised['expected_outputs'][index] = {**spec, 'min_count': required}
+                    changed = True
+        fields = {'batch_success_policy': policy}
+        if changed:
+            fields['contract'] = revised
+        if not self.store.update(self.workflow_id, step_id, token, fields):
+            raise ValueError('node ownership changed during batch policy application')
+        if changed:
+            proof = {'kind': 'batch_artifact_presence_floor',
+                     'outputs': policy['outputs'], 'applied_once': True,
+                     'science_arguments_unchanged': True, 'no_resubmission': True}
+            self.task_lines.repair_output_contract(
+                self.main._current_line_id, step_id, revised['expected_outputs'], proof,
+                self.snapshot()['plan_version'])
+            for approved in self.main.goal_contract.approved_nodes:
+                if approved['step_id'] == step_id:
+                    approved['expected_outputs'] = copy.deepcopy(revised['expected_outputs'])
+            self.sync_chain('batch_success_threshold:' + step_id)
+        return self.snapshot()['nodes'][step_id]
+
     def _bind_native_result_path(self, step_id, token, result):
         """Native scheduler receipt fixes managed CSV location, not science.
 
@@ -1239,6 +1338,7 @@ class ParallelWorkflow:
         return True
 
     def _settle(self, step_id, token, result):
+        self._apply_batch_success_threshold(step_id, token)
         self._bind_native_result_path(step_id, token, result)
         current = self.snapshot()['nodes'][step_id]
         obj = result_object(result)
@@ -1343,6 +1443,9 @@ class ParallelWorkflow:
             self.futures = {key: future for key, future in self.futures.items() if not future.done()}
             state = self.snapshot()
             if not state: return
+            if (state.get('status') == 'needs_user' and state.get('pause_kind') == 'input_changed'
+                    and self.store.resume_unchanged_active(self.workflow_id)):
+                state = self.snapshot()
             if paused: self.store.user_pause(self.workflow_id)
             self.recover_notifications()
             self.flush_events()

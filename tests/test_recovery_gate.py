@@ -7,7 +7,7 @@ from anthropic.types import TextBlock, ToolUseBlock
 from agents.agent import Agent
 from agents.config import AgentConfig
 from agents.goal_contract import GoalContract
-from agents.recovery import RecoveryGate, failure_reason, input_fingerprint
+from agents.recovery import RecoveryGate, failure_reason, input_fingerprint, _input_fingerprint
 from agents.registry import _exec_run_bash, _exec_submit_job, get_registry
 from agents.session import Session
 from agents.state_io import write_checkpoint
@@ -201,8 +201,25 @@ def test_full_review_allows_verified_file_only_fix(tmp_path):
 def test_cosmetic_and_ignored_argument_changes_are_not_fixes(tmp_path):
     args = {'cif': 'x.cif', 'gas': 'Kr', 'temperature': 298}
     assert input_fingerprint(args, tmp_path) == input_fingerprint({**args, 'output_csv': 'newname.csv'}, tmp_path)
+    assert input_fingerprint(args, tmp_path) == input_fingerprint({**args, 'resource_review_id': 'new-receipt'}, tmp_path)
     issues = get_registry().validate_params('run_henry', {**args, 'made_up_fix': 'yes'})
     assert any('ignored' in issue for issue in issues)
+
+
+def test_legacy_resource_receipt_fingerprint_migrates_without_blocking_retry(tmp_path):
+    old = {'gas': 'CO2', 'memory_mb': 8192, 'resource_review_id': 'old-receipt'}
+    legacy = _input_fingerprint(old, tmp_path, include_resource_review=True)
+    gate = RecoveryGate(state={'task': {
+        'key': 'task', 'tool': 'run_cdft', 'params': old,
+        'fingerprint': legacy, 'approved_fingerprint': legacy,
+        'attempts': 1, 'status': 'failed', 'project_root': str(tmp_path),
+    }})
+    current = {**old, 'resource_review_id': 'new-receipt'}
+
+    attempt, reason = gate.claim('task', 'run_cdft', current,
+                                 input_fingerprint(current, tmp_path))
+
+    assert attempt and not reason
 
 
 def test_trimmed_checkpoint_does_not_replay_old_goal_over_newer_one(tmp_path):

@@ -15,6 +15,23 @@ test('committed chain is the graph source including dependency changes', () => {
   expect(selectGraph(next)).toBe(next.graph_projection);
 });
 
+test('committed topology receives live status from the matching runtime', () => {
+  const next = snapshot(2);
+  next.graph_projection = {source: 'persisted_chain', version: 2, revision: 10,
+    nodes: [{step_id: 'input', depends_on: [], status: 'pending'},
+      {step_id: 'result', depends_on: ['input'], status: 'pending'}]};
+  next.parallel_runtime = {plan_version: 2, nodes: {
+    input: {status: 'succeeded', job_ids: ['1']},
+    result: {status: 'waiting_jobs', job_ids: ['2']},
+  }};
+
+  const graph = selectGraph(next);
+
+  expect(graph.source).toBe('persisted_chain');
+  expect(graph.nodes[1].status).toBe('waiting_jobs');
+  expect(graph.nodes[1].job_ids).toEqual(['2']);
+});
+
 test('first approved plan replaces a repeatedly revised draft', () => {
   const draft = {scope: snapshot().scope, graph_projection: {source:'workflow_draft', version:99,
     nodes:[{step_id:'draft', depends_on:[]}]}};
@@ -28,6 +45,18 @@ test('empty updates retain a complete graph until a replacement arrives', () => 
   expect(retained.display_graph.nodes).toHaveLength(2);
   expect(retained.display_graph.retained).toBe(true);
   expect(retainGraph(retained, snapshot(2)).display_graph.version).toBe(2);
+});
+
+test('a partial same-version projection cannot erase nodes from the complete graph', () => {
+  const initial = snapshot(3);
+  const previous = retainGraph(null, initial);
+  const partial = snapshot(3);
+  partial.goal_contract.approved_nodes = [{step_id: 'input', depends_on: []}];
+
+  const retained = retainGraph(previous, partial);
+
+  expect(retained.display_graph.nodes).toHaveLength(2);
+  expect(retained.display_graph.retained).toBe(true);
 });
 
 test('new approved topology wins over older running plan without stale success', () => {

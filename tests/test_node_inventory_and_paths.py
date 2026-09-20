@@ -207,6 +207,32 @@ def test_cdft_default_target_reads_env_profile_instead_of_legacy_node_table(tmp_
     assert "'nodelist': 'candidate'" in captured[0] and "'partition': 'bigcpu'" in captured[0]
 
 
+def test_cdft_profile_may_omit_optional_glibc_constraint(tmp_path, monkeypatch):
+    config = AgentConfig(api_key='test', project_root=tmp_path)
+    monkeypatch.setattr('agents.registry.get_config', lambda: config)
+    monkeypatch.setattr('agents.workspace.session_dir', lambda kind: tmp_path / kind)
+    (tmp_path / 'env').mkdir()
+    (tmp_path / 'env/node_inventory.json').write_text('{}')
+    snapshot = {'verified': True, 'stale': False,
+        'nodes': parse_sinfo('candidate|compute|idle|0/40/0/40|2048'),
+        'policy': {'preferred_nodes': [], 'excluded_nodes': [], 'allowed_states': ['idle'],
+                   'tool_profiles': {'run_cdft': {
+                       'default_cpus': 2, 'partition_preference': ['compute']}}}}
+    snapshot['nodes']['candidate']['memory'] = {
+        'verified': True, 'available_for_scheduling_mib': 2048}
+    monkeypatch.setattr('agents.node_inventory.node_inventory', lambda *a, **kw: snapshot)
+    captured = []
+    monkeypatch.setattr('subprocess.run', lambda argv, **kw: captured.append(argv[-1]) or SimpleNamespace(
+        returncode=0, stdout='{"submitted":true,"job_id":"10","work_dir":"'
+        + str(tmp_path / 'actual') + '"}', stderr=''))
+
+    result = _exec_cdft({'action': 'submit', 'input_dir': 'inputs', 'gas': 'CO2',
+                         'memory_mb': 512})
+
+    assert result.get('error') != "'min_glibc'"
+    assert "'nodelist': 'candidate'" in captured[0]
+
+
 def test_empty_reasoning_only_model_reply_cannot_mark_task_complete(tmp_path):
     from agents.session import LLMUnavailableError
     s = Session(config=AgentConfig(api_key='test', project_root=tmp_path))

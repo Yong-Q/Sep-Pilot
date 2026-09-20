@@ -5,7 +5,14 @@ export function selectGraph(workflow = {}) {
   const approved = goal.approved_nodes || [];
   const chain = workflow.graph_projection || {};
   if (chain.source === 'persisted_chain' && chain.nodes?.length &&
-      Number(chain.version || 0) >= Math.max(Number(goal.approved_plan_version || 0), Number(runtime.plan_version || 0))) return chain;
+      Number(chain.version || 0) >= Math.max(Number(goal.approved_plan_version || 0), Number(runtime.plan_version || 0))) {
+    if (Number(chain.version || 0) !== Number(runtime.plan_version || 0) || !Object.keys(runtime.nodes || {}).length) return chain;
+    return { ...chain, nodes: chain.nodes.map(node => ({
+      ...node, ...(runtime.nodes?.[node.step_id] || {}),
+      step_id: node.step_id,
+      depends_on: node.depends_on || node.contract?.depends_on || [],
+    })) };
+  }
   if (approved.length && Number(goal.approved_plan_version) >= Number(runtime.plan_version || 0)) {
     const matches = goal.approved_plan_version === runtime.plan_version;
     return { version: goal.approved_plan_version, source: 'approved', nodes: approved.map(node => ({
@@ -29,7 +36,11 @@ export function retainGraph(previous, next) {
   const complete = graph => graph.nodes?.length && graph.source !== 'workflow_planning_state';
   const oldDraft = oldGraph.source === 'workflow_draft';
   const newDraft = newGraph.source === 'workflow_draft';
-  const keep = complete(oldGraph) && (!complete(newGraph) || (!oldDraft && newDraft) ||
+  const partialSameVersion = complete(oldGraph) && complete(newGraph) &&
+    Number(newGraph.version || 0) === Number(oldGraph.version || 0) &&
+    new Set((newGraph.nodes || []).map(node => node.step_id)).size <
+      new Set((oldGraph.nodes || []).map(node => node.step_id)).size;
+  const keep = complete(oldGraph) && (!complete(newGraph) || partialSameVersion || (!oldDraft && newDraft) ||
     oldDraft === newDraft && Number(newGraph.version || 0) < Number(oldGraph.version || 0));
   return { ...next, display_graph: keep ? { ...oldGraph, retained: true } : newGraph };
 }
