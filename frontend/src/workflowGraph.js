@@ -41,7 +41,6 @@ export function graphViewportKey(workflow = {}, graph = selectGraph(workflow)) {
     [...(node.depends_on || node.contract?.depends_on || [])].sort(),
   ]);
   return JSON.stringify([
-    scope.username || '', scope.conv_id || '', graph.source || '',
-    Number(graph.version || 0), topology,
+    scope.username || '', scope.conv_id || '', Number(graph.version || 0), topology,
   ]);
 }

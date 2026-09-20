@@ -1012,6 +1012,7 @@ def _exec_structure_gen(p: Dict[str, Any]) -> Any:
     elif "MOF" in material_type_upper:
         material_type = "MOF"
     n_structures = p.get("n_structures", 10)
+    size_class = str(p.get("size_class") or "all").lower()
     max_atoms = int(p.get("max_atoms", 1500))
     topologies = [str(x).strip() for x in (p.get("topologies") or []) if str(x).strip()]
     per_topology = int(p.get("structures_per_topology", 0) or 0)
@@ -1028,7 +1029,9 @@ def _exec_structure_gen(p: Dict[str, Any]) -> Any:
     import shlex
     _python = shlex.quote(str(pormake_python))
     _py = shlex.quote(pormake_script)
+    _stage = shlex.quote(str(config.project_root / "tools" / "stage_pormake_outputs.py"))
     _out = shlex.quote(str(output_dir))
+    _selection = shlex.quote(size_class)
     if topologies:
         quotient, remainder = divmod(int(n_structures), len(topologies))
         commands = []
@@ -1037,13 +1040,14 @@ def _exec_structure_gen(p: Dict[str, Any]) -> Any:
             commands.append(
                 f"{_python} {_py} generate --type {shlex.quote(material_type)} "
                 f"--n {count} --max-atoms {max_atoms} --output-dir {_out} "
-                f"--topo {shlex.quote(topo)}"
+                f"--selection {_selection} --topo {shlex.quote(topo)}"
             )
         generate_cmd = "\n".join(commands)
     else:
         generate_cmd = (
             f"{_python} {_py} generate --type {shlex.quote(material_type)} "
-            f"--n {int(n_structures)} --max-atoms {max_atoms} --output-dir {_out}"
+            f"--n {int(n_structures)} --max-atoms {max_atoms} --output-dir {_out} "
+            f"--selection {_selection}"
         )
 
     command = f"""set -euo pipefail
@@ -1051,6 +1055,7 @@ mkdir -p {_out}
 {{
 {generate_cmd}
 }} 2>&1 | tee {_out}/generation.log
+{_python} {_stage} --output-dir {_out} --selection {_selection} --expected-count {int(n_structures)}
 echo "Structure generation: {n_structures} {material_type} structures completed"
 """
     # Never let Slurm's default turn this into an implicit full-node request.
@@ -1082,6 +1087,7 @@ echo "Structure generation: {n_structures} {material_type} structures completed"
     result["topologies"] = topologies
     result["n_structures"] = int(n_structures)
     result["max_atoms"] = max_atoms
+    result["size_class"] = size_class
     _register_jobwatch(result, tool="generate_structure")
     return result
 
@@ -3116,7 +3122,7 @@ _SCHEMAS = {
         },
     },
     "generate_structure": {
-        "description": "Generate MOF/COF/HOF structures using the project-local pormake generator. Supports exact topology lists and max-atom constraints; one call submits one SLURM job.",
+        "description": "Generate MOF/COF/HOF structures using the project-local pormake generator. The requested count means successfully written CIFs. Outputs are classified as large/small and the selected class is also published at output_dir/*.cif for downstream tools.",
         "schema": {
             "type": "object",
             "properties": {
@@ -3126,6 +3132,7 @@ _SCHEMAS = {
                 "max_atoms": {"type": "integer", "description": "Max atoms per cell"},
                 "topologies": {"type": "array", "items": {"type": "string"}, "minItems": 1, "description": "Optional exact topology list, e.g. [utk,hxg,bto,cds,cdt,srs,eta]"},
                 "structures_per_topology": {"type": "integer", "description": "Optional count per topology; otherwise distributed from n_structures"},
+                "size_class": {"type": "string", "enum": ["all", "large", "small"], "default": "all", "description": "Which successfully written size class counts toward n_structures and is published for downstream tools."},
                 "nodelist":{"type":"string","pattern":"^[A-Za-z0-9_.-]+$","description":"Actual scheduler node from fresh resource facts."},
                 "partition":{"type":"string","pattern":"^[A-Za-z0-9_.-]+$"},
                 "cpus_per_task":{"type":"integer","minimum":1},

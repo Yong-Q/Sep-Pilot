@@ -30,6 +30,7 @@ RELEASE_SOURCE_FILES = (
     'agents/project_validation.py', 'agents/registry.py', 'agents/recovery.py',
     'agents/state_io.py', 'agents/task_line.py', 'agents/job_watch.py',
     'agents/slurm.py', 'agents/node_inventory.py', 'agents/resource_review.py',
+    'pormake_generate_topo.py', 'tools/stage_pormake_outputs.py',
     'tools/cdft/cDFT_Initialization/cdft_submit.py',
     'tools/cdft/cDFT_Initialization/data_input.py',
     'frontend/build/index.html', 'frontend/public/avatars/avatars.json',

@@ -405,7 +405,7 @@ def test_generator_can_revalidate_real_split_output_directories(factory, tmp_pat
     result = rt.revalidate_outputs('gen', [
         {'kind': 'directory', 'path': str(output / 'large'), 'pattern': '*.cif', 'min_count': 1},
         {'kind': 'directory', 'path': str(output / 'small'), 'pattern': '*.cif', 'min_count': 1},
-    ])
+    ], completed_job_id='42')
 
     assert result['ok'] and result['verified_files'] == 2
     assert rt.snapshot()['nodes']['gen']['status'] == 'prefinish'

@@ -288,7 +288,11 @@ def test_structure_generator_uses_local_topology_aware_script(tmp_path: Path, mo
     for topology in ("utk", "hxg", "bto", "cds", "cdt", "srs", "eta"):
         assert f"--topo {topology}" in command
     assert command.count("--n 6") == 7
+    assert command.count("--selection all") == 8  # seven generators plus one publisher
+    assert "stage_pormake_outputs.py" in command
+    assert "--expected-count 42" in command
     assert result["n_structures"] == 42
+    assert result["size_class"] == "all"
 
 
 def test_agent_config_loads_workspace_tool_paths():

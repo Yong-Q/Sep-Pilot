@@ -606,7 +606,15 @@ class ParallelWorkflow:
         from .output_contract import normalize_output
         from .slurm import check_job_status
         if completed_job_id:
-            return self._restore_verified_dataset(step_id, completed_job_id)
+            current = self.snapshot()['nodes'][step_id]
+            current_job_ids = {str(value) for value in current.get('job_ids', [])}
+            repairing_current_generator = (
+                current['contract']['tool'] == 'generate_structure'
+                and current['status'] in {'prefinish', 'validation_failed'}
+                and str(completed_job_id) in current_job_ids
+            )
+            if not repairing_current_generator:
+                return self._restore_verified_dataset(step_id, completed_job_id)
         state=self.snapshot();node=state['nodes'][step_id]
         args, result = node['contract']['arguments'], result_object(node.get('result', {}))
         native_output = bool(node['contract']['tool'] != 'generate_structure'

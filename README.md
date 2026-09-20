@@ -6,7 +6,7 @@
 
 From a scientific question to an executable workflow, live progress, and traceable results — in one workspace.
 
-[![Release](https://img.shields.io/badge/release-v3.4.66-6C63FF?style=for-the-badge)](https://github.com/Yong-Q/Sep-Pilot/tree/release/v3.4.66)
+[![Release](https://img.shields.io/badge/release-v3.4.67-6C63FF?style=for-the-badge)](https://github.com/Yong-Q/Sep-Pilot/tree/release/v3.4.67)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Research](https://img.shields.io/badge/use-research_only-00A98F?style=for-the-badge)](#license)
 [![Tests](https://img.shields.io/badge/tests-514_passed-2EA44F?style=for-the-badge)](#quality)
@@ -102,7 +102,7 @@ python -m agents -i
 
 ## Quality
 
-Release `v3.4.66` passed 518 backend tests, frontend tests and production build validation, registered-tool smoke checks, and a sanitized-export privacy scan.
+Release `v3.4.67` passed 521 backend tests, frontend tests and production build validation, registered-tool smoke checks, and a sanitized-export privacy scan.
 
 ## License
 

@@ -61,12 +61,14 @@ test('viewport identity tracks topology but ignores runtime status updates', () 
     { step_id: 'result', depends_on: ['input'], status: 'draft' },
   ] };
   const statusOnly = { ...initial, nodes: initial.nodes.map(node => ({ ...node, status: 'running' })) };
+  const sourceOnly = { ...initial, source: 'runtime' };
   const replaced = { ...initial, version: 2, nodes: [
     ...initial.nodes,
     { step_id: 'report', depends_on: ['result'], status: 'pending' },
   ] };
 
   expect(graphViewportKey(workflow, statusOnly)).toBe(graphViewportKey(workflow, initial));
+  expect(graphViewportKey(workflow, sourceOnly)).toBe(graphViewportKey(workflow, initial));
   expect(graphViewportKey(workflow, replaced)).not.toBe(graphViewportKey(workflow, initial));
   expect(graphViewportKey({ scope: { username: 'u', conv_id: 'b' } }, initial))
     .not.toBe(graphViewportKey(workflow, initial));
