@@ -88,6 +88,40 @@ class AgentConfig:
     def conda_path(self) -> str:
         return self._tools_config.get("conda", {}).get("path", "/opt/conda/miniconda/3-python3.9.13/etc/profile.d/conda.sh")
 
+    @property
+    def string_tst_config(self) -> Dict[str, str]:
+        """Reuse the existing String installation entries in runtime.json."""
+        from bimem_agent import paths
+        paths.load_runtime_config.cache_clear()
+        software = paths.get_runtime_section('software')
+        runtime = {'python': str(paths.get_config_path('paths', 'agent_env_python'))}
+        for field, key in (('executable', 'string_tst_executable'),
+                           ('generator', 'string_tst_generate_script')):
+            if key in software:
+                runtime[field] = str(paths.get_config_path('software', key))
+        return runtime
+
+    @property
+    def lammps_config(self) -> Dict[str, str]:
+        """Read MD installation paths from the existing canonical runtime config."""
+        from bimem_agent import paths
+        # A live session must see the next saved deployment configuration,
+        # including the canonical BIMEM_RUNTIME_CONFIG override.
+        paths.load_runtime_config.cache_clear()
+        software = paths.get_runtime_section('software')
+        runtime = {'python': str(paths.get_config_path('paths', 'agent_env_python'))}
+        for field, key in (('executable', 'lammps_executable'),
+                           ('mpi_executable', 'mpi_executable'),
+                           ('interface_executable', 'lammps_interface_executable')):
+            if key in software:
+                runtime[field] = str(paths.get_config_path('software', key))
+        if 'lammps_library_path' in software:
+            value = software['lammps_library_path']
+            if not isinstance(value, str):
+                raise ValueError('software.lammps_library_path must be a string')
+            runtime['library_path'] = value
+        return runtime
+
     @classmethod
     def from_env_dir(cls, env_dir: Path | str | None = None, **overrides: Any) -> AgentConfig:
         """Load config from env/settings.json (third-party proxy format)."""

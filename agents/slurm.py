@@ -112,6 +112,10 @@ def render_sbatch_script(
         f"#SBATCH -t {walltime}",
         f"#SBATCH -o {output}",
         f"#SBATCH -e {error}",
+    ])
+    if extra_directives:
+        lines.extend(f"#SBATCH {directive}" for directive in extra_directives)
+    lines.extend([
         "",
         "set -euo pipefail",
         f"mkdir -p {shlex.quote(logs_dir)}",
@@ -125,10 +129,6 @@ def render_sbatch_script(
     if env_exports:
         for key, val in env_exports.items():
             lines.append(f"export {key}={shlex.quote(val)}")
-
-    if extra_directives:
-        for d in extra_directives:
-            lines.append(f"#SBATCH {d}")
 
     lines.extend(["", command, ""])
     return "\n".join(lines)

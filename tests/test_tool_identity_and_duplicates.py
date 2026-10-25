@@ -186,10 +186,18 @@ def test_vasp_non_submission_actions_never_submit(action, monkeypatch):
     ('build_guest_forcefield', {'name': 'guest', 'input_path': 'input molecule.sdf', 'output_dir': 'out dir'},
      ["--input 'input molecule.sdf'", "--outdir 'out dir'"]),
     ('run_md_optimize', {'cif_path': 'sample.cif', 'mode': 'md', 'temperature': 320, 'force_field': 'Dreiding', 'cutoff': 7},
-     ['from tools.lammps_optimize import run_md', "'temperature': 320", "'force_field': 'Dreiding'", "'cutoff': 7", 'if not r.success: sys.exit(1)']),
+     ['md_runtime.py', '"temperature": 320', '"force_field": "Dreiding"', '"cutoff": 7', '"executable": "/test/lmp"']),
 ])
 def test_advertised_parameters_reach_actual_compute_command(tool, params, expected, tmp_path, monkeypatch):
     captured = []
+    if tool == 'run_md_optimize':
+        from agents.config import AgentConfig
+        from bimem_agent import paths
+        runtime = tmp_path / 'runtime.json'
+        runtime.write_text(json.dumps({'software': {'lammps_executable': '/test/lmp'}}))
+        monkeypatch.setattr(paths, 'RUNTIME_CONFIG_PATH', runtime)
+        config = AgentConfig(project_root=tmp_path)
+        monkeypatch.setattr('agents.registry.get_config', lambda: config)
     monkeypatch.setattr('agents.registry._ws', lambda *a: str(tmp_path))
     monkeypatch.setattr('agents.registry.slurm.submit_and_return', lambda **kw: captured.append(kw) or {'submitted': True, 'job_id': '42'})
     result = get_registry().execute_dict(tool, params)

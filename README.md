@@ -105,6 +105,29 @@ python -m agents -i
 
 ## Quality
 
+Calculation paths use the existing local `config/runtime.json` (or
+`BIMEM_RUNTIME_CONFIG` override). Install scientific software yourself; the
+distribution contains Python adapters, not LAMMPS, MPI, GPU binaries, accounts,
+or credentials. For example:
+
+```json
+{
+  "paths": {"agent_env_python": "/opt/science-env/bin/python"},
+  "software": {
+    "lammps_executable": "/opt/lammps/bin/lmp_mpi",
+    "mpi_executable": "/opt/mpi/bin/mpirun",
+    "lammps_interface_executable": "/opt/science-env/bin/lammps-interface",
+    "string_tst_executable": "/opt/string/bin/GPU_string_polyatmoic",
+    "string_tst_generate_script": "/opt/string/generate_string_inputs.py"
+  }
+}
+```
+
+MD's Python environment needs ASE. If your installation requires extra dynamic
+libraries, set `software.lammps_library_path`; existing library search paths are
+preserved. Configuration changes apply to the next submission, and the selected
+programs must also be accessible on compute nodes.
+
 Release `v3.4.76` passed 172 workflow backend checks, 12 frontend checks, production build validation, and a sanitized-export privacy scan.
 
 Run backend checks with `python -m pytest tests -q`. Scientific integration checks that need the optional Towhee assets, guest force-field pipeline, RASPA binary, or CIF feature extractor are skipped when those dependencies are absent. Core configuration and scheduler command tests use isolated fixtures and do not require private site settings. A passing core suite does not validate calculations from unavailable scientific installations.

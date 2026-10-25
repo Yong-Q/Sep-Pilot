@@ -941,34 +941,31 @@ echo "PACMOF charge calculation completed"
     return result
 
 def _exec_md_optimize(p: Dict[str, Any]) -> Any:
-    """Submit LAMMPS MD optimization via SLURM (real backend: tools/lammps_optimize.py)."""
+    """Submit the local Python adapter using explicitly configured external software."""
     cif_path = p.get("cif_path", "")
     mode = p.get("mode", "single")
-    backend = 'run_md' if mode == 'md' else 'run_single'
     options = {'cutoff': p.get('cutoff', 6.0), 'force_field': p.get('force_field', 'UFF')}
     if mode == 'md':
         options.update(temperature=p['temperature'], pressure=p.get('pressure', 1.0),
                        npt_ps=p.get('npt_ps', 700.0), timestep=p.get('timestep', 1.0))
     config = get_config()
+    # Read through the canonical runtime loader, refreshed for existing sessions.
+    runtime = config.lammps_config
+    if not runtime.get('executable'):
+        return {'submitted': False, 'executed': False,
+                'error': 'Configure software.lammps_executable in config/runtime.json (or BIMEM_RUNTIME_CONFIG) before MD submission'}
     work_dir = _ws("md")
     import shlex
-
-    # Real LAMMPS backend: CIF → lammps-interface → LAMMPS minimize → opt CIF.
-    # Runs on the login/slurm node via python module (lammps-interface + LAMMPS).
+    parameters = dict(cif_path=cif_path, output_dir=work_dir, mode=mode, n_procs=4,
+                      executable=runtime['executable'],
+                      mpi_executable=runtime.get('mpi_executable') or 'mpirun',
+                      interface_executable=runtime.get('interface_executable') or 'lammps-interface',
+                      library_path=runtime.get('library_path') or '', **options)
+    runner = config.project_root / 'tools' / 'md_runtime.py'
+    python = runtime.get('python') or sys.executable
     command = f"""set -euo pipefail
 mkdir -p {shlex.quote(work_dir)}
-source {config.conda_path} && conda activate Agent
-python3 - <<'BIMEM_MD_SCRIPT' 2>&1 | tee {shlex.quote(work_dir)}/md_result.json
-import sys, json
-sys.path.insert(0, '{config.project_root.parent}')
-from tools.lammps_optimize import {backend}
-r = {backend}({cif_path!r}, output_dir={work_dir!r}, n_procs=4, **{options!r})
-out = {{'cif_name': r.cif_name, 'success': r.success,
-       'energy': r.energy, 'output_cif': r.output_cif,
-       'work_dir': r.work_dir, 'error': r.error}}
-print(json.dumps(out, indent=2))
-if not r.success: sys.exit(1)
-BIMEM_MD_SCRIPT
+{shlex.quote(str(python))} {shlex.quote(str(runner))} --parameters {shlex.quote(json.dumps(parameters))} 2>&1 | tee {shlex.quote(work_dir)}/md_result.json
 echo 'LAMMPS calculation completed'
 """
     result = slurm.submit_and_return(
@@ -981,11 +978,14 @@ echo 'LAMMPS calculation completed'
         timeout_minutes=1440,
     )
     result.update({
+        "work_dir": work_dir,
+        "output_dir": work_dir,
         "scientific_capability": "framework geometry minimization/NPT relaxation only",
         "guest_diffusion_supported": False,
         "trajectory_path": None,
         "warning": "This wrapper does not insert guest molecules or emit an unwrapped trajectory; it cannot support a guest diffusion coefficient or MSD node.",
     })
+    _register_jobwatch(result, tool='run_md_optimize')
     return result
 
 def _exec_structure_gen(p: Dict[str, Any]) -> Any:
@@ -1622,24 +1622,24 @@ def _exec_string_tst(p: Dict[str, Any]) -> Any:
     cif_dir = p.get("cif_dir", "")
     temperature = p.get("temperature", 298.0)
 
-    generate_script = "/home/user/gcmc_agent/High_Batch_tool/TST/String_method/generate_string_inputs.py"
-    string_exe = "/home/user/TuTraSt_String/String/GPU_string_polyatmoic"
+    runtime = config.string_tst_config
+    if not runtime.get('generator') or not runtime.get('executable'):
+        return {'submitted': False, 'executed': False,
+                'error': 'Configure software.string_tst_generate_script and software.string_tst_executable in config/runtime.json'}
+    generate_script = runtime['generator']
+    string_exe = runtime['executable']
     input_dir = f"{work_dir}/string_input_{gas}"
+    import shlex
+    runner = str(config.project_root / 'tools' / 'run_string_tst_batch.py')
+    python = shlex.quote(runtime['python'])
 
     command = f"""set -euo pipefail
-mkdir -p {work_dir} {input_dir}
-python3 {generate_script} --cif-dir {cif_dir} --output-dir {input_dir} --gas {gas} --temperature {temperature}
-if [ -f "{input_dir}/manifest.csv" ]; then
-  cd {input_dir}
-  while IFS=, read -r cif_name n_string rest; do
-    [ "$cif_name" = "cif_name" ] && continue
-    mkdir -p {work_dir}/$cif_name
-    {string_exe} {input_dir}/$cif_name 2>&1 | tee {work_dir}/$cif_name/run.log || true
-  done < manifest.csv
-fi
+mkdir -p {shlex.quote(work_dir)} {shlex.quote(input_dir)}
+{python} {shlex.quote(generate_script)} --cif-dir {shlex.quote(cif_dir)} --output-dir {shlex.quote(input_dir)} --gas {shlex.quote(gas)} --temperature {float(temperature)}
+{python} {shlex.quote(runner)} --manifest {shlex.quote(input_dir + '/manifest.csv')} --executable {shlex.quote(string_exe)}
 echo "String TST calculation for {gas} completed"
 """
-    return slurm.submit_and_return(
+    result = slurm.submit_and_return(
         job_name=f"string_tst_{gas}",
         command=command,
         work_dir=work_dir,
@@ -1649,6 +1649,10 @@ echo "String TST calculation for {gas} completed"
         cpus_per_task=8,
         walltime="48:00:00",
     )
+    result.update(work_dir=work_dir, input_dir=input_dir, output_dir=work_dir,
+                  manifest_path=input_dir + '/manifest.csv')
+    _register_jobwatch(result, tool='run_string_tst')
+    return result
 
 def _exec_vext(p: Dict[str, Any]) -> Any:
     """Submit external potential (TuSraST) calculation via SLURM."""

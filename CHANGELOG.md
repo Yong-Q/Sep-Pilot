@@ -4,6 +4,7 @@ This file records user-visible changes to Sep-Pilot. Implementation details and 
 
 ## Unreleased — 2026-10-25
 
+- Reuse the existing runtime configuration for user-installed LAMMPS/MPI and String tools. Correct String manifest dispatch, retain solver failures, and register MD/String job receipts for monitoring.
 - Allow a one-point GCMC calculation with equal pressure bounds and accept an explicit single CIF in the cDFT input generator. Preserve density columns when native cDFT components are numbered from one.
 - Keep active attempts, user pauses, changed-input reviews, and failed dependencies protected when restoring compatible completed branches; recheck recorded artifact metadata before reuse.
 - Added a locally configured model connection while preserving user-supplied API connections.
