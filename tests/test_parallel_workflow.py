@@ -22,6 +22,85 @@ from agents.state_io import json_transaction,write_checkpoint
 from agents.task_line import TaskLineStore
 
 
+def test_model_gate_defaults_to_four_parallel_calls(monkeypatch):
+    from agents import model_gate
+    monkeypatch.delenv('BIMEM_MODEL_CALL_CONCURRENCY', raising=False)
+    assert model_gate._configured_concurrency() == 4
+
+
+def test_legacy_compatible_reset_restores_only_affected_completed_branch(tmp_path):
+    state_path = tmp_path / 'parallel.json'
+    store = WorkflowStore(state_path)
+    workflow_id = 'legacy-compatible-reset'
+    charged = tmp_path / 'charged'
+    charged.mkdir()
+    charged_cif = charged / 'a_pacmof.cif'
+    charged_cif.write_text('charged structure\n')
+    result_csv = tmp_path / 'results.csv'
+    result_csv.write_text('name,value\na,1\n')
+    unrelated_file = tmp_path / 'unrelated.txt'
+    unrelated_file.write_text('old result\n')
+    original = {
+        'step_id': 'charge', 'agent': 'analyst', 'tool': 'run_pacman_charge',
+        'arguments': {'cif_dir': str(tmp_path / 'cifs'), 'method': 'pacmof',
+                      'output_dir': str(charged)},
+        'depends_on': [], 'expected_outputs': [{
+            'kind': 'directory', 'path': str(charged),
+            'pattern': '*_pacmof.cif', 'min_count': 3,
+        }], 'resource_locks': [],
+    }
+    revised = copy.deepcopy(original)
+    revised['arguments']['completion_policy'] = 'best_effort'
+    revised['expected_outputs'][0]['min_count'] = 1
+    child = node('collect', deps=['charge'], args={
+        'path': str(charged), 'resource_review_id': 'new-review',
+    }, outputs=[str(result_csv)])
+    old_child = copy.deepcopy(child)
+    old_child['arguments']['resource_review_id'] = 'old-review'
+    unrelated = node('unrelated', outputs=[str(unrelated_file)])
+
+    def prior(contract, artifact, *, submission=False):
+        value = {
+            'contract': copy.deepcopy(contract), 'status': 'succeeded',
+            'artifacts': {str(artifact): True}, 'path_manifest': {
+                'output_files': [str(artifact)],
+            },
+        }
+        if submission:
+            value.update(job_ids=['78241'], node_verification={'decision': 'pass'})
+        return value
+
+    current_token = 'stale-current-lease'
+    payload = {
+        'workflows': {workflow_id: {
+            'username': 'tester', 'conv_id': 'c1', 'plan_version': 2,
+            'goal_contract': {'version': 2}, 'status': 'active',
+            'nodes': {
+                'charge': {'contract': revised, 'status': 'prefinish',
+                           'token': current_token,
+                           'attempt_history': [prior(original, charged_cif, submission=True)]},
+                'collect': {'contract': child, 'status': 'pending',
+                            'attempt_history': [prior(old_child, result_csv)]},
+                'unrelated': {'contract': unrelated, 'status': 'pending',
+                              'attempt_history': [prior(unrelated, unrelated_file)]},
+            },
+        }},
+        'leases': {current_token: {'workflow_id': workflow_id, 'step_id': 'charge',
+                                   'resources': [], 'owner_pid': 1}},
+    }
+    state_path.write_text(json.dumps(payload))
+
+    restored = store.restore_compatible_completed_branches(workflow_id)
+    state = store.snapshot(workflow_id)
+
+    assert restored == ['charge', 'collect']
+    assert state['nodes']['charge']['status'] == 'succeeded'
+    assert state['nodes']['charge']['contract'] == revised
+    assert state['nodes']['collect']['status'] == 'succeeded'
+    assert state['nodes']['unrelated']['status'] == 'pending'
+    assert current_token not in store.snapshot().get('leases', {})
+
+
 def test_branch_failure_keeps_independent_ready_work_and_blocks_descendants(factory):
     rt = factory([node('bad'), node('dependent', deps=['bad']), node('independent')])
     rt.start(1)

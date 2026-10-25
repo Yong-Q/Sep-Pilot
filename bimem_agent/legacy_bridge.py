@@ -316,13 +316,17 @@ def run_literature_rag(query: str, n_results: int = 5, query_type: str = "auto")
         "--query-type",
         query_type,
     ]
-    result = subprocess.run(
-        command,
-        cwd=str(LEGACY_ROOT),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            command,
+            cwd=str(LEGACY_ROOT),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=20,
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("RAG query exceeded time limit") from None
     if result.returncode != 0:
         stderr = result.stderr.strip() or result.stdout.strip()
         raise RuntimeError(f"RAG query failed with code {result.returncode}: {stderr}")

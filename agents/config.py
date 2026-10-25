@@ -21,6 +21,7 @@ class AgentConfig:
     api_key: str = ""
     base_url: str = ""
     model: str = "mimo-v2.5-pro"  # Use mimo-v2.5-pro as default
+    model_provider: str = "anthropic"  # anthropic API or locally logged-in codex_cli
     max_tokens: int = 16384  # Increase for longer responses
     temperature: float = 0.7  # Add temperature for more creative responses
 
@@ -49,6 +50,9 @@ class AgentConfig:
     _tools_config: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
+        if self.model_provider == "codex_cli":
+            self.model = "gpt-6-sol"
+            self.force_model_override = True
         if not self.orchestrator_model:
             self.orchestrator_model = self.model
         if not self.specialist_model:
@@ -101,6 +105,7 @@ class AgentConfig:
             api_key=env.get("ANTHROPIC_AUTH_TOKEN", os.environ.get("ANTHROPIC_API_KEY", "")),
             base_url=env.get("ANTHROPIC_BASE_URL", ""),
             model=env.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+            model_provider=os.environ.get("BIMEM_MODEL_PROVIDER", raw.get("model_provider", "anthropic")),
         )
 
         # Apply overrides
@@ -121,6 +126,7 @@ class AgentConfig:
             api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
             base_url=os.environ.get("ANTHROPIC_BASE_URL", ""),
             model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+            model_provider=os.environ.get("BIMEM_MODEL_PROVIDER", "anthropic"),
         )
         for key, value in overrides.items():
             if hasattr(config, key):

@@ -1,0 +1,640 @@
+[
+  {
+    "id": "doi:10.1016/j.memsci.2010.12.001",
+    "title": "Ethene/ethane separation by the MOF membrane ZIF-8: Molecular correlation of permeation, adsorption, diffusion",
+    "doi": "10.1016/j.memsci.2010.12.001",
+    "year": 2011,
+    "journal": "Journal of Membrane Science",
+    "first_author": "Bux",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1016/j.memsci.2010.12.001",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/acs.chemrev.0c00119",
+    "title": "MOF-Based Membranes for Gas Separations",
+    "doi": "10.1021/acs.chemrev.0c00119",
+    "year": 2020,
+    "journal": "Chemical Reviews",
+    "first_author": "Qian",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1021/acs.chemrev.0c00119",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.trechm.2020.01.002",
+    "title": "Gas Separation via Hybrid Metal–Organic Framework/Polymer Membranes",
+    "doi": "10.1016/j.trechm.2020.01.002",
+    "year": 2020,
+    "journal": "Trends in Chemistry",
+    "first_author": "Shi",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1016/j.trechm.2020.01.002",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.gce.2020.11.004",
+    "title": "Design of metal-organic framework membranes towards ultimate gas separation",
+    "doi": "10.1016/j.gce.2020.11.004",
+    "year": 2021,
+    "journal": "Green Chemical Engineering",
+    "first_author": "Sun",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1016/j.gce.2020.11.004",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1039/c7ta01142c",
+    "title": "Recent advances and challenges of metal–organic framework membranes for gas separation",
+    "doi": "10.1039/c7ta01142c",
+    "year": 2017,
+    "journal": "Journal of Materials Chemistry A",
+    "first_author": "Kang",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1039/c7ta01142c",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.seppur.2023.123987",
+    "title": "Grain boundary engineering of polycrystalline metal–organic framework membranes for gas separation",
+    "doi": "10.1016/j.seppur.2023.123987",
+    "year": 2023,
+    "journal": "Separation and Purification Technology",
+    "first_author": "Li",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1016/j.seppur.2023.123987",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1002/anie.200905645",
+    "title": "Molecular Sieve Membrane: Supported Metal–Organic Framework with High Hydrogen Selectivity",
+    "doi": "10.1002/anie.200905645",
+    "year": 2010,
+    "journal": "Angewandte Chemie International Edition",
+    "first_author": "Li",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1002/anie.200905645",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/ie202777q",
+    "title": "Gas Separation Properties of Metal Organic Framework (MOF-5) Membranes",
+    "doi": "10.1021/ie202777q",
+    "year": 2012,
+    "journal": "Industrial &amp; Engineering Chemistry Research",
+    "first_author": "Zhao",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1021/ie202777q",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.memsci.2012.04.003",
+    "title": "Functionalized metal organic framework-polyimide mixed matrix membranes for CO2/CH4 separation",
+    "doi": "10.1016/j.memsci.2012.04.003",
+    "year": 2012,
+    "journal": "Journal of Membrane Science",
+    "first_author": "Nik",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1016/j.memsci.2012.04.003",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.seppur.2020.117198",
+    "title": "Metal-organic framework MOF-801/PIM-1 mixed-matrix membranes for enhanced CO2/N2 separation performance",
+    "doi": "10.1016/j.seppur.2020.117198",
+    "year": 2020,
+    "journal": "Separation and Purification Technology",
+    "first_author": "Chen",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1016/j.seppur.2020.117198",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1039/d1ma00026h",
+    "title": "Recent advances in simulating gas permeation through MOF membranes",
+    "doi": "10.1039/d1ma00026h",
+    "year": 2021,
+    "journal": "Materials Advances",
+    "first_author": "Daglar",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1039/d1ma00026h",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1038/s41565-022-01168-3",
+    "title": "Metal–organic frameworks and covalent organic frameworks as disruptive membrane materials for energy-efficient gas separation",
+    "doi": "10.1038/s41565-022-01168-3",
+    "year": 2022,
+    "journal": "Nature Nanotechnology",
+    "first_author": "Knebel",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1038/s41565-022-01168-3",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.memsci.2022.121282",
+    "title": "Honeycomb-like Hofmann-type metal-organic framework membranes for C2H2/CO2 and H2/CO2 separation",
+    "doi": "10.1016/j.memsci.2022.121282",
+    "year": 2023,
+    "journal": "Journal of Membrane Science",
+    "first_author": "Liu",
+    "topics": [
+      "membrane_transport"
+    ],
+    "source_url": "https://doi.org/10.1016/j.memsci.2022.121282",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.trechm.2023.11.001",
+    "title": "Metal-organic frameworks for multicomponent gas separation",
+    "doi": "10.1016/j.trechm.2023.11.001",
+    "year": 2024,
+    "journal": "Trends in Chemistry",
+    "first_author": "Zhang",
+    "topics": [
+      "adsorption_separation"
+    ],
+    "source_url": "https://doi.org/10.1016/j.trechm.2023.11.001",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1007/s10450-010-9305-3",
+    "title": "Modeling gas separation in metal-organic frameworks",
+    "doi": "10.1007/s10450-010-9305-3",
+    "year": 2011,
+    "journal": "Adsorption",
+    "first_author": "Wells",
+    "topics": [
+      "adsorption_separation"
+    ],
+    "source_url": "https://doi.org/10.1007/s10450-010-9305-3",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1039/b802426j",
+    "title": "Selective gas adsorption and separation in metal–organic frameworks",
+    "doi": "10.1039/b802426j",
+    "year": 2009,
+    "journal": "Chemical Society Reviews",
+    "first_author": "Li",
+    "topics": [
+      "adsorption_separation"
+    ],
+    "source_url": "https://doi.org/10.1039/b802426j",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.chempr.2018.02.007",
+    "title": "Xenon Gas Separation and Storage Using Metal-Organic Frameworks",
+    "doi": "10.1016/j.chempr.2018.02.007",
+    "year": 2018,
+    "journal": "Chem",
+    "first_author": "Banerjee",
+    "topics": [
+      "adsorption_separation"
+    ],
+    "source_url": "https://doi.org/10.1016/j.chempr.2018.02.007",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/acs.inorgchem.4c00122",
+    "title": "Metal–Organic Frameworks Possessing Suitable Pores for Xe/Kr Separation",
+    "doi": "10.1021/acs.inorgchem.4c00122",
+    "year": 2024,
+    "journal": "Inorganic Chemistry",
+    "first_author": "Zeng",
+    "topics": [
+      "adsorption_separation"
+    ],
+    "source_url": "https://doi.org/10.1021/acs.inorgchem.4c00122",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.seppur.2023.124529",
+    "title": "Pore environment modulation of metal-organic frameworks enables efficient adsorptive separation of Xe/Kr",
+    "doi": "10.1016/j.seppur.2023.124529",
+    "year": 2023,
+    "journal": "Separation and Purification Technology",
+    "first_author": "Zhao",
+    "topics": [
+      "adsorption_separation"
+    ],
+    "source_url": "https://doi.org/10.1016/j.seppur.2023.124529",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.cej.2024.149494",
+    "title": "A moisture stable metal-organic framework for highly efficient CO2/N2, CO2/CH4 and CO2/CO separation",
+    "doi": "10.1016/j.cej.2024.149494",
+    "year": 2024,
+    "journal": "Chemical Engineering Journal",
+    "first_author": "Li",
+    "topics": [
+      "adsorption_separation"
+    ],
+    "source_url": "https://doi.org/10.1016/j.cej.2024.149494",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.cej.2022.136263",
+    "title": "Separation of CO2 and N2 on a hydrophobic metal organic framework CALF-20",
+    "doi": "10.1016/j.cej.2022.136263",
+    "year": 2022,
+    "journal": "Chemical Engineering Journal",
+    "first_author": "Nguyen",
+    "topics": [
+      "adsorption_separation"
+    ],
+    "source_url": "https://doi.org/10.1016/j.cej.2022.136263",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1038/s41524-022-00946-w",
+    "title": "Inverse design of metal–organic frameworks for C2H4/C2H6 separation",
+    "doi": "10.1038/s41524-022-00946-w",
+    "year": 2022,
+    "journal": "npj Computational Materials",
+    "first_author": "Zhou",
+    "topics": [
+      "adsorption_separation"
+    ],
+    "source_url": "https://doi.org/10.1038/s41524-022-00946-w",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.seppur.2021.119424",
+    "title": "A microporous metal–organic framework with triangular channels for C2H6/C2H4 adsorption separation",
+    "doi": "10.1016/j.seppur.2021.119424",
+    "year": 2021,
+    "journal": "Separation and Purification Technology",
+    "first_author": "Gao",
+    "topics": [
+      "adsorption_separation"
+    ],
+    "source_url": "https://doi.org/10.1016/j.seppur.2021.119424",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1063/1.442136",
+    "title": "Model grand potential for a nonuniform classical fluid",
+    "doi": "10.1063/1.442136",
+    "year": 1981,
+    "journal": "The Journal of Chemical Physics",
+    "first_author": "Percus",
+    "topics": [
+      "classical_cdft"
+    ],
+    "source_url": "https://doi.org/10.1063/1.442136",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/acs.iecr.9b00137",
+    "title": "Gas Adsorption and Interfacial Tension with Classical Density Functional Theory",
+    "doi": "10.1021/acs.iecr.9b00137",
+    "year": 2019,
+    "journal": "Industrial &amp; Engineering Chemistry Research",
+    "first_author": "Camacho Vergara",
+    "topics": [
+      "classical_cdft"
+    ],
+    "source_url": "https://doi.org/10.1021/acs.iecr.9b00137",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/la0200358",
+    "title": "Predicting the Adsorption of Gas Mixtures: Adsorbed Solution Theory versus Classical Density Functional Theory",
+    "doi": "10.1021/la0200358",
+    "year": 2002,
+    "journal": "Langmuir",
+    "first_author": "Sweatman",
+    "topics": [
+      "classical_cdft"
+    ],
+    "source_url": "https://doi.org/10.1021/la0200358",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/acs.iecr.1c02929",
+    "title": "Modeling Multicomponent Gas Adsorption in Nanoporous Materials with Two Versions of Nonlocal Classical Density Functional Theory",
+    "doi": "10.1021/acs.iecr.1c02929",
+    "year": 2021,
+    "journal": "Industrial &amp; Engineering Chemistry Research",
+    "first_author": "Zhou",
+    "topics": [
+      "classical_cdft"
+    ],
+    "source_url": "https://doi.org/10.1021/acs.iecr.1c02929",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/acs.iecr.0c02659",
+    "title": "Screening of Porous Materials for Toxic Gas Adsorption: Classical Density Functional Approach",
+    "doi": "10.1021/acs.iecr.0c02659",
+    "year": 2020,
+    "journal": "Industrial &amp; Engineering Chemistry Research",
+    "first_author": "Guo",
+    "topics": [
+      "classical_cdft"
+    ],
+    "source_url": "https://doi.org/10.1021/acs.iecr.0c02659",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1063/5.0020797",
+    "title": "A GPU implementation of classical density functional theory for rapid prediction of gas adsorption in nanoporous materials",
+    "doi": "10.1063/5.0020797",
+    "year": 2020,
+    "journal": "The Journal of Chemical Physics",
+    "first_author": "Zhou",
+    "topics": [
+      "classical_cdft"
+    ],
+    "source_url": "https://doi.org/10.1063/5.0020797",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/acs.jpcb.6c00492",
+    "title": "Thermodynamically Consistent Enthalpies of Adsorption of Mixtures from Classical Density Functional Theory",
+    "doi": "10.1021/acs.jpcb.6c00492",
+    "year": 2026,
+    "journal": "The Journal of Physical Chemistry B",
+    "first_author": "Rehner",
+    "topics": [
+      "classical_cdft"
+    ],
+    "source_url": "https://doi.org/10.1021/acs.jpcb.6c00492",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1002/aic.14877",
+    "title": "Classical density functional theory for methane adsorption in metal‐organic framework materials",
+    "doi": "10.1002/aic.14877",
+    "year": 2015,
+    "journal": "AIChE Journal",
+    "first_author": "Fu",
+    "topics": [
+      "classical_cdft"
+    ],
+    "source_url": "https://doi.org/10.1002/aic.14877",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/jp9104932",
+    "title": "Density Functional Theory for Adsorption of Gas Mixtures in Metal−Organic Frameworks",
+    "doi": "10.1021/jp9104932",
+    "year": 2010,
+    "journal": "The Journal of Physical Chemistry B",
+    "first_author": "Liu",
+    "topics": [
+      "classical_cdft"
+    ],
+    "source_url": "https://doi.org/10.1021/jp9104932",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1063/5.0067172",
+    "title": "Gas adsorption and separation in metal–organic frameworks by PC-SAFT based density functional theory",
+    "doi": "10.1063/5.0067172",
+    "year": 2021,
+    "journal": "The Journal of Chemical Physics",
+    "first_author": "Sang",
+    "topics": [
+      "classical_cdft"
+    ],
+    "source_url": "https://doi.org/10.1063/5.0067172",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/jp051903n",
+    "title": "Molecular Simulation of Adsorption and Diffusion of Hydrogen in Metal−Organic Frameworks",
+    "doi": "10.1021/jp051903n",
+    "year": 2005,
+    "journal": "The Journal of Physical Chemistry B",
+    "first_author": "Yang",
+    "topics": [
+      "molecular_simulation"
+    ],
+    "source_url": "https://doi.org/10.1021/jp051903n",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/ef060578f",
+    "title": "Comparative Molecular Simulation Study of Methane Adsorption in Metal−Organic Frameworks",
+    "doi": "10.1021/ef060578f",
+    "year": 2007,
+    "journal": "Energy &amp; Fuels",
+    "first_author": "Wang",
+    "topics": [
+      "molecular_simulation"
+    ],
+    "source_url": "https://doi.org/10.1021/ef060578f",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1039/b803498m",
+    "title": "Using molecular simulation to characterise metal–organic frameworks for adsorption applications",
+    "doi": "10.1039/b803498m",
+    "year": 2009,
+    "journal": "Chemical Society Reviews",
+    "first_author": "Düren",
+    "topics": [
+      "molecular_simulation"
+    ],
+    "source_url": "https://doi.org/10.1039/b803498m",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.micromeso.2017.04.034",
+    "title": "Molecular dynamics simulation of acetylene diffusion in MOF-508a and MOF-508b",
+    "doi": "10.1016/j.micromeso.2017.04.034",
+    "year": 2017,
+    "journal": "Microporous and Mesoporous Materials",
+    "first_author": "Farzi",
+    "topics": [
+      "molecular_simulation"
+    ],
+    "source_url": "https://doi.org/10.1016/j.micromeso.2017.04.034",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/jp109743e",
+    "title": "Atomistic Simulations for Adsorption, Diffusion, and Separation of Gas Mixtures in Zeolite Imidazolate Frameworks",
+    "doi": "10.1021/jp109743e",
+    "year": 2010,
+    "journal": "The Journal of Physical Chemistry C",
+    "first_author": "Keskin",
+    "topics": [
+      "molecular_simulation"
+    ],
+    "source_url": "https://doi.org/10.1021/jp109743e",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1038/s41467-024-46276-x",
+    "title": "A comprehensive transformer-based approach for high-accuracy gas adsorption predictions in metal-organic frameworks",
+    "doi": "10.1038/s41467-024-46276-x",
+    "year": 2024,
+    "journal": "Nature Communications",
+    "first_author": "Wang",
+    "topics": [
+      "machine_learning"
+    ],
+    "source_url": "https://doi.org/10.1038/s41467-024-46276-x",
+    "metadata_source": "Crossref REST API",
+    "aliases": "Uni-MOF transformer three-dimensional crystal representation gas adsorption"
+  },
+  {
+    "id": "doi:10.1021/acs.iecr.4c03500",
+    "title": "Machine Learning for Gas Adsorption in Metal–Organic Frameworks: A Review on Predictive Descriptors",
+    "doi": "10.1021/acs.iecr.4c03500",
+    "year": 2025,
+    "journal": "Industrial &amp; Engineering Chemistry Research",
+    "first_author": "Sung",
+    "topics": [
+      "machine_learning"
+    ],
+    "source_url": "https://doi.org/10.1021/acs.iecr.4c03500",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/acsami.0c06858",
+    "title": "Transfer Learning Study of Gas Adsorption in Metal–Organic Frameworks",
+    "doi": "10.1021/acsami.0c06858",
+    "year": 2020,
+    "journal": "ACS Applied Materials &amp; Interfaces",
+    "first_author": "Ma",
+    "topics": [
+      "machine_learning"
+    ],
+    "source_url": "https://doi.org/10.1021/acsami.0c06858",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/acs.iecr.4c04101",
+    "title": "Machine-Learning-Assisted High-Throughput Screening of High-Performance MOFs for Multicomponent Gas Separation",
+    "doi": "10.1021/acs.iecr.4c04101",
+    "year": 2025,
+    "journal": "Industrial &amp; Engineering Chemistry Research",
+    "first_author": "Xuan",
+    "topics": [
+      "machine_learning"
+    ],
+    "source_url": "https://doi.org/10.1021/acs.iecr.4c04101",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/acs.jcim.1c00191",
+    "title": "Machine Learning Meets with Metal Organic Frameworks for Gas Storage and Separation",
+    "doi": "10.1021/acs.jcim.1c00191",
+    "year": 2021,
+    "journal": "Journal of Chemical Information and Modeling",
+    "first_author": "Altintas",
+    "topics": [
+      "machine_learning"
+    ],
+    "source_url": "https://doi.org/10.1021/acs.jcim.1c00191",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1016/j.matt.2022.07.029",
+    "title": "Machine-learning-assisted exploration of anion-pillared metal organic frameworks for gas separation",
+    "doi": "10.1016/j.matt.2022.07.029",
+    "year": 2022,
+    "journal": "Matter",
+    "first_author": "Hu",
+    "topics": [
+      "machine_learning"
+    ],
+    "source_url": "https://doi.org/10.1016/j.matt.2022.07.029",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1039/d3ta05235d",
+    "title": "Utilizing machine learning to optimize metal–organic framework-derived polymer membranes for gas separation",
+    "doi": "10.1039/d3ta05235d",
+    "year": 2023,
+    "journal": "Journal of Materials Chemistry A",
+    "first_author": "Pilz",
+    "topics": [
+      "machine_learning"
+    ],
+    "source_url": "https://doi.org/10.1039/d3ta05235d",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1038/s41524-023-01000-z",
+    "title": "Small data machine learning in materials science",
+    "doi": "10.1038/s41524-023-01000-z",
+    "year": 2023,
+    "journal": "npj Computational Materials",
+    "first_author": "Xu",
+    "topics": [
+      "machine_learning"
+    ],
+    "source_url": "https://doi.org/10.1038/s41524-023-01000-z",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1039/d4dd00250d",
+    "title": "MatFold: systematic insights into materials discovery models' performance through standardized cross-validation protocols",
+    "doi": "10.1039/d4dd00250d",
+    "year": 2025,
+    "journal": "Digital Discovery",
+    "first_author": "Witman",
+    "topics": [
+      "machine_learning"
+    ],
+    "source_url": "https://doi.org/10.1039/d4dd00250d",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1021/acs.iecr.3c01589",
+    "title": "Active Learning for Adsorption Simulations: Evaluation, Criteria Analysis, and Recommendations for Metal–Organic Frameworks",
+    "doi": "10.1021/acs.iecr.3c01589",
+    "year": 2023,
+    "journal": "Industrial &amp; Engineering Chemistry Research",
+    "first_author": "Osaro",
+    "topics": [
+      "active_learning"
+    ],
+    "source_url": "https://doi.org/10.1021/acs.iecr.3c01589",
+    "metadata_source": "Crossref REST API"
+  },
+  {
+    "id": "doi:10.1039/d1me00138h",
+    "title": "Sequential design of adsorption simulations in metal–organic frameworks",
+    "doi": "10.1039/d1me00138h",
+    "year": 2022,
+    "journal": "Molecular Systems Design &amp; Engineering",
+    "first_author": "Mukherjee",
+    "topics": [
+      "active_learning"
+    ],
+    "source_url": "https://doi.org/10.1039/d1me00138h",
+    "metadata_source": "Crossref REST API"
+  }
+]

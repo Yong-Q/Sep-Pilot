@@ -3370,8 +3370,18 @@ class Session:
                     log="",
                 )
 
+            if self.config.model_provider == "codex_cli":
+                from .codex_provider import call_codex_model
+                model_call = lambda: call_codex_model(
+                    system=kwargs["system"], messages=kwargs["messages"],
+                    tools=kwargs.get("tools"), model="gpt-6-sol",
+                    tool_choice=kwargs.get("tool_choice"),
+                    interrupted=self._interrupt_requested,
+                )
+            else:
+                model_call = lambda: self._stream_api(**kwargs)
             return call_model(
-                lambda: self._stream_api(**kwargs),
+                model_call,
                 on_wait=waiting,
                 on_queue=lambda position: self._progress(agent_name=agent.name, reasoning='',
                     status=f'等待模型调用名额（排队位置 {position}）', log=''),
@@ -3385,6 +3395,11 @@ class Session:
             raise LLMUnavailableError(f"LLM API 连接失败（{_ce}）") from _ce
         except ProviderRateLimited as limited:
             raise LLMRateLimitError(str(limited)) from limited
+        except Exception as error:
+            from .codex_provider import CodexProviderError
+            if isinstance(error, CodexProviderError):
+                raise LLMUnavailableError(str(error)) from error
+            raise
 
     def _stream_api(self, **kwargs) -> anthropic.types.Message:
         """Stream the LLM response, honoring user-interrupt (freeze) mid-stream.

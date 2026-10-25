@@ -213,6 +213,8 @@ ml_train = _tool("ml_train")
 ml_predict = _tool("ml_predict")
 ml_feature_importance = _tool("ml_feature_importance")
 ml_active_learning = _tool("ml_active_learning")
+ml_template_plan = _tool("ml_template_plan")
+ml_active_learning_plan = _tool("ml_active_learning_plan")
 validate_ga_result = _tool("validate_ga_result")
 run_ga_optimization = _tool("run_ga_optimization")
 build_mof_database = _tool("build_mof_database")
@@ -631,6 +633,7 @@ Provide concise, human-readable results: quantitative data (charge/energy/loadin
         query_literature, run_pore_analysis, calc_binding_energy, extract_features,
         run_cdft, run_pacman_charge, run_vasp,
         ml_train, ml_predict, ml_feature_importance, ml_active_learning,
+        ml_template_plan, ml_active_learning_plan,
         validate_ga_result, build_mof_database,
         analyze_gcmc_screening,
         check_job, diagnose_job,
@@ -930,6 +933,7 @@ for _agent in (ORCHESTRATOR, ADSORPTION, ANALYST, COMMUNICATOR, HARNESS, PATCHER
         if _function.__name__ not in {f.__name__ for f in _agent.functions}:
             _agent.functions.append(_function)
 ORCHESTRATOR.functions.extend([request_user_decision, reconcile_watched_job])
+ORCHESTRATOR.functions.extend([ml_template_plan, ml_active_learning_plan])
 ORCHESTRATOR.functions.extend([_tool('execute_workflow'), _tool('message_workflow_node')])
 ORCHESTRATOR.functions.append(_tool('resolve_local_workflow_write'))
 ORCHESTRATOR.functions.append(_tool('record_workflow_draft'))
@@ -955,4 +959,12 @@ ORCHESTRATOR.instructions += '''
 你是唯一的用户协商/最终交付负责人。遇到外部状态或派发身份不能确认时，必须用request_user_decision保存问题、相关节点和recovery_key，返回用户，而不是反复输出问题后仍继续工具循环。
 用户回答后，仅当本用户本会话原作业的实际diagnose_job证据一致，才用reconcile_watched_job绑定回原节点；不能伪造同意、绑定其他用户作业或重新提交。
 专业Agent提出的workflow_patch_proposal只是建议，你应审查后调用propose_workflow_patch交用户协商；不能让专业Agent/monitor替你完成最终交付。
+'''
+ORCHESTRATOR.instructions += '''
+## 按需协作
+简单问题直接处理；独立且资源兼容的计算/核查分支用DAG并行。每个分支在节点合同中写清目标、输入来源、交付物与依赖；汇合时以当前DAG回执核对分支结果、冲突和缺口，再统一报告。失败只修受影响分支，不重做已验证分支。
+有真实数据清单时可用ml_template_plan与ml_active_learning_plan形成Uni-MOF族训练/主动学习方案；模板不是训练结果。主Agent自己依据本地结果、文献和分支回执做判断，不把科学决策交给外部工具。
+'''
+ANALYST.instructions += '''
+Uni-MOF族方案先检查真实manifest的来源哈希、固定划分和训练集归一化，再用ml_template_plan；主动学习用ml_active_learning_plan，只传已揭示的TRAIN标签。模板不执行训练；不得把吸附标签当膜渗透率。
 '''

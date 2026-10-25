@@ -172,6 +172,43 @@ def test_identical_upsert_preserves_failed_node_and_completed_descendant(tmp_pat
     assert line['steps'][1]['done'] and line['steps'][1]['output_files'] == ['result.csv']
 
 
+def test_compatible_default_and_weaker_output_patch_preserve_completed_branch(tmp_path):
+    import copy
+    store = TaskLineStore(str(tmp_path / 'lines.json'))
+    store.begin_line('c1')
+    output = tmp_path / 'charged'
+    original = {
+        'step_id': 'charge', 'agent': 'analyst', 'tool': 'run_pacman_charge',
+        'arguments': {'cif_dir': str(tmp_path / 'cifs'), 'method': 'pacmof',
+                      'output_dir': str(output)},
+        'depends_on': [], 'resource_locks': [],
+        'expected_outputs': [{'kind': 'directory', 'path': str(output),
+                              'pattern': '*_pacmof.cif', 'min_count': 3}],
+    }
+    child = {'step_id': 'analysis', **node(depends_on=['charge'])}
+    store.apply_workflow_patch('c1', [
+        {'operation': 'upsert', 'step_id': item['step_id'], 'node': item}
+        for item in (original, child)
+    ], 0, 1, 'fixture')
+    store.upsert_step('c1', 'charge', status='completed', done=True,
+                      output_files=[str(output / 'a_pacmof.cif')])
+    store.upsert_step('c1', 'analysis', status='completed', done=True,
+                      output_files=['results.csv'])
+    revised = copy.deepcopy(original)
+    revised['arguments']['completion_policy'] = 'best_effort'
+    revised['expected_outputs'][0]['min_count'] = 1
+
+    line = store.apply_workflow_patch('c1', [{
+        'operation': 'upsert', 'step_id': 'charge', 'node': revised,
+    }], 1, 2, 'compiler compatibility migration')
+
+    steps = {step['step_id']: step for step in line['steps']}
+    assert steps['charge']['status'] == 'completed' and steps['charge']['done']
+    assert steps['analysis']['status'] == 'completed' and steps['analysis']['done']
+    assert steps['charge']['arguments']['completion_policy'] == 'best_effort'
+    assert steps['charge']['expected_outputs'][0]['min_count'] == 1
+
+
 def test_patch_schema_does_not_accept_execution_state_as_a_contract():
     from agents.registry import _build_default_registry
     candidate = {**node(), 'status': 'completed', 'done': True}

@@ -216,6 +216,53 @@ def execution_contract(node):
                     'expected_outputs', 'resource_locks')}
 
 
+_REUSE_COMPATIBLE_DEFAULTS = {
+    'completion_policy': 'best_effort',
+}
+_REUSE_COMPATIBLE_RUNTIME_ARGUMENTS = {
+    # Scheduler placement and the evidence receipt that selected it cannot
+    # change an already-produced scientific artifact.
+    'partition', 'nodelist', 'resource_review_id',
+}
+
+
+def reuse_compatible_contract(before, after):
+    """Allow metadata/default migrations that cannot change produced data.
+
+    This is directional: ``after`` may add an explicit default and may weaken
+    an output-count acceptance floor.  It may not change the tool, scientific
+    inputs, dependencies, paths, patterns, or strengthen output requirements.
+    """
+    for key in ('agent', 'tool', 'input_bindings', 'depends_on', 'resource_locks'):
+        empty = {} if key == 'input_bindings' else [] if key in {
+            'depends_on', 'resource_locks'} else None
+        if before.get(key, empty) != after.get(key, empty):
+            return False
+    before_args = copy.deepcopy(before.get('arguments', {}))
+    after_args = copy.deepcopy(after.get('arguments', {}))
+    for key in _REUSE_COMPATIBLE_RUNTIME_ARGUMENTS:
+        before_args.pop(key, None)
+        after_args.pop(key, None)
+    for key, value in _REUSE_COMPATIBLE_DEFAULTS.items():
+        before_args.setdefault(key, value)
+        after_args.setdefault(key, value)
+    if before_args != after_args:
+        return False
+    from .output_contract import normalize_output
+    old_outputs = [normalize_output(value) for value in before.get('expected_outputs', [])]
+    new_outputs = [normalize_output(value) for value in after.get('expected_outputs', [])]
+    if len(old_outputs) != len(new_outputs):
+        return False
+    for old, new in zip(old_outputs, new_outputs):
+        old_floor = int(old.get('min_count', 1))
+        new_floor = int(new.get('min_count', 1))
+        old_without_floor = {key: value for key, value in old.items() if key != 'min_count'}
+        new_without_floor = {key: value for key, value in new.items() if key != 'min_count'}
+        if old_without_floor != new_without_floor or new_floor > old_floor:
+            return False
+    return True
+
+
 def workflow_efficiency_issues(nodes, project_root=None):
     """Return structural DAG issues that require semantic recompilation.
 
@@ -399,7 +446,8 @@ def patched_graph(existing_steps, changes, project_root=None):
                 raise ValueError('node step_id disagrees with patch step_id')
             node['step_id'] = key
             previous = nodes.get(key)
-            if previous is None or execution_contract(previous) != execution_contract(node):
+            if (previous is None or execution_contract(previous) != execution_contract(node)
+                    and not reuse_compatible_contract(previous, node)):
                 changed.add(key)
                 nodes[key] = node
             else:

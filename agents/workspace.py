@@ -31,7 +31,7 @@ from typing import Optional
 from .config import get_config
 
 PATH_ARGUMENTS = frozenset({'path', 'cwd', 'cif', 'cif_path', 'cif_dir', 'input_path', 'input_dir',
-    'data_csv', 'trajectory_path', 'work_dir', 'job_work_dir', 'output_dir', 'output_csv', 'output_markdown', 'output', 'output_path', 'model_dir'})
+    'data_csv', 'manifest_path', 'trajectory_path', 'work_dir', 'job_work_dir', 'output_dir', 'output_csv', 'output_markdown', 'output', 'output_path', 'model_dir'})
 
 
 def resolve_project_path(value, project_root):

@@ -2,7 +2,7 @@
   "meta": {
     "project_name": "BiMemAgent",
     "description": "Normalized membrane-separation materials agent library built on top of the legacy gcmc_agent workspace.",
-    "legacy_root": "/home/user/gcmc_agent",
+    "legacy_root": "..",
     "canonical_entry_skill": "overview",
     "generated_notice": "Generated from registry/catalog.json. Do not hand-edit generated md files."
   },
@@ -17,7 +17,7 @@
       "do_not_use_for": "Do not use to run adsorption, cDFT, diffusion, or DFT workloads directly.",
       "inputs": ["harness change request", "existing agent or skill inventory", "naming or automation drift"],
       "automation": "Route into the harness-maintainer agent and update registry/catalog.json plus generated assets.",
-      "notes": ["This imports the legacy meta-skill for harness design and maintenance.", "Use it for agent or skill synchronization work rather than scientific compute requests.", "Treat the harness as a living system: fold repeated debugging fixes, stable workflows, and reusable plotting/reporting patterns back into skills, docs, and config."]
+      "notes": ["This imports the legacy meta-skill for harness design and maintenance.", "Use it for agent or skill synchronization work rather than scientific compute requests.", "Treat the harness as a living system: fold repeated debugging fixes, stable workflows, and reusable plotting/reporting patterns back into skills, docs, and config.", "Adopt external patterns only when they fit an existing role or solve a demonstrated gap; keep the catalog as the single source of truth and avoid bulk skill imports or duplicate schedulers.", "Never place account identifiers, credentials, or authentication files in prompts, catalog entries, generated assets, logs, or test fixtures."]
     },
     {
       "id": "overview",
@@ -29,7 +29,7 @@
       "do_not_use_for": "Do not use to run calculations directly.",
       "inputs": ["user intent", "materials scope", "target property"],
       "automation": "Route into the lead orchestrator and select a method-specific skill.",
-      "notes": ["This is the default trigger skill for broad design or screening requests.", "If a domain skill already exists for the task, route into that skill before probing raw executables, PATH entries, or backend binaries from the shell."]
+      "notes": ["This is the default trigger skill for broad design or screening requests.", "If a domain skill already exists for the task, route into that skill before probing raw executables, PATH entries, or backend binaries from the shell.", "Break a scientific question into evidence-producing branches only when their inputs are ready and they have no data dependency; express dependencies and shared resources in the existing DAG.", "Join branch findings against the same task scope and provenance before drawing a cross-method conclusion."]
     },
     {
       "id": "cif",
@@ -319,8 +319,8 @@
       "inputs": ["user request", "project state", "available run artifacts"],
       "outputs": ["task plan", "delegated specialist prompts", "user-facing summary"],
       "skills": ["overview", "cif", "paper", "literature-rag", "nature-figure", "nature-reader", "nature-citation", "nature-writing", "adsorption", "cdft", "xtb-optimize", "guest-forcefield", "jobs", "analysis", "results"],
-      "workflow": ["Resolve the scientific objective.", "If the request is a real numerical calculation, prefer scheduler submission over local execution.", "If the user asks for mechanisms, benchmarks, or parameter advice, query `literature-rag` first.", "If the user asks for paper reading, publication figures, citation support, or manuscript text, route into the Nature-style communication skills instead of improvising.", "Pick the method path.", "If this project already has a matching domain skill, use that skill path before probing raw executables or backend binaries from the shell.", "Use `xtb-optimize` for linker, adsorbate, or finite-cluster semiempirical cleanup instead of periodic framework MD.", "Use `guest-forcefield` when the missing piece is a guest molecule package or mixed-guest RASPA case scaffold rather than framework simulation itself.", "Confirm missing parameters.", "Dispatch specialist work or run structured scripts.", "Record or reference run ids when workflows are executed.", "Summarize outcomes and next steps."],
-      "notes": ["This is the entry agent for the new harness.", "Prefer `scripts/run_workflow.py` over ad hoc shell commands so runs are captured in the ledger.", "Trigger `literature-rag` before answering literature-grounded questions instead of relying on memory.", "For cluster-type compute, default to submission rather than node01 local execution unless the task is explicitly lightweight and non-computational.", "Shell-level probing is a fallback for debugging missing capability, not the default path when a project skill already exists."]
+      "workflow": ["Resolve the scientific objective and identify the evidence each result must provide.", "If the request is a real numerical calculation, prefer scheduler submission over local execution.", "If the user asks for mechanisms, benchmarks, or parameter advice, query `literature-rag` first.", "If the user asks for paper reading, publication figures, citation support, or manuscript text, route into the Nature-style communication skills instead of improvising.", "Pick the method path.", "If this project already has a matching domain skill, use that skill path before probing raw executables or backend binaries from the shell.", "Use `xtb-optimize` for linker, adsorbate, or finite-cluster semiempirical cleanup instead of periodic framework MD.", "Use `guest-forcefield` when the missing piece is a guest molecule package or mixed-guest RASPA case scaffold rather than framework simulation itself.", "Resolve parameters from the user request, task manifest, or completed upstream outputs; ask only when the scientific choice remains ambiguous.", "Place independent, resource-compatible branches in the existing DAG for parallel execution; add explicit dependencies for produced inputs and a join before cross-branch conclusions.", "Dispatch specialist work or run structured scripts.", "Record run ids, source paths, units, and validation evidence when workflows are executed.", "If a branch fails, diagnose and repair that branch through the existing recovery path while independent branches continue; reassess the final claim at the join.", "Summarize outcomes and next steps."],
+      "notes": ["This is the entry agent for the new harness.", "Prefer `scripts/run_workflow.py` over ad hoc shell commands so runs are captured in the ledger.", "Trigger `literature-rag` before answering literature-grounded questions instead of relying on memory.", "For cluster-type compute, default to submission rather than node01 local execution unless the task is explicitly lightweight and non-computational.", "Shell-level probing is a fallback for debugging missing capability, not the default path when a project skill already exists.", "Reuse the existing persistent DAG and resource leases rather than introducing another parallel-task queue.", "Do not treat an unvalidated branch or a surrogate model prediction as a completed physical calculation.", "Keep account identifiers and credentials out of delegated prompts, workflow artifacts, and logs."]
     },
     {
       "id": "harness-maintainer",
@@ -332,7 +332,7 @@
       "inputs": ["catalog state", "legacy .claude inventory", "generation drift", "requested harness changes"],
       "outputs": ["updated catalog", "regenerated markdown assets", "migration notes", "verification summary"],
       "skills": ["harness", "overview", "results"],
-      "workflow": ["Audit legacy-to-canonical coverage.", "Update registry/catalog.json and docs.", "Fold repeated debugging patterns, plotting conventions, and stable workflows back into reusable skills or config.", "When the main agent bypasses an existing domain skill and drops to raw shell probing, encode the missing routing rule back into the harness.", "Regenerate markdown assets.", "Run harness verification before reporting completion."],
+      "workflow": ["Audit legacy-to-canonical coverage.", "Select external method guides or interaction patterns only when they close a demonstrated project gap; reject duplicate agents, broad skill dumps, and account-bound configuration.", "Update registry/catalog.json and docs.", "Fold repeated debugging patterns, plotting conventions, and stable workflows back into reusable skills or config.", "When the main agent bypasses an existing domain skill and drops to raw shell probing, encode the missing routing rule back into the harness.", "Regenerate markdown assets.", "Run harness verification before reporting completion."],
       "notes": ["This is the meta-maintenance agent for the rebuilt project library.", "Treat each session as potential training data for the local harness: if a workaround becomes stable, encode it."]
     },
     {
@@ -345,7 +345,7 @@
       "inputs": ["run ledger", "pending tasks", "supervisor findings"],
       "outputs": ["project status", "retry recommendations", "next-task queue", "run-id based audit trail"],
       "skills": ["overview", "results"],
-      "workflow": ["Review the current plan.", "Inspect recent runs through the ledger.", "Check for blocked or failed tasks.", "Recommend deterministic next actions.", "Do not mutate scientific results."],
+      "workflow": ["Review the current plan and each branch dependency.", "Inspect recent runs through the ledger.", "Check for blocked or failed tasks without delaying independent, resource-compatible branches.", "Recommend a scoped retry, parameter repair, or method change with the evidence that triggered it.", "At a join, distinguish validated outputs, pending work, and failed branches before recommending a scientific conclusion.", "Do not mutate scientific results."],
       "notes": ["Separates project governance from raw job monitoring.", "Use scripts/project_status.py or runs/index.json as the primary state source."]
     },
     {

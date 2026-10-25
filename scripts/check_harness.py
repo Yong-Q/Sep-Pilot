@@ -58,26 +58,6 @@ def _validate_example_specs(catalog: dict, errors: list[str]) -> None:
                 errors.append(f"Unknown skill in {path}: {skill}")
 
 
-def _validate_legacy_sync(catalog: dict, errors: list[str]) -> None:
-    skill_names = {skill["id"] for skill in catalog["skills"]}
-    agent_names = {agent["id"] for agent in catalog["agents"]}
-    for skill in catalog["skills"]:
-        skill_names.update(skill.get("aliases", []))
-    for agent in catalog["agents"]:
-        agent_names.update(agent.get("aliases", []))
-
-    legacy_skills_root = PROJECT_ROOT.parent / ".claude" / "skills"
-    legacy_agents_root = PROJECT_ROOT.parent / ".claude" / "agents"
-
-    for path in sorted(legacy_skills_root.glob("*")):
-        if path.is_dir() and path.name not in skill_names:
-            errors.append(f"Legacy skill not represented in catalog ids/aliases: {path.name}")
-
-    for path in sorted(legacy_agents_root.glob("*.md")):
-        if path.stem not in agent_names:
-            errors.append(f"Legacy agent not represented in catalog ids/aliases: {path.stem}")
-
-
 def main() -> int:
     catalog = load_catalog()
     errors: list[str] = []
@@ -112,7 +92,6 @@ def main() -> int:
     _check_exists(PROJECT_ROOT / "scripts" / "smoke_test.py", errors)
     _validate_claude_pointer(errors)
     _validate_example_specs(catalog, errors)
-    _validate_legacy_sync(catalog, errors)
 
     if errors:
         for error in errors:

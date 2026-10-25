@@ -16,9 +16,9 @@ T = TypeVar("T")
 
 def _configured_concurrency() -> int:
     try:
-        return max(1, min(8, int(os.environ.get("BIMEM_MODEL_CALL_CONCURRENCY", "1"))))
+        return max(1, min(8, int(os.environ.get("BIMEM_MODEL_CALL_CONCURRENCY", "4"))))
     except (TypeError, ValueError):
-        return 1
+        return 4
 
 
 MODEL_CALL_CONCURRENCY = _configured_concurrency()

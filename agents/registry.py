@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from . import slurm
 from .config import AgentConfig, get_config
+from .ml_templates import build_ml_template, plan_active_learning
 from typing import Any, Callable, Dict, List, Optional
 from .output_contract import OUTPUT_SCHEMA
 
@@ -42,9 +43,10 @@ INPUT_BINDINGS_SCHEMA = {
 # Legacy paths
 _legacy_root = Path("/home/user/gcmc_agent/BiMemAgent")
 _project_root = Path(__file__).resolve().parents[1]
-for p in (str(_project_root), str(_legacy_root), str(_legacy_root.parent), str(_legacy_root.parent.parent)):
-    if p not in sys.path:
-        sys.path.insert(0, p)
+for p in reversed((str(_project_root), str(_legacy_root), str(_legacy_root.parent), str(_legacy_root.parent.parent))):
+    if p in sys.path:
+        sys.path.remove(p)
+    sys.path.insert(0, p)
 
 
 # ── Tool Definition ─────────────────────────────────────────────────
@@ -1880,28 +1882,36 @@ def _exec_submit_job(p: Dict[str, Any]) -> Any:
     return result
 
 def _exec_rag(p: Dict[str, Any]) -> Any:
-    """Literature search — LOCAL RAG corpus first, then WEB (Crossref + arXiv)
-    when the local corpus misses the topic. Local has only ~33 preset PDFs, so
-    topics like SO2 force-field parameters / SO2-N2 selectivity benchmarks are
-    often absent — the web fallback closes that gap so the agent isn't left
-    "information missing".
-    """
+    """Search reviewed local science claims, then paper RAG or live web sources."""
     query = p.get("query", "")
     n_results = p.get("n_results", 5)
     require_both = bool(p.get("require_both", False))
     if not query:
         return {"error": "query is required"}
-    # 1) Local RAG first
-    local = None
+    # Curated, source-linked guardrails are cheap to query and have a relevance
+    # floor. Keep the larger FAISS paper index for topics this small index does
+    # not cover, rather than loading its embedding model on every method query.
     try:
-        from bimem_agent.legacy_bridge import run_literature_rag
-        local = run_literature_rag(query=query, n_results=n_results,
-                                   query_type=p.get("query_type", "auto"))
-    except Exception as e:
-        local = {"ok": False, "error": str(e)}
-    local_hits = None
-    if isinstance(local, dict):
-        local_hits = local.get("results") or local.get("matches") or []
+        from bimem_agent.knowledge import search_knowledge, search_papers
+        curated_hits = search_knowledge(query, limit=min(3, max(1, int(n_results))))
+        remaining = max(0, int(n_results) - len(curated_hits))
+        paper_hits = search_papers(query, limit=min(20, remaining)) if remaining else []
+    except (ImportError, OSError, ValueError):
+        curated_hits, paper_hits = [], []
+    local_hits = curated_hits + paper_hits
+    claim_level_local = bool(curated_hits)
+    # 1) Fall back to the larger local paper RAG when curated knowledge misses.
+    local = None
+    if not local_hits:
+        try:
+            from bimem_agent.legacy_bridge import run_literature_rag
+            local = run_literature_rag(query=query, n_results=n_results,
+                                       query_type=p.get("query_type", "auto"))
+        except Exception as e:
+            local = {"ok": False, "error": str(e)}
+        if isinstance(local, dict):
+            local_hits = local.get("results") or local.get("matches") or local.get("hits") or []
+            claim_level_local = bool(local_hits)
     if local_hits:
         if require_both:
             web = _web_literature(query, n_results)
@@ -1910,12 +1920,14 @@ def _exec_rag(p: Dict[str, Any]) -> Any:
                 "ok": True,
                 "source": "rag+web" if web_hits else "rag",
                 "coverage": ["rag", "web"] if web_hits else ["rag"],
-                "evidence_complete": bool(web_hits),
+                "evidence_complete": bool(web_hits) and claim_level_local,
+                "bibliographic_only": not claim_level_local,
                 "results": local_hits + web_hits,
                 "local": local_hits,
                 "web": web_hits,
-                "note": ("已同时查询本地 RAG 与 Crossref/arXiv Web"
-                         if web_hits else "已查询本地 RAG，但 Web 未返回结果；专业结论须降低强度并披露证据缺口"),
+                "note": ("论文元数据只是阅读线索，未核对全文，不可据此断言论文结论" if not claim_level_local else
+                         "已同时查询本地 RAG 与 Crossref/arXiv Web" if web_hits else
+                         "已查询本地 RAG，但 Web 未返回结果；专业结论须降低强度并披露证据缺口"),
             }
         # Local corpus has relevant docs — enough.
         if p.get("web_fallback", True) and len(local_hits) < max(1, n_results // 2):
@@ -1923,9 +1935,17 @@ def _exec_rag(p: Dict[str, Any]) -> Any:
             if web.get("results"):
                 return {"ok": True, "source": "rag+web", "results": local_hits + web["results"],
                         "local": local_hits, "web": web["results"],
-                        "note": "本地语料不足，已用 Crossref/arXiv 补充"}
-        return {"ok": True, "source": "rag", "results": local_hits}
+                        "bibliographic_only": not claim_level_local,
+                        "evidence_complete": claim_level_local,
+                        "note": "本地语料不足，已用 Crossref/arXiv 补充；论文元数据仍需阅读全文核实结论"}
+        return {"ok": True, "source": "rag", "coverage": ["rag"],
+                "evidence_complete": claim_level_local, "bibliographic_only": not claim_level_local,
+                "results": local_hits,
+                "note": "论文元数据只是阅读线索，未核对全文" if not claim_level_local else "带来源的本地科学知识检索结果"}
     # 2) Local missed → web
+    if not p.get("web_fallback", True) and not require_both:
+        return {"ok": False, "source": "rag", "coverage": [],
+                "error": "本地 RAG 未命中", "query": query}
     web = _web_literature(query, n_results)
     if web.get("results"):
         web["source"] = "web"
@@ -3012,7 +3032,75 @@ def _exec_ml_active_learning(p: Dict[str, Any]) -> Any:
 
 # ── Schema definitions ──────────────────────────────────────────────
 
+def _read_ml_manifest(path_value: str) -> Dict[str, Any]:
+    path = Path(path_value).expanduser().resolve()
+    if path.suffix.lower() != ".json" or any(part in {".codex", ".ssh", ".aws", ".config"} for part in path.parts):
+        raise ValueError("manifest must be a nonprivate JSON file")
+    try:
+        if path.stat().st_size > 6_000_000:
+            raise ValueError("manifest is too large")
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        raise ValueError("manifest is unavailable or invalid JSON") from None
+    if not isinstance(manifest, dict):
+        raise ValueError("manifest must be a JSON object")
+    return manifest
+
+
+def _exec_ml_template_plan(p: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        manifest = _read_ml_manifest(p["manifest_path"])
+        declared = p.get("label_source")
+        if declared and manifest.get("label_source") and declared != manifest["label_source"]:
+            raise ValueError("label_source conflicts with the manifest declaration")
+        if declared and not manifest.get("label_source"):
+            manifest["label_source"] = declared
+        plan = build_ml_template(manifest, scientific_target=p["scientific_target"],
+                                 architecture=p.get("architecture", "baseline"))
+        if declared:
+            plan["label_source_recorded_from"] = "tool_argument_unverified"
+        return plan
+    except ValueError as exc:
+        return {"error": str(exc)}
+
+
+def _exec_ml_active_learning_plan(p: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        manifest = _read_ml_manifest(p["manifest_path"])
+        return plan_active_learning(manifest, revealed_labels=p["revealed_labels"],
+                                    candidate_ids=p["candidate_ids"],
+                                    acquisition=p.get("acquisition", "coverage"))
+    except ValueError as exc:
+        return {"error": str(exc)}
+
+
 _SCHEMAS = {
+    "ml_template_plan": {
+        "description": "Build an evidence-bound Uni-MOF-family training DAG template from a real manifest. This plans only; it does not train, submit jobs, or claim measured improvement. Requires fixed train/valid/test splits, source hash, and documented target label source. If an older manifest lacks label_source, supply a source declaration based on inspected evidence; it remains unverified until data audit.",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "manifest_path": {"type": "string", "minLength": 1},
+                "scientific_target": {"type": "string", "minLength": 1},
+                "architecture": {"type": "string", "enum": ["baseline", "joint_physics"], "default": "baseline"},
+                "label_source": {"type": "string", "minLength": 1, "maxLength": 1000},
+            },
+            "required": ["manifest_path", "scientific_target"],
+        },
+    },
+    "ml_active_learning_plan": {
+        "description": "Build a label-blind active-learning round from a real manifest and revealed TRAIN labels only. Plans only; acquisition cannot use validation/test labels or fabricate uncertainty.",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "manifest_path": {"type": "string", "minLength": 1},
+                "revealed_labels": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "number"}, "minItems": 1}},
+                "candidate_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+                "acquisition": {"type": "string", "enum": ["coverage", "committee_proxy"], "default": "coverage"},
+            },
+            "required": ["manifest_path", "revealed_labels", "candidate_ids"],
+        },
+    },
     "run_gcmc_isotherm": {
         "description": "Run GCMC adsorption isotherm for a gas in a MOF using RASPA in LOCAL mode: every run copies the force field (force_field.def / pseudo_atoms.def / force_field_mixing_rules.def), the molecule .def and the CIF into the job working folder so RASPA resolves them from ./ (local first). The project-local mirror lives in forcefields/raspa/ — the external RASPA2 share is never modified. If a force field is missing an atom type, fix a COPY inside the job folder, not the mirror.",
         "schema": {
@@ -3307,7 +3395,7 @@ _SCHEMAS = {
         },
     },
     "query_literature": {
-        "description": "查文献/参数/基准值：先查本地文献库，本地没命中时自动用 Crossref+arXiv web 检索补充"
+        "description": "查文献/参数/基准值：先查带 DOI 的本地科学知识和论文元数据向量索引，未命中时查论文 FAISS 索引；需要时用 Crossref+arXiv web 补充。论文元数据仅是阅读线索，不能直接证明论文结论"
                        "（返回 source=rag/web/rag+web）。适用于 SO2 力场参数、选择性基准值等本地库缺的题目。",
         "schema": {
             "type": "object",
@@ -4966,6 +5054,8 @@ def _exec_analyze_diffusion_msd(p: Dict[str, Any]) -> Any:
 
 
 _EXECUTORS = {
+    "ml_template_plan": lambda p: _exec_ml_template_plan(p),
+    "ml_active_learning_plan": lambda p: _exec_ml_active_learning_plan(p),
     "run_gcmc_isotherm": _exec_gcmc_isotherm,
     "run_gcmc_batch": _exec_gcmc_batch,
     "run_henry": _exec_henry,

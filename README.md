@@ -24,13 +24,15 @@ Sep-Pilot helps researchers plan, launch, follow, and review computational mater
 | | Feature | Experience |
 |---|---|---|
 | 🧭 | **Research planning** | Turn a natural-language objective into a clear, reviewable sequence of scientific tasks. |
-| 🕸️ | **Visual workflow** | Follow dependencies, parallel branches, parameters, progress, and results in an interactive graph. |
+| 🕸️ | **Visual workflow** | Follow dependencies, parallel branches, progress, and results in a persistent graph. |
 | 🧪 | **Specialist agents** | Coordinate agents for structures, force fields, adsorption, molecular simulation, and data analysis. |
 | 🖥️ | **HPC execution** | Launch and follow long-running calculations on a configured research cluster. |
 | ♻️ | **Task recovery** | Continue interrupted work and handle recoverable failures without losing completed results. |
 | 📝 | **Live reports** | Read evidence-backed report sections as workflow branches finish, then receive one updated final report. |
 | 📦 | **Result handoff** | Feed structures, tables, trajectories, and other outputs into the next scientific task. |
 | 🔎 | **Evidence tracking** | Keep calculations, files, scheduler receipts, and conclusions connected for later review. |
+| 📚 | **Scientific knowledge** | Search source-linked guidance and relevant papers while keeping literature leads separate from verified results. |
+| 🧠 | **Model planning** | Prepare reproducible training and active-learning workflows from documented datasets. |
 | 👥 | **Session isolation** | Maintain separate goals, files, workflows, and history for each user session. |
 
 ## Scientific workflows

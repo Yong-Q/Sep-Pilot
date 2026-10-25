@@ -22,7 +22,8 @@ from .workflow_patch import patched_graph
 from .output_contract import output_path, artifact_fact
 
 READ_ONLY = frozenset({'discover_forcefield', 'inspect_forcefield', 'validate_framework_charges', 'convert_physical_units', 'get_tool_schema', 'read_file', 'grep_search', 'inspect_path', 'inspect_run',
-    'inspect_workflow_result', 'query_literature', 'check_job', 'diagnose_job', 'list_my_jobs', 'resource_health', 'assess_job_resources', 'resource_review_decision'})
+    'inspect_workflow_result', 'query_literature', 'check_job', 'diagnose_job', 'list_my_jobs', 'resource_health', 'assess_job_resources', 'resource_review_decision',
+    'ml_template_plan', 'ml_active_learning_plan'})
 KINDS = {'generate_structure': 'structures', 'run_pacman_charge': 'charged',
     'stage_cif_subset': 'structures', 'analyze_gcmc_screening': 'gcmc_analysis',
     'run_henry': 'gcmc', 'run_gcmc_isotherm': 'gcmc', 'run_gcmc_batch': 'gcmc',
@@ -121,8 +122,12 @@ def persisted_resource_review(node_state, step_id):
 
 def same_scientific_contract(before, after):
     """Derived lease paths are not a scientific request to rerun a node."""
-    return ({k: v for k, v in before.items() if k != 'resources'} ==
-            {k: v for k, v in after.items() if k != 'resources'})
+    left = {k: v for k, v in before.items() if k != 'resources'}
+    right = {k: v for k, v in after.items() if k != 'resources'}
+    if left == right:
+        return True
+    from .workflow_patch import reuse_compatible_contract
+    return reuse_compatible_contract(left, right)
 
 
 def artifact_base(node, project_root, conversation_root, result=None):
@@ -201,7 +206,7 @@ def resources_for(node, project_root, conversation_root):
     def path(value):
         p = Path(value)
         return 'path:' + str((p if p.is_absolute() else Path(project_root) / p).resolve())
-    for field in ('cif', 'cif_path', 'cif_dir', 'input_path', 'input_dir', 'data_csv', 'trajectory_path'):
+    for field in ('cif', 'cif_path', 'cif_dir', 'input_path', 'input_dir', 'data_csv', 'manifest_path', 'trajectory_path'):
         if args.get(field):
             prepares_inputs = tool == 'run_cdft' and field == 'input_dir' and args.get('action', 'pipeline') in {'inputs', 'pipeline'}
             add(path(args[field]), 'write' if prepares_inputs else 'read')
@@ -269,10 +274,18 @@ def runtime_summary(state, limit=24):
     for _, node in ordered: counts[node['status']] = counts.get(node['status'], 0) + 1
     for key, node in ordered[:limit]:
         result = result_object(node.get('result', {}))
+        dependencies = list(node.get('contract', {}).get('depends_on', []))
+        upstream_receipts = {
+            dep: state['nodes'][dep].get('result_ref', {}).get('call_id')
+            for dep in dependencies
+            if dep in state['nodes'] and isinstance(state['nodes'][dep].get('result_ref'), dict)
+            and state['nodes'][dep]['result_ref'].get('call_id')
+        }
         result_paths = {name: result[name] for name in (
             'work_dir', 'output_dir', 'input_dir', 'output_csv', 'output_path',
             'model_dir', 'trajectory_path', 'report_file') if isinstance(result.get(name), str)}
         nodes[key] = {'status': node['status'], 'phase':node.get('phase'), 'agent':node.get('contract',{}).get('agent'), 'tool':node.get('contract',{}).get('tool'), 'result_ref': node.get('result_ref'),
+                     'depends_on': dependencies, 'upstream_receipts': upstream_receipts,
                      'job_ids': node.get('job_ids', []), 'path_manifest': node.get('path_manifest'),
                      'result_paths': result_paths,
                      'error': str(node.get('error', ''))[:500],
@@ -296,7 +309,28 @@ def runtime_summary(state, limit=24):
                 'updated_at': node.get('updated_at') or node.get('started_at'),
             })
     live_reports.sort(key=lambda item: (item['role'] != 'assembly', item['step_id']))
+    keys = list(state['nodes'])
+    successors = {key: [] for key in keys}
+    remaining = {key: 0 for key in keys}
+    for key, node in state['nodes'].items():
+        for dep in node.get('contract', {}).get('depends_on', []):
+            if dep in successors:
+                successors[dep].append(key)
+                remaining[key] += 1
+    ready = [key for key in keys if remaining[key] == 0]
+    has_parallel_branches = False
+    while ready:
+        if len(ready) > 1:
+            has_parallel_branches = True
+            break
+        current = ready.pop()
+        for successor in successors[current]:
+            remaining[successor] -= 1
+            if remaining[successor] == 0:
+                ready.append(successor)
+    collaboration_mode = 'parallel_dag' if has_parallel_branches else 'sequential_dag' if len(keys) > 1 else 'single_agent'
     return {'status': state['status'], 'plan_version': state['plan_version'], 'user_paused': state.get('user_paused', False), 'counts': counts,
+            'collaboration_mode': collaboration_mode,
             'nodes': nodes, 'live_reports': live_reports,
             'omitted_nodes': max(0, len(ordered)-limit), 'details': 'query conversation workflow API or authoritative files'}
 
@@ -615,6 +649,84 @@ class WorkflowStore:
                 workflow.pop('pause_kind', None)
         return recovered
 
+    def restore_compatible_completed_branches(self, workflow_id):
+        """Undo legacy invalidation caused only by a compatible contract migration."""
+        from .workflow_patch import execution_contract, reuse_compatible_contract
+
+        def usable(attempt, contract):
+            if attempt.get('status') != 'succeeded':
+                return False
+            if not reuse_compatible_contract(attempt.get('contract', {}), contract):
+                return False
+            artifacts = attempt.get('artifacts') or {}
+            if not artifacts or not all(fact and Path(path).exists() for path, fact in artifacts.items()):
+                return False
+            if is_submission(contract.get('tool'), contract.get('arguments', {})):
+                return bool(attempt.get('node_verification') and attempt.get('job_ids'))
+            return True
+
+        restored = []
+        with json_transaction(self.path) as data:
+            workflow = data.get('workflows', {}).get(workflow_id)
+            if not workflow:
+                return restored
+            states = workflow.get('nodes', {})
+            seeds, selected = set(), {}
+            for step_id, node in states.items():
+                if node.get('status') == 'succeeded':
+                    continue
+                current_contract = node.get('contract', {})
+                for attempt in reversed(node.get('attempt_history', [])):
+                    if (usable(attempt, current_contract)
+                            and execution_contract(attempt.get('contract', {})) != execution_contract(current_contract)):
+                        seeds.add(step_id)
+                        selected[step_id] = attempt
+                        break
+            if not seeds:
+                return restored
+            candidates = set(seeds)
+            while True:
+                added = set()
+                for step_id, node in states.items():
+                    if step_id in candidates or node.get('status') == 'succeeded':
+                        continue
+                    if not set(node.get('contract', {}).get('depends_on', [])) & candidates:
+                        continue
+                    attempt = next((item for item in reversed(node.get('attempt_history', []))
+                                    if usable(item, node.get('contract', {}))), None)
+                    if attempt:
+                        selected[step_id] = attempt
+                        added.add(step_id)
+                if not added:
+                    break
+                candidates |= added
+            for step_id in states:
+                if step_id not in candidates:
+                    continue
+                current = states[step_id]
+                prior = copy.deepcopy(selected[step_id])
+                current_attempt = {key: copy.deepcopy(value) for key, value in current.items()
+                                   if key not in {'attempt_history', 'messages'}}
+                history = copy.deepcopy(current.get('attempt_history', []))
+                history.append(current_attempt)
+                token = current.get('token')
+                messages = copy.deepcopy(current.get('messages', {}))
+                contract = copy.deepcopy(current.get('contract', {}))
+                current.clear()
+                current.update(prior, contract=contract, attempt_history=history,
+                               messages=messages, restored_compatible_attempt_at=time.time())
+                current['status'] = 'succeeded'
+                current.pop('error', None)
+                if token:
+                    data.get('leases', {}).pop(token, None)
+                workflow.get('branch_blockers', {}).pop(step_id, None)
+                restored.append(step_id)
+            workflow['status'] = ('completed' if all(node.get('status') == 'succeeded'
+                                      for node in states.values()) else 'active')
+            workflow.pop('pause_reason', None)
+            workflow.pop('pause_kind', None)
+        return restored
+
     def send(self, workflow_id, step_id, text, kind, message_id=None):
         if kind not in {'status', 'comment', 'change'} or not text.strip(): raise ValueError('message requires text and status/comment/change kind')
         message_id = message_id or uuid.uuid4().hex
@@ -734,6 +846,26 @@ class ParallelWorkflow:
                 pass
         return result
 
+    def _restore_compatible_completed(self):
+        """Project legacy-compatible runtime restoration into the visible DAG."""
+        restored = self.store.restore_compatible_completed_branches(self.workflow_id)
+        if not restored:
+            return []
+        recovered_state = self.snapshot()
+        for step_id in restored:
+            recovered = recovered_state['nodes'][step_id]
+            manifest = recovered.get('path_manifest') or {}
+            self._step(step_id, status='completed', done=True,
+                       job_ids=recovered.get('job_ids', []),
+                       output_files=manifest.get('output_files', []),
+                       path_manifest=manifest,
+                       validation={'output_contract': 'passed',
+                                   'restored_compatible_attempt': True})
+        self._emit('compatible_branch_restored', {
+            'step_ids': restored, 'no_resubmission': True,
+        }, 'compatible-restore:' + ':'.join(restored))
+        return restored
+
     def start(self, plan_version):
         from .defns import resolve_agent
         goal = self.main.goal_contract.to_dict()
@@ -752,6 +884,7 @@ class ParallelWorkflow:
         nodes = [{key: copy.deepcopy(n[key]) for key in ('step_id', 'agent', 'tool', 'arguments',
                   'depends_on', 'expected_outputs', 'resource_locks', 'report_role', 'report_parent',
                   'report_source') if key in n} for n in approved]
+        self._restore_compatible_completed()
         existing = self.snapshot()
         if self.main._on_resource_review and not any(n['status'] in ACTIVE for n in existing.get('nodes',{}).values()):
             unreviewed=[n for n in nodes if n['tool']=='run_cdft' and n['arguments'].get('action','pipeline') in {'pipeline','submit'} and not n['arguments'].get('resource_review_id')
@@ -1836,6 +1969,8 @@ class ParallelWorkflow:
             self.futures = {key: future for key, future in self.futures.items() if not future.done()}
             state = self.snapshot()
             if not state: return
+            self._restore_compatible_completed()
+            state = self.snapshot()
             self._materialize_runtime_bindings()
             state = self.snapshot()
             if (state.get('status') == 'needs_user' and state.get('pause_kind') == 'input_changed'

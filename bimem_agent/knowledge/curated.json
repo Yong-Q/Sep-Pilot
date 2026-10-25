@@ -1,0 +1,72 @@
+[
+  {
+    "id": "classical_cdft",
+    "title": "Classical density functional theory for confined fluids",
+    "aliases": "经典密度泛函 连续密度泛函 cDFT classical DFT Vext external potential adsorption pore fluid density profile 吸附 外场 分子密度",
+    "claim": "Classical cDFT describes an inhomogeneous molecular fluid using a density profile and a free-energy functional under an external potential; it can model adsorption thermodynamics in pores.",
+    "scope": "Classical fluid adsorption and equilibrium thermodynamics in confined media.",
+    "caveat": "这里的 cDFT 是经典流体密度泛函，不是电子结构 DFT；不能仅凭它宣称电子结合能或膜渗透率。",
+    "citation": "Percus, Model grand potential for a nonuniform classical fluid, J. Chem. Phys. 75, 1316 (1981), doi:10.1063/1.442136.",
+    "source_url": "https://doi.org/10.1063/1.442136"
+  },
+  {
+    "id": "adsorption_vs_membrane",
+    "title": "Adsorption metrics are distinct from membrane transport metrics",
+    "aliases": "GCMC uptake adsorption selectivity membrane permeance permeability diffusion diffusivity solubility 吸附量 吸附选择性 膜 渗透率 渗透性 扩散",
+    "claim": "Equilibrium uptake and adsorption selectivity characterize sorption. A membrane separation claim additionally requires transport evidence, such as diffusivity or measured/simulated permeation under a defined operating condition.",
+    "scope": "Gas separation screening of MOF adsorbents and membranes.",
+    "caveat": "Adsorption selectivity alone does not establish membrane permeance or permeation selectivity; diffusion and membrane conditions matter.",
+    "citation": "High-Throughput Screening of MOF Adsorbents and Membranes for H2 Purification and CO2 Capture, ACS Appl. Mater. Interfaces (2018), doi:10.1021/acsami.8b12746.",
+    "source_url": "https://doi.org/10.1021/acsami.8b12746"
+  },
+  {
+    "id": "solution_diffusion",
+    "title": "Solution-diffusion membrane model",
+    "aliases": "solution diffusion model polymer membrane permeability permeance thickness selectivity solubility diffusivity P equals S D 聚合物膜 溶解扩散 渗透率 厚度",
+    "claim": "For dense polymer membranes under the solution-diffusion model, permeability is the product of solubility and diffusivity, and permeance also depends on membrane thickness.",
+    "scope": "Dense polymer membrane gas transport; do not assume the same constitutive model for every porous membrane.",
+    "caveat": "The solution-diffusion relation has a model scope; adsorption uptake alone does not determine diffusion or a membrane flux.",
+    "citation": "Lively and Sholl, Maximizing the right stuff: The trade-off between membrane permeability and selectivity, Science (2016), doi:10.1126/science.aab0530.",
+    "source_url": "https://doi.org/10.1126/science.aab0530"
+  },
+  {
+    "id": "unimof_target",
+    "title": "Uni-MOF predicts gas adsorption targets",
+    "aliases": "Uni-MOF UniMol Uni-Mol MOF 3D encoder gas pressure temperature adsorption capacity representation learning 吸附 模型 三维结构",
+    "claim": "Uni-MOF uses three-dimensional framework representations together with gas and operating-condition information for gas adsorption prediction.",
+    "scope": "Adsorption prediction for structures and conditions represented in its training and evaluation regime.",
+    "caveat": "A predicted adsorption capacity is a model estimate, not an independent physical calculation or a validated membrane permeance result.",
+    "citation": "Wang et al., A comprehensive transformer-based approach for high-accuracy gas adsorption predictions in metal-organic frameworks, Nat. Commun. 15, 1904 (2024), doi:10.1038/s41467-024-46276-x.",
+    "source_url": "https://doi.org/10.1038/s41467-024-46276-x"
+  },
+  {
+    "id": "active_learning",
+    "title": "Active learning acquires labels after selecting unlabeled candidates",
+    "aliases": "active learning acquisition unlabeled pool oracle reveal labels iterative training exploration exploitation 主动学习 未标注 采集 真实标签 计算验证",
+    "claim": "An active-learning round fits on labeled training data, scores an unlabeled candidate pool, obtains selected labels from a real experiment or calculation, and only then updates the training set.",
+    "scope": "Iterative materials discovery and model improvement.",
+    "caveat": "Do not use unrevealed candidate labels to choose acquisitions, or describe heuristic committee disagreement as calibrated uncertainty without validation.",
+    "citation": "Small data machine learning in materials science, npj Comput. Mater. (2023), doi:10.1038/s41524-023-01000-z.",
+    "source_url": "https://doi.org/10.1038/s41524-023-01000-z"
+  },
+  {
+    "id": "data_leakage",
+    "title": "Hold out independent test data during model selection",
+    "aliases": "data leakage train validation test split held out model selection hyperparameters active learning cross validation 数据泄漏 测试集 验证集 归一化",
+    "claim": "Model-selection and preprocessing decisions must avoid test-set information; evaluation splits should reflect the intended transfer task and dependencies among materials.",
+    "scope": "Materials machine learning evaluation and active-learning benchmarks.",
+    "caveat": "Using test labels or test-derived normalization during acquisition or tuning contaminates the final estimate of generalization.",
+    "citation": "MatFold: systematic insights into materials discovery models' performance through standardized cross-validation protocols, Digital Discovery (2024), doi:10.1039/d4dd00250d.",
+    "source_url": "https://doi.org/10.1039/d4dd00250d"
+  },
+  {
+    "id": "scientific_provenance",
+    "title": "Scientific results require traceable provenance",
+    "aliases": "FAIR provenance reproducibility workflow inputs outputs units source run id validation evidence report 数据来源 计算记录 单位 结果验收 可复现",
+    "claim": "Reusable scientific results should retain detailed provenance, including the source data and the workflow or algorithms that produced them.",
+    "scope": "Evidence-backed scientific workflow outputs and reports.",
+    "caveat": "A retrieved paper supports a general method claim; it does not prove that a particular calculation or job succeeded.",
+    "citation": "Wilkinson et al., The FAIR Guiding Principles for scientific data management and stewardship, Sci. Data 3, 160018 (2016), doi:10.1038/sdata.2016.18.",
+    "source_url": "https://doi.org/10.1038/sdata.2016.18"
+  }
+]

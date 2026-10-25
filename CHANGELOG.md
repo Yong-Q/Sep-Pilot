@@ -2,6 +2,19 @@
 
 This file records user-visible changes to Sep-Pilot. Implementation details and private deployment information are maintained separately.
 
+## Unreleased — 2026-10-25
+
+- Added a locally configured model connection while preserving user-supplied API connections.
+- Improved parallel workflow progress, branch handoff visibility, mobile navigation, and result continuity.
+- Added source-linked scientific knowledge and a searchable collection of 49 DOI-verified papers for membrane-separation research.
+- Added evidence-bound model-training and active-learning planning templates.
+
+## v3.4.77 — 2026-09-20
+
+- Preserve completed DAG branches when a later plan makes an implicit default explicit, relaxes an output-count floor, or refreshes scheduler placement evidence.
+- Restore verified branches invalidated by older runtimes without redispatching calculations.
+- Allow four concurrent model calls by default so orchestration, validation, and live reporting no longer serialize after restart.
+
 ## v3.4.76 — 2026-09-20
 
 - Added dedicated report workers that generate evidence-scoped fragments while independent calculations continue.

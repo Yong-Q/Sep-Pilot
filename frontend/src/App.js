@@ -502,6 +502,11 @@ function OperationsDrawer({ workflow, partial, processing }) {
   const graph = useMemo(() => graphGeometry(workflowLevels(nodes)), [viewportIdentity]);
   const activeStates = new Set(['running', 'submitted', 'waiting_jobs', 'waiting_prerequisite', 'uncertain', 'prefinish', 'needs_resources']);
   const activeNodes = nodes.filter(n => activeStates.has(nodeStatus(n)));
+  const progressingNodes = nodes.filter(n => ['running', 'submitted', 'waiting_jobs', 'prefinish'].includes(nodeStatus(n)));
+  const completedNodes = nodes.filter(n => ['completed', 'succeeded'].includes(nodeStatus(n))).length;
+  const failedNodes = nodes.filter(n => nodeStatus(n) === 'failed').length;
+  const activeOwners = [...new Set(progressingNodes.map(node =>
+    agentDisplayName(node.agent || node.contract?.agent || '待分配')))].filter(Boolean);
   const operations = (workflow.recent_operations || []).slice(-10).reverse();
   const activity = workflow.current_activity || {};
   const openBranches = branches.filter(b => !['resolved', 'closed'].includes(b.status));
@@ -593,6 +598,21 @@ function OperationsDrawer({ workflow, partial, processing }) {
 
           <section className="runtime-section">
             <div className="runtime-section-title"><span>有向编排图</span><span className="runtime-section-note">{activeNodes.length} 活动 / {nodes.length} 节点</span></div>
+            {nodes.length > 0 && <div className="runtime-dag-overview" aria-label="编排进度">
+              <div className="runtime-dag-metrics">
+                <span><b>{completedNodes}</b> 已完成</span>
+                <span className="is-running"><b>{progressingNodes.length}</b> 进行中</span>
+                <span className={failedNodes ? 'is-failed' : ''}><b>{failedNodes}</b> 异常</span>
+              </div>
+              <div className="runtime-dag-progress" role="progressbar" aria-valuenow={completedNodes}
+                aria-valuemin={0} aria-valuemax={nodes.length} aria-label="已完成节点数">
+                <span style={{ width: `${completedNodes / nodes.length * 100}%` }} />
+              </div>
+              <div className="runtime-dag-owners">
+                <span>{activeOwners.length ? '负责环节' : '当前无执行节点'}</span>
+                {activeOwners.map(owner => <b key={owner}>{owner}</b>)}
+              </div>
+            </div>}
             {displayGraph.source === 'workflow_draft' && <div className="runtime-graph-recovered">研究方案草案；待补齐参数并编译后执行。</div>}
             {displayGraph.retained && <div className="runtime-graph-recovered">正在同步更新，保留上次完整编排图。</div>}
             {approvedNodes.length > 0 && goal.approved_plan_version !== workflow.parallel_runtime?.plan_version &&
@@ -732,7 +752,7 @@ function AuthForm({ onLogin }) {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <div className="auth-logo">🧪</div>
+        <div className="auth-logo" aria-label="BiMemAgent">BM</div>
         <div className="auth-subtitle">BiMemAgent MOF · AI Research Platform</div>
         <h2>{mode === 'login' ? '欢迎回来' : '创建账户'}</h2>
         <form onSubmit={submit}>
@@ -789,7 +809,7 @@ function ModelConnectionDialog({ onClose }) {
         <button className={form.mode === 'custom' ? 'active' : ''} onClick={() => setForm(value => ({ ...value, mode: 'custom' }))}>我的 API</button>
       </div>
       {form.mode === 'default' ? <div className="model-default-card">
-        <b>使用平台托管连接</b><span>模型：{form.model || '由服务端环境配置'}</span><small>平台 API key 不会发送到浏览器。</small>
+        <b>使用平台托管连接</b><span>模型：{form.model || '由服务端环境配置'}</span><small>模型登录凭证不会发送到浏览器。</small>
       </div> : <div className="model-fields">
         <label>接口地址<input value={form.base_url || ''} onChange={event => setForm(value => ({ ...value, base_url: event.target.value }))} placeholder="https://api.example.com" /></label>
         <label>模型名<input value={form.model || ''} onChange={event => setForm(value => ({ ...value, model: event.target.value }))} placeholder="model-name" /></label>
@@ -803,11 +823,12 @@ function ModelConnectionDialog({ onClose }) {
 }
 
 // ── Sidebar ──
-function Sidebar({ conversations, activeId, onSelect, onNew, onLogout, onSettings, user, profile, tasks }) {
+function Sidebar({ conversations, activeId, onSelect, onNew, onLogout, onSettings, user, profile, tasks, mobileOpen, onMobileClose }) {
   return (
-    <div className="sidebar">
+    <div className={'sidebar' + (mobileOpen ? ' sidebar-mobile-open' : '')}>
       <div className="sidebar-header">
         <h3>对话</h3>
+        <button className="sidebar-mobile-close" onClick={onMobileClose} aria-label="关闭会话列表">×</button>
       </div>
       <button className="new-conv-btn" onClick={onNew}>
         <span>＋</span> 新对话
@@ -866,6 +887,7 @@ export default function App() {
   const [tasks, setTasks] = useState([]);
   const [workflow, setWorkflow] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const chatRef = useRef(null);
   const workflowSnapshotRef = useRef({});
   const workflowCacheRef = useRef({});
@@ -1276,19 +1298,23 @@ export default function App() {
 
   return (
     <div className="app">
+      {mobileSidebarOpen && <button className="sidebar-mobile-backdrop" onClick={() => setMobileSidebarOpen(false)} aria-label="关闭会话列表" />}
       <Sidebar
         conversations={conversations}
         activeId={convId}
-        onSelect={doSwitch}
-        onNew={doNew}
-        onLogout={doLogout}
+        onSelect={id => { setMobileSidebarOpen(false); doSwitch(id); }}
+        onNew={() => { setMobileSidebarOpen(false); doNew(); }}
+        onLogout={() => { setMobileSidebarOpen(false); doLogout(); }}
         onSettings={() => setSettingsOpen(true)}
         user={user}
         profile={profile}
         tasks={tasks}
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
       />
 
       <div className="main-area">
+        <button className="mobile-nav-toggle" onClick={() => setMobileSidebarOpen(true)} aria-label="打开会话列表">☰</button>
         <div className="chat-area">
           <div className="chat-container" ref={chatRef}>
             {messages.length === 0 && !processing && (

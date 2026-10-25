@@ -30,11 +30,43 @@ def test_query_literature_require_both_queries_rag_and_web():
     web = {"ok": True, "results": [{"title": "web evidence"}]}
     with patch("bimem_agent.legacy_bridge.run_literature_rag", return_value=local) as rag_call, \
             patch.object(registry, "_web_literature", return_value=web) as web_call:
-        result = registry._exec_rag({"query": "classical DFT adsorption", "require_both": True})
+        result = registry._exec_rag({"query": "sentinel polygon 98765", "require_both": True})
     assert rag_call.called and web_call.called
     assert result["source"] == "rag+web"
     assert result["coverage"] == ["rag", "web"]
     assert result["evidence_complete"] is True
+
+
+def test_query_literature_reads_actual_faiss_hits_field():
+    local = {"ok": True, "hits": [{"title": "local scientific passage", "text": "cDFT adsorption", "score": 0.8}]}
+    with patch("bimem_agent.legacy_bridge.run_literature_rag", return_value=local), \
+            patch.object(registry, "_web_literature", return_value={"ok": False, "results": []}) as web_call:
+        result = registry._exec_rag({"query": "sentinel polygon 98765", "web_fallback": False})
+    assert result["source"] == "rag"
+    assert result["results"][0]["title"] == "local scientific passage"
+    assert not web_call.called
+
+
+def test_curated_knowledge_answers_relevant_method_query_without_slow_legacy_index():
+    with patch("bimem_agent.legacy_bridge.run_literature_rag", side_effect=AssertionError("legacy index should not load")), \
+            patch.object(registry, "_web_literature", return_value={"ok": True, "results": [{"title": "web paper"}]}) as web_call:
+        result = registry._exec_rag({"query": "classical cDFT pore adsorption", "require_both": True})
+    assert result["coverage"] == ["rag", "web"]
+    assert any(hit.get("id") == "classical_cdft" for hit in result["local"])
+    assert web_call.called
+
+
+def test_query_literature_surfaces_paper_metadata_without_claiming_full_text_evidence():
+    paper = {"title": "verified paper title", "doi": "10.1000/example", "source": "crossref_metadata",
+             "evidence_level": "bibliographic_lead_only", "source_url": "https://doi.org/10.1000/example"}
+    with patch("bimem_agent.knowledge.search_knowledge", return_value=[]), \
+            patch("bimem_agent.knowledge.search_papers", return_value=[paper]), \
+            patch("bimem_agent.legacy_bridge.run_literature_rag", side_effect=AssertionError("metadata hit should avoid cold FAISS")), \
+            patch.object(registry, "_web_literature", return_value={"ok": False, "results": []}):
+        result = registry._exec_rag({"query": "ZIF-8 ethene membrane", "require_both": True})
+    assert result["local"][0]["doi"] == "10.1000/example"
+    assert result["evidence_complete"] is False
+    assert result["bibliographic_only"] is True
 
 
 def test_query_literature_schema_exposes_dual_source_mode():

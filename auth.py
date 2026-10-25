@@ -274,6 +274,11 @@ def public_model_connection(username: str) -> dict:
     connection = entry.get("model_connection", {}) if isinstance(entry, dict) else {}
     default = get_config()
     if connection.get("mode") != "custom":
+        if getattr(default, "model_provider", "anthropic") == "codex_cli":
+            import shutil
+            return {"mode": "default", "model": "gpt-6-sol", "base_url": "",
+                    "key_configured": bool(shutil.which("codex")),
+                    "api_key_hint": "本机 Codex 登录"}
         return {"mode": "default", "model": default.model, "base_url": default.base_url,
                 "key_configured": bool(default.api_key), "api_key_hint": "平台托管"}
     return {"mode": "custom", "model": connection.get("model", ""),
@@ -322,6 +327,7 @@ def config_for_user(username: str):
     entry = load_users().get(username, {})
     connection = entry.get("model_connection", {}) if isinstance(entry, dict) else {}
     if connection.get("mode") == "custom":
+        config.model_provider = "anthropic"
         config.api_key = _decrypt_secret(connection["api_key_ciphertext"])
         config.base_url = connection["base_url"]
         config.model = connection["model"]
