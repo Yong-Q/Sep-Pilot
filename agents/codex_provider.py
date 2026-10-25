@@ -173,9 +173,12 @@ def _validate_reply(payload: Any, tools: list[dict], tool_choice: dict | None) -
             arguments = json.loads(call["arguments_json"])
             if not isinstance(arguments, dict):
                 raise ValueError("arguments must be object")
-            jsonschema.validate(arguments, allowed[name].get("input_schema", {"type": "object"}))
-        except (ValueError, jsonschema.ValidationError, jsonschema.SchemaError):
-            raise CodexProviderError("Codex proposed invalid arguments") from None
+        except ValueError:
+            raise CodexProviderError("Codex returned malformed tool argument JSON") from None
+        # Keep semantic parameter validation in the host Session/registry. It
+        # blocks invalid execution and returns structured issues to the model,
+        # so a missing parameter can be repaired instead of counted as an API
+        # outage. Only the provider's wire format belongs at this boundary.
         blocks.append(ToolUseBlock(type="tool_use", id="toolu_" + uuid.uuid4().hex,
                                    name=name, input=arguments))
     if tool_choice and tool_choice.get("type") == "tool" and not payload["tool_calls"]:

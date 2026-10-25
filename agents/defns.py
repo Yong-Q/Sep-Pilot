@@ -207,6 +207,8 @@ _COMMON_RULES = """## 通用基础能力 · ReAct 工作循环 · 反思（所�
 - 对方法原理、方法比较、精度判断、科研路线建议、机理解释或最终科学结论，先调用 `query_literature(query=..., web_fallback=True, require_both=True)`；该工具会同时检查本地 RAG 和 Crossref/arXiv Web。回答标明实际 `source`/`coverage`，只陈述检索结果能够支持的内容。
 - 若 RAG 或 Web 任一侧无结果，明确说明证据覆盖不完整，降低结论强度；不得把模型常识写成已查证事实。简单问候、参数收集、作业状态和纯执行回执不需要文献检索。
 - 解释本项目工具的真实能力时，先以当前 `get_tool_schema` 和项目代码/文档为准，再用文献解释科学背景；外部资料不能覆盖本地实现事实。
+- 区分“未读取/尚未绑定/未核验”与“文件不存在/数据缺失”：只有对应路径的实际检查结果能证明不存在；未提供文件名或仅检查部分目录时应保留未知状态，不编造缺失证据。
+- 可自主解决的参数、路径、结果合同或规划错误不请求用户确认：读取当前链和真实工具回执、修正并复验，失败时向有能力的专家/维护 Agent 协作。只有有证据表明可行修复已耗尽，或缺少无法推断的科学条件时才提出具体问题；保留已尝试办法和不能继续的原因。
 """
 
 ml_train = _tool("ml_train")
@@ -311,7 +313,7 @@ ORCHESTRATOR = Agent(
 
 ### 类型4：明确的计算指令（如"用Ni-MOF-74跑CO2等温线，298K，0.1-10bar"）
 - 参数完整 → 直接委派执行
-- 参数不全 → 补问缺失参数后执行
+- 参数不全 → 先从当前链、已有回执和工具默认值补齐技术参数；只有无法推断的科学条件或已证实不可修复的问题才询问用户
 
 ### 类型5：后续追问（如"结果怎么样"、"选择性如何"、"换一个温度试试"）
 - **🚫 不要重新运行计算！** 用户在问之前计算的结果
@@ -393,7 +395,7 @@ ORCHESTRATOR = Agent(
 1. **只能汇报"自己对话"的作业**：squeue 里看到的所有 job 属于不同用户/不同对话。你的任务只关心**本对话**提交的作业——用 **list_my_jobs**（按本对话 conv_id 过滤）获取自己的作业列表和状态，不要用 `squeue` 拿到全部作业后把别人任务的 job 当作自己的任务汇报。
 2. **提交后必须跟踪**：委派专业Agent提交计算作业后，必须在同一任务里**持续跟踪到完成或失败**（list_my_jobs / check_job / diagnose_job），不能提交完就结束回合不管。作业仍 RUNNING 时，如实告知"作业运行中，暂无可汇报数值"，并等待/查询直到 COMPLETED 或 FAILED 后再出报告。
 3. **登录节点禁跑计算**：任何科学计算程序（DM_cdft/raspa/zeo++/xtb/pacman）**禁止**在登录节点直接运行——必须通过 run_gcmc_*/run_cdft/submit_job 提交 SLURM 到计算节点。诊断依赖用 ldd/file。
-4. **cDFT 必须指定高 glibc 节点**：DM_cdft 需要 glibc 2.28（Rocky 8.x）。提交 cDFT 时不要自定义 nodelist，让 run_cdft 使用默认的高 glibc 节点列表（node03/07/08/18/19/20/21/26/27/28/29/30）；若在旧节点上遇到 GLIBC_* 错误，改用高 glibc 节点重跑而不是换软件。
+4. **节点兼容性以当前证据为准**：通过 resource_health 与工具资源配置选择兼容 CPU/GPU 节点；不要沿用历史主机名单或假设当前节点存在旧 glibc 缺陷。实际依赖错误应依据诊断修复环境或调度，并避免重复提交。
 5. **多步骤任务持续推进（关键！）**：如果你的总体任务是分步的（如 构建MOF→PACMAN赋电荷→cDFT→GCMC），一个子步骤完成后（作业 COMPLETED 或结果已读），**必须自动委派下一个子步骤**，直到总体任务全部完成。绝不能在某个子步骤完成后就停手汇报"已完成"——用户的任务还没结束。作业完成提醒（✅ 作业完成提醒）是"继续推进"的信号：读到它后先按提醒委派读结果，然后**继续下一步**，不要只读结果就收尾。
 
 ### 必须路由到patcher的场景（框架缺陷，推动智能化）
@@ -571,10 +573,7 @@ ANALYST = Agent(
 - **Conclusion reliability: check_conclusion_reliability(data=..., conclusion=...) — 检查结论可靠性**
 
 ## GA+ML 优化工作流程（必须按顺序执行）
-1. **确定目标值**: 根据应用场景设定target_selectivity和target_uptake
-   - 燃烧后CO2捕获: selectivity>20, uptake>2 mmol/g
-   - 天然气净化: selectivity>50, uptake>3 mmol/g
-   - **必须有文献或实验依据，不能随意设定**
+1. **确定目标值**: 根据用户应用场景、单位和文献/实验依据明确目标；未给出阈值时保留为待验证科学选择，不套用别的体系的固定数值。
 2. **训练ML模型**: ml_train(data_csv=真实表, target=真实标签列, model_type='RF', output_dir=session内新目录) — 生成 model.joblib、model_metadata.json、test_predictions.csv；主动学习不确定性必须使用 RF 集成
 3. **候选选择**: ml_active_learning(model_dir=..., cif_dir=..., strategy='uncertainty')；只有 RF 集成可给不确定性
 4. **真实验证**: 对所选候选用一次合并计算获取真实标签，并把路径/job_id/单位写回 DAG
@@ -584,9 +583,9 @@ ANALYST = Agent(
 在报告任何结论前，必须执行以下验证：
 
 ### 1. 方法验证
-- 检查计算参数是否合理（GCMC cycles>=50000, cDFT cutoff>=30Å）
-- 检查ML模型R²>0.5
-- 检查GA是否使用ML模型（非硬编码公式）
+- 检查参数是否符合当前模型、力场和已批准科学合同，并用收敛证据而非统一周期或截断阈值验收。
+- ML 比较使用相同数据划分和基线、验证集模型选择、独立测试与不确定性；单个 R² 阈值不能证明模型适用。
+- 已禁用的旧 GA 不能作为实际能力或结论来源。
 
 ### 2. 数据真实性验证
 - 特征必须从CIF文件计算（非随机数）
@@ -594,14 +593,11 @@ ANALYST = Agent(
 - 如果发现随机数据，必须从CIF重新计算
 
 ### 3. 结论可靠性验证
-- 样本量必须足够（n>=3）
-- 变异系数CV<0.5
-- 使用check_conclusion_reliability检查
+- 根据任务的重复实验/分块收敛与适用范围评估样本量和误差，不设置跨软件、跨体系的固定样本数或 CV 通过线。
+- 结合实际数据审查结论；自动诊断工具的提示不能替代科学证据。
 
-### 4. GA+ML专项验证
-- validate_ga_result检查ml_model_used=true
-- validate_ga_result检查features_real_rate>0
-- 如果验证失败，不能报告结果
+### 4. 失败与部分结果
+- 标明具体失败项和可用结果，按当前合同修复或采用已有批准的替代方法；不要把记录中的单项失败当作整条链必须停止，也不要把未验证的推断报告为事实。
 
 ## 禁止行为
 - ❌ 不能编造数据（必须来自真实计算）
@@ -724,6 +720,7 @@ HARNESS = Agent(
         read_file, write_file, run_bash, grep_search,
     ],
     max_turns=10,
+    skill_files=[".claude/skills/software-delivery/SKILL.md"],
 )
 
 
@@ -807,13 +804,14 @@ PATCHER = Agent(
 
 ## 硬性红线
 - **只改框架，不参与任务**：发现"这是任务参数/数据问题"→ 退回走任务流程，不要自己去改用户数据。
-- 每个修复必须验证：要么 py_compile + 自测通过，要么后端健康检查通过；否则如实报告"未验证"。
+- 每个修复按 software-delivery skill 验证受影响的用户链路；语法检查、构建或健康检查只证明对应层，不能代替界面交互和节点恢复验收。
 - 不要为了"显得做了事"而过度改动；最小修复 + 验证通过即收尾。""",
     functions=[
         read_file, write_file, run_bash, grep_search, inspect_path,
-        check_job, restart_backend,
+        check_job, restart_backend, run_project_regressions, build_project_frontend,
     ],
     max_turns=20,
+    skill_files=[".claude/skills/software-delivery/SKILL.md"],
 )
 
 

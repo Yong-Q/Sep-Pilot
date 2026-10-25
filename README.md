@@ -107,6 +107,10 @@ python -m agents -i
 
 Release `v3.4.76` passed 172 workflow backend checks, 12 frontend checks, production build validation, and a sanitized-export privacy scan.
 
+Run backend checks with `python -m pytest tests -q`. Scientific integration checks that need the optional Towhee assets, guest force-field pipeline, RASPA binary, or CIF feature extractor are skipped when those dependencies are absent. Core configuration and scheduler command tests use isolated fixtures and do not require private site settings. A passing core suite does not validate calculations from unavailable scientific installations.
+
+Run frontend checks with `cd frontend && npm ci && CI=true npm test -- --watch=false --runInBand`, then `npm run build`. The browser acceptance scripts use synthetic HTTP fixtures; their results cover UI interactions rather than physical calculations.
+
 ## License
 
 Copyright © 2026 **Yong-Q**.

@@ -42,6 +42,11 @@ class GuestForcefieldAcceptanceTest(unittest.TestCase):
                     continue
         return sum(charges[name] for name in pseudo_names)
 
+    @unittest.skipUnless(
+        RASPA_SIM.is_file() and (FIXTURE_ROOT / '1-octanol.mol').is_file()
+        and (PROJECT_ROOT / 'new_skill_test/molecule_forcefield_pipeline/scripts/build_guest_forcefield.py').is_file(),
+        'Optional RASPA binary, guest fixture, and pipeline installation are required',
+    )
     def test_flexible_guest_records_neutral_charge_and_runs_200_cycle_gcmc(self) -> None:
         self.assertTrue(RASPA_SIM.exists(), msg=f"Missing RASPA binary: {RASPA_SIM}")
         with tempfile.TemporaryDirectory() as tmpdir:

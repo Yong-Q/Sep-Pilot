@@ -68,14 +68,15 @@ def test_invalid_tool_is_rejected_without_execution(monkeypatch):
         call_codex_model("", [{"role": "user", "content": "hi"}], TOOLS)
 
 
-def test_invalid_parameters_are_rejected(monkeypatch):
+def test_schema_invalid_arguments_reach_host_validation(monkeypatch):
     def fake_run(command, **kwargs):
         with open(_host_answer(command), "w", encoding="utf-8") as f:
             json.dump({"text": "", "tool_calls": [{"name": "read_file", "arguments_json": '{"bad":"x"}'}]}, f)
         return subprocess.CompletedProcess(command, 0, "", "")
     monkeypatch.setattr("agents.codex_provider._invoke_cli", fake_run)
-    with pytest.raises(CodexProviderError, match="invalid arguments"):
-        call_codex_model("", [{"role": "user", "content": "hi"}], TOOLS)
+    response = call_codex_model("", [{"role": "user", "content": "hi"}], TOOLS)
+    assert response.content[0].name == "read_file"
+    assert response.content[0].input == {"bad": "x"}
 
 
 def test_cli_error_does_not_reveal_stderr_or_prompt(monkeypatch):

@@ -76,7 +76,7 @@ def test_legacy_compatible_reset_restores_only_affected_completed_branch(tmp_pat
             'username': 'tester', 'conv_id': 'c1', 'plan_version': 2,
             'goal_contract': {'version': 2}, 'status': 'active',
             'nodes': {
-                'charge': {'contract': revised, 'status': 'prefinish',
+                'charge': {'contract': revised, 'status': 'pending',
                            'token': current_token,
                            'attempt_history': [prior(original, charged_cif, submission=True)]},
                 'collect': {'contract': child, 'status': 'pending',
@@ -99,6 +99,72 @@ def test_legacy_compatible_reset_restores_only_affected_completed_branch(tmp_pat
     assert state['nodes']['collect']['status'] == 'succeeded'
     assert state['nodes']['unrelated']['status'] == 'pending'
     assert current_token not in store.snapshot().get('leases', {})
+
+
+@pytest.mark.parametrize('protection', ['running', 'waiting_jobs', 'waiting_prerequisite', 'prefinish', 'uncertain', 'user_paused', 'user_change', 'input_changed', 'changed_artifact', 'other_failure'])
+def test_compatible_restoration_preserves_execution_and_recovery_boundaries(tmp_path, protection):
+    artifact = tmp_path / 'result.txt'
+    artifact.write_text('verified result')
+    from agents.output_contract import artifact_fact
+    original = node('restored', args={}, outputs=[str(artifact)])
+    revised = copy.deepcopy(original)
+    revised['arguments']['completion_policy'] = 'best_effort'
+    prior = {'status': 'succeeded', 'contract': original,
+             'artifacts': {str(artifact): artifact_fact(str(artifact), tmp_path)}}
+    current = {'status': 'pending', 'contract': revised, 'attempt_history': [prior]}
+    workflow = {'status': 'needs_user', 'pause_kind': 'failure', 'pause_reason': 'repair required',
+                'nodes': {'restored': current}}
+    if protection in {'running', 'waiting_jobs', 'waiting_prerequisite', 'prefinish', 'uncertain'}:
+        current.update(status=protection, token='live-token')
+    elif protection == 'user_paused':
+        workflow['user_paused'] = True
+    elif protection in {'user_change', 'input_changed'}:
+        workflow['pause_kind'] = protection
+    elif protection == 'changed_artifact':
+        artifact.write_text('replaced unverified output with different contents')
+    else:
+        workflow['nodes']['failed'] = {'status': 'validation_failed', 'contract': node('failed')}
+    path = tmp_path / 'workflow.json'
+    payload = {'workflows': {'w': workflow}, 'leases': {'live-token': {'step_id': 'restored'}}}
+    path.write_text(json.dumps(payload))
+    store = WorkflowStore(path)
+
+    restored = store.restore_compatible_completed_branches('w')
+
+    if protection == 'other_failure':
+        assert restored == ['restored']
+        assert store.snapshot('w')['status'] == 'needs_user'
+        assert store.snapshot('w')['pause_reason'] == 'repair required'
+    else:
+        assert restored == []
+        assert store.snapshot() == payload
+
+
+@pytest.mark.parametrize('join_migrated', [False, True])
+def test_compatible_restoration_does_not_restore_join_with_failed_dependency(tmp_path, join_migrated):
+    artifact = tmp_path / 'result.txt'
+    artifact.write_text('verified result')
+    original = node('restored', outputs=[str(artifact)])
+    revised = copy.deepcopy(original)
+    revised['arguments']['completion_policy'] = 'best_effort'
+    child = node('join', deps=['restored', 'failed'], outputs=[str(artifact)])
+    old_child = copy.deepcopy(child)
+    if join_migrated:
+        child['arguments']['completion_policy'] = 'best_effort'
+    def prior(contract):
+        return {'status': 'succeeded', 'contract': contract, 'artifacts': {str(artifact): True}}
+    states = {
+        'restored': {'status': 'pending', 'contract': revised, 'attempt_history': [prior(original)]},
+        'join': {'status': 'pending', 'contract': child, 'attempt_history': [prior(old_child)]},
+        'failed': {'status': 'failed', 'contract': node('failed')},
+    }
+    path = tmp_path / 'workflow.json'
+    path.write_text(json.dumps({'workflows': {'w': {'status': 'needs_user', 'nodes': states}}}))
+    store = WorkflowStore(path)
+
+    assert store.restore_compatible_completed_branches('w') == ['restored']
+    assert store.snapshot('w')['nodes']['join']['status'] == 'pending'
+    assert store.snapshot('w')['status'] == 'needs_user'
 
 
 def test_branch_failure_keeps_independent_ready_work_and_blocks_descendants(factory):
@@ -1017,6 +1083,21 @@ def test_missing_or_old_output_blocks_dependency_but_allows_repair(factory, tmp_
     assert not rt.store.snapshot()['leases']
     rt.tick()
     assert rt.snapshot()['nodes']['next']['status'] == 'pending'
+    eventually(lambda: any(e['kind'] == 'worker_validation_failed' for e in rt.lifecycle.pending()))
+    event = next(e for e in rt.lifecycle.pending() if e['kind'] == 'worker_validation_failed')
+    assert event['payload']['requires_user'] is False
+    for future in list(rt.futures.values()):
+        future.result(timeout=5)
+    # Simulate the state-to-outbox crash gap, then reconstruct the same repair
+    # notification. A restart must not turn a technical validation failure into
+    # a new scientific decision for the user.
+    with json_transaction(rt.store.path) as data:
+        data['workflows'][rt.workflow_id]['outbox'] = {}
+    with json_transaction(rt.lifecycle.path) as data:
+        data['events'] = {}
+    rt.recover_notifications()
+    replay = next(e for e in rt.lifecycle.pending() if e['kind'] == 'worker_validation_failed')
+    assert replay['payload']['requires_user'] is False
 
 
 def test_real_error_preserved_and_no_automatic_retry(factory):

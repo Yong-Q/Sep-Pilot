@@ -1,5 +1,6 @@
 """No real scheduler/model calls: tool identity and late-receipt regressions."""
 import json
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -201,9 +202,12 @@ def test_advertised_parameters_reach_actual_compute_command(tool, params, expect
 
 def test_structure_distribution_never_exceeds_requested_count(tmp_path, monkeypatch):
     captured = []
+    monkeypatch.setattr('agents.registry.get_config', lambda: SimpleNamespace(
+        project_root=tmp_path, pormake_python=sys.executable))
     monkeypatch.setattr('agents.registry.slurm.submit_and_return', lambda **kw: captured.append(kw) or {'submitted': True, 'job_id': '42'})
     monkeypatch.setattr('agents.registry._register_jobwatch', lambda *a, **kw: None)
-    params = {'material_type': 'HOF', 'n_structures': 5, 'output_dir': str(tmp_path), 'topologies': ['srs', 'cds']}
+    params = {'material_type': 'HOF', 'n_structures': 5, 'output_dir': str(tmp_path), 'topologies': ['srs', 'cds'],
+              'nodelist': 'test-node', 'partition': 'test-partition', 'memory_mb': 1024}
     assert get_registry().execute_dict('generate_structure', params)['submitted']
     import re
     assert list(map(int, re.findall(r'--n (\d+)', captured[0]['command']))) == [3, 2]

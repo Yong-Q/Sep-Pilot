@@ -4,6 +4,7 @@ This file records user-visible changes to Sep-Pilot. Implementation details and 
 
 ## Unreleased — 2026-10-25
 
+- Keep active attempts, user pauses, changed-input reviews, and failed dependencies protected when restoring compatible completed branches; recheck recorded artifact metadata before reuse.
 - Added a locally configured model connection while preserving user-supplied API connections.
 - Improved parallel workflow progress, branch handoff visibility, mobile navigation, and result continuity.
 - Added source-linked scientific knowledge and a searchable collection of 49 DOI-verified papers for membrane-separation research.

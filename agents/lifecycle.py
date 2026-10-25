@@ -109,8 +109,14 @@ class LifecycleStore:
         """Immediate rule-based guard receipt while the LLM audit is running."""
         with json_transaction(self.path) as data:
             event = data.get('events', {}).get(event_id)
-            if event:
-                event['supervisor_receipt'] = {**details, 'audit_pending': True}
+            if not event:
+                return
+            event['supervisor_receipt'] = {**details, 'audit_pending': True}
+            event['supervisor_provisional_at'] = time.time()
+        # The dispatcher already consumed the original emit notification to
+        # start supervision. Wake it again after this receipt is durable so
+        # main can diagnose promptly while the independent model audit runs.
+        _event_wakeup.set()
 
     def recover_claims(self):
         """Only called when restoring after process restart, never mid-turn."""

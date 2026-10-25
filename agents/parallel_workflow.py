@@ -661,6 +661,17 @@ class WorkflowStore:
             artifacts = attempt.get('artifacts') or {}
             if not artifacts or not all(fact and Path(path).exists() for path, fact in artifacts.items()):
                 return False
+            for path, fact in artifacts.items():
+                if isinstance(fact, dict):
+                    specification = ({'kind': 'directory', 'path': path}
+                                     if 'files' in fact else path)
+                    # Preserve a typed directory's original filename selection.
+                    if 'files' in fact:
+                        specification = next((value for value in contract.get('expected_outputs', [])
+                                              if isinstance(value, dict) and value.get('path') == path),
+                                             specification)
+                    if artifact_fact(specification, Path(path).parent) != fact:
+                        return False
             if is_submission(contract.get('tool'), contract.get('arguments', {})):
                 return bool(attempt.get('node_verification') and attempt.get('job_ids'))
             return True
@@ -668,12 +679,14 @@ class WorkflowStore:
         restored = []
         with json_transaction(self.path) as data:
             workflow = data.get('workflows', {}).get(workflow_id)
-            if not workflow:
+            if (not workflow or workflow.get('user_paused')
+                    or workflow.get('pause_kind') in {'user_change', 'input_changed'}):
                 return restored
             states = workflow.get('nodes', {})
+            protected = ACTIVE | {'succeeded'}
             seeds, selected = set(), {}
             for step_id, node in states.items():
-                if node.get('status') == 'succeeded':
+                if node.get('status') in protected:
                     continue
                 current_contract = node.get('contract', {})
                 for attempt in reversed(node.get('attempt_history', [])):
@@ -688,9 +701,12 @@ class WorkflowStore:
             while True:
                 added = set()
                 for step_id, node in states.items():
-                    if step_id in candidates or node.get('status') == 'succeeded':
+                    if step_id in candidates or node.get('status') in protected:
                         continue
                     if not set(node.get('contract', {}).get('depends_on', [])) & candidates:
+                        continue
+                    if any(dep not in candidates and states.get(dep, {}).get('status') != 'succeeded'
+                           for dep in node.get('contract', {}).get('depends_on', [])):
                         continue
                     attempt = next((item for item in reversed(node.get('attempt_history', []))
                                     if usable(item, node.get('contract', {}))), None)
@@ -700,6 +716,17 @@ class WorkflowStore:
                 if not added:
                     break
                 candidates |= added
+            # Seed nodes can themselves be joins. Apply dependency closure to
+            # the entire set, including cascading removals, before mutating it.
+            while True:
+                blocked = {step_id for step_id in candidates if any(
+                    dep not in candidates and states.get(dep, {}).get('status') != 'succeeded'
+                    for dep in states[step_id].get('contract', {}).get('depends_on', []))}
+                if not blocked:
+                    break
+                candidates -= blocked
+            if not candidates:
+                return restored
             for step_id in states:
                 if step_id not in candidates:
                     continue
@@ -721,10 +748,13 @@ class WorkflowStore:
                     data.get('leases', {}).pop(token, None)
                 workflow.get('branch_blockers', {}).pop(step_id, None)
                 restored.append(step_id)
-            workflow['status'] = ('completed' if all(node.get('status') == 'succeeded'
-                                      for node in states.values()) else 'active')
-            workflow.pop('pause_reason', None)
-            workflow.pop('pause_kind', None)
+            if not (workflow.get('branch_blockers') or any(
+                    node.get('status') in {'failed', 'validation_failed', 'needs_resources', 'uncertain'}
+                    for node in states.values())):
+                workflow['status'] = ('completed' if all(node.get('status') == 'succeeded'
+                                          for node in states.values()) else 'active')
+                workflow.pop('pause_reason', None)
+                workflow.pop('pause_kind', None)
         return restored
 
     def send(self, workflow_id, step_id, text, kind, message_id=None):
@@ -1429,7 +1459,7 @@ class ParallelWorkflow:
                 event_id = f'runtime:{self.workflow_id}:{suffix}'
                 if event_id not in outbox:
                     self._emit(kinds[node['status']], {'step_id': step_id,
-                        'requires_user': node['status'] in {'uncertain', 'validation_failed'}}, suffix)
+                        'requires_user': node['status'] == 'uncertain'}, suffix)
             # A failure notification may already have been consumed before a
             # restart or before its upstream receipt became available. Emit a
             # separate, capability-oriented action whenever the durable graph
@@ -1946,7 +1976,7 @@ class ParallelWorkflow:
             self._step(step_id, status='failed',
                 validation={'output_contract': 'failed', 'artifacts': artifacts})
             self.store.pause(self.workflow_id, 'output verification requires main chat repair', step_id=step_id)
-            self._emit('worker_validation_failed', {'step_id': step_id, 'requires_user': True, 'artifacts': artifacts,
+            self._emit('worker_validation_failed', {'step_id': step_id, 'requires_user': False, 'artifacts': artifacts,
                 'evidence_call': current.get('evidence_call')}, token + ':validation')
             return
         if entry.get('status') == 'completed_unverified':

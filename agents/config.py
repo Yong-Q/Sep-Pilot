@@ -101,19 +101,14 @@ class AgentConfig:
             raw = json.load(f)
 
         env = raw.get("env", {})
-        config = cls(
+        values = dict(
             api_key=env.get("ANTHROPIC_AUTH_TOKEN", os.environ.get("ANTHROPIC_API_KEY", "")),
             base_url=env.get("ANTHROPIC_BASE_URL", ""),
             model=env.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
             model_provider=os.environ.get("BIMEM_MODEL_PROVIDER", raw.get("model_provider", "anthropic")),
         )
-
-        # Apply overrides
-        for key, value in overrides.items():
-            if hasattr(config, key):
-                setattr(config, key, value)
-
-        return config
+        values.update({key: value for key, value in overrides.items() if key in cls.__dataclass_fields__})
+        return cls(**values)
 
     @classmethod
     def from_env(cls, **overrides: Any) -> AgentConfig:
@@ -122,16 +117,14 @@ class AgentConfig:
         if ENV_DIR.exists() and (ENV_DIR / "settings.json").exists():
             return cls.from_env_dir(**overrides)
 
-        config = cls(
+        values = dict(
             api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
             base_url=os.environ.get("ANTHROPIC_BASE_URL", ""),
             model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
             model_provider=os.environ.get("BIMEM_MODEL_PROVIDER", "anthropic"),
         )
-        for key, value in overrides.items():
-            if hasattr(config, key):
-                setattr(config, key, value)
-        return config
+        values.update({key: value for key, value in overrides.items() if key in cls.__dataclass_fields__})
+        return cls(**values)
 
 
 _config: Optional[AgentConfig] = None

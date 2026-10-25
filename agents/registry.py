@@ -3032,7 +3032,7 @@ def _exec_ml_active_learning(p: Dict[str, Any]) -> Any:
 
 # ── Schema definitions ──────────────────────────────────────────────
 
-def _read_ml_manifest(path_value: str) -> Dict[str, Any]:
+def _read_ml_manifest(path_value: str, label_source: str | None = None) -> Dict[str, Any]:
     path = Path(path_value).expanduser().resolve()
     if path.suffix.lower() != ".json" or any(part in {".codex", ".ssh", ".aws", ".config"} for part in path.parts):
         raise ValueError("manifest must be a nonprivate JSON file")
@@ -3044,17 +3044,17 @@ def _read_ml_manifest(path_value: str) -> Dict[str, Any]:
         raise ValueError("manifest is unavailable or invalid JSON") from None
     if not isinstance(manifest, dict):
         raise ValueError("manifest must be a JSON object")
+    if label_source and manifest.get("label_source") and label_source != manifest["label_source"]:
+        raise ValueError("label_source conflicts with the manifest declaration")
+    if label_source and not manifest.get("label_source"):
+        manifest["label_source"] = label_source
     return manifest
 
 
 def _exec_ml_template_plan(p: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        manifest = _read_ml_manifest(p["manifest_path"])
         declared = p.get("label_source")
-        if declared and manifest.get("label_source") and declared != manifest["label_source"]:
-            raise ValueError("label_source conflicts with the manifest declaration")
-        if declared and not manifest.get("label_source"):
-            manifest["label_source"] = declared
+        manifest = _read_ml_manifest(p["manifest_path"], declared)
         plan = build_ml_template(manifest, scientific_target=p["scientific_target"],
                                  architecture=p.get("architecture", "baseline"))
         if declared:
@@ -3066,10 +3066,14 @@ def _exec_ml_template_plan(p: Dict[str, Any]) -> Dict[str, Any]:
 
 def _exec_ml_active_learning_plan(p: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        manifest = _read_ml_manifest(p["manifest_path"])
-        return plan_active_learning(manifest, revealed_labels=p["revealed_labels"],
+        declared = p.get("label_source")
+        manifest = _read_ml_manifest(p["manifest_path"], declared)
+        plan = plan_active_learning(manifest, revealed_labels=p["revealed_labels"],
                                     candidate_ids=p["candidate_ids"],
                                     acquisition=p.get("acquisition", "coverage"))
+        if declared:
+            plan["label_source_recorded_from"] = "tool_argument_unverified"
+        return plan
     except ValueError as exc:
         return {"error": str(exc)}
 
@@ -3089,13 +3093,14 @@ _SCHEMAS = {
         },
     },
     "ml_active_learning_plan": {
-        "description": "Build a label-blind active-learning round from a real manifest and revealed TRAIN labels only. Plans only; acquisition cannot use validation/test labels or fabricate uncertainty.",
+        "description": "Build a label-blind active-learning round from a real manifest and revealed TRAIN labels only. Plans only; acquisition cannot use validation/test labels or fabricate uncertainty. Like ml_template_plan, an older manifest missing label_source may use an evidence-based declaration; it remains unverified and cannot override existing provenance.",
         "schema": {
             "type": "object",
             "properties": {
                 "manifest_path": {"type": "string", "minLength": 1},
                 "revealed_labels": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "number"}, "minItems": 1}},
                 "candidate_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+                "label_source": {"type": "string", "minLength": 1, "maxLength": 1000},
                 "acquisition": {"type": "string", "enum": ["coverage", "committee_proxy"], "default": "coverage"},
             },
             "required": ["manifest_path", "revealed_labels", "candidate_ids"],

@@ -51,6 +51,31 @@ def test_active_learning_template_tool_rejects_test_candidate(tmp_path):
     assert "TRAIN" in result["error"]
 
 
+def test_active_learning_recovers_missing_label_source_without_mutating_manifest(tmp_path):
+    path = _manifest(tmp_path)
+    manifest = json.loads(path.read_text())
+    manifest.pop("label_source")
+    path.write_text(json.dumps(manifest))
+    before = path.read_bytes()
+    result = get_registry().execute_dict("ml_active_learning_plan", {
+        "manifest_path": str(path), "revealed_labels": {"a": [1.0]},
+        "candidate_ids": ["b"], "label_source": "measured uptake",
+    })
+    assert result["execution"] == "template_only"
+    assert result["label_source_recorded_from"] == "tool_argument_unverified"
+    assert result["candidate_ids"] == ["b"]
+    assert path.read_bytes() == before
+
+
+def test_active_learning_source_declaration_cannot_overwrite_existing_provenance(tmp_path):
+    path = _manifest(tmp_path)
+    result = get_registry().execute_dict("ml_active_learning_plan", {
+        "manifest_path": str(path), "revealed_labels": {"a": [1.0]},
+        "candidate_ids": ["b"], "label_source": "different physics labels",
+    })
+    assert "conflicts" in result["error"]
+
+
 def test_template_tools_are_available_to_scientific_agents():
     from agents.defns import ANALYST, ORCHESTRATOR
     assert {"ml_template_plan", "ml_active_learning_plan"} <= {

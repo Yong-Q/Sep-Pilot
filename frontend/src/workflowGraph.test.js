@@ -120,3 +120,26 @@ test('a complete graph survives a hard refresh through compact browser storage',
   expect(restored.lines).toBeUndefined();
   expect(loadCachedWorkflow(storage, 'u', 'other')).toBeNull();
 });
+
+test('partial updates retain topology while refreshing known node execution facts', () => {
+  const previous = snapshot(3);
+  const partial = { scope: previous.scope, parallel_runtime: { plan_version: 3, nodes: {
+    input: {status: 'succeeded', job_ids: ['current-job']},
+  } } };
+  const retained = retainGraph(previous, partial).display_graph;
+  expect(retained.nodes).toHaveLength(2);
+  expect(retained.nodes[0].status).toBe('succeeded');
+  expect(retained.nodes[0].job_ids).toEqual(['current-job']);
+  expect(retained.nodes[1].depends_on).toEqual(['input']);
+});
+
+test('partial observations from an older plan cannot change retained execution state', () => {
+  const previous = snapshot(4);
+  previous.parallel_runtime = { plan_version: 4, nodes: { input: { status: 'running' } } };
+  const partial = { scope: previous.scope, parallel_runtime: { plan_version: 3, nodes: {
+    input: {status: 'succeeded', job_ids: ['old-job']},
+  } } };
+  const retained = retainGraph(previous, partial).display_graph;
+  expect(retained.nodes[0].status).toBe('running');
+  expect(retained.nodes[0].job_ids).toBeUndefined();
+});

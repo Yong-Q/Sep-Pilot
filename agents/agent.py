@@ -10,11 +10,13 @@ This is the simplest, most composable pattern. No inheritance, no complex config
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 
 # Forward reference for type hints
 AgentFunc = Callable[..., Union[str, "Agent", dict, None]]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 @dataclass
@@ -35,6 +37,7 @@ class Agent:
     handoff_to: List[str] = field(default_factory=list)
     model: Optional[str] = None
     max_turns: int = 30
+    skill_files: List[str] = field(default_factory=list)
 
     def function_map(self) -> Dict[str, AgentFunc]:
         """Resolve exposed tools without silent last-writer-wins routing."""
@@ -48,9 +51,14 @@ class Agent:
     
     def get_instructions(self, context: Dict[str, Any] | None = None) -> str:
         """Resolve instructions (supports callable)."""
-        if callable(self.instructions):
-            return self.instructions(context or {})
-        return self.instructions
+        instructions = self.instructions(context or {}) if callable(self.instructions) else self.instructions
+        sections = [instructions]
+        for relative in self.skill_files:
+            path = (PROJECT_ROOT / relative).resolve()
+            if not path.is_relative_to(PROJECT_ROOT.resolve()):
+                raise ValueError("Role skill must be inside the project")
+            sections.append(path.read_text(encoding="utf-8"))
+        return "\n\n".join(sections)
 
 
 @dataclass

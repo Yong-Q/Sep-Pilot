@@ -11,8 +11,13 @@ from agents.config import AgentConfig
 from agents.defns import ORCHESTRATOR
 
 ROOT = Path(__file__).resolve().parents[1]
+requires_towhee_assets = pytest.mark.skipif(
+    not (ROOT / "forcefields/towhee/catalog.json").is_file(),
+    reason="Optional Towhee force-field assets are not installed in this source distribution",
+)
 
 
+@requires_towhee_assets
 def test_project_assets_match_imported_source_checksums():
     catalog = json.loads((ROOT/'forcefields/towhee/catalog.json').read_text())
     assert len(catalog['entries']) == 84
@@ -22,6 +27,7 @@ def test_project_assets_match_imported_source_checksums():
     assert (ROOT/'forcefields/towhee/UPSTREAM_LICENSE.gpl').is_file()
 
 
+@requires_towhee_assets
 def test_opls_is_a_family_with_four_distinct_local_variants():
     result = discover_forcefield(ROOT,'OPLS','lammps')
     assert result['selection_status']=='ambiguous_variant'
@@ -29,6 +35,7 @@ def test_opls_is_a_family_with_four_distinct_local_variants():
     assert all(not e['ready_to_submit'] and e['engine_status']=='conversion_not_implemented' for e in result['candidates'])
 
 
+@requires_towhee_assets
 @pytest.mark.parametrize('family', ['UFF','DREIDING','Amber','Charmm','COMPASS','TraPPE','TIP'])
 def test_discovery_is_not_an_opls_special_case(family):
     result = discover_forcefield(ROOT,family)
@@ -36,6 +43,7 @@ def test_discovery_is_not_an_opls_special_case(family):
     assert all(Path(e['asset_path']).is_relative_to(ROOT/'forcefields/towhee') for e in result['candidates'])
 
 
+@requires_towhee_assets
 def test_named_type_is_not_element_based_chemical_assignment():
     result = discover_forcefield(ROOT,'OPLS-aa','towhee',['CT','missing-mof-metal-type'])
     entry = result['candidates'][0]
@@ -44,6 +52,7 @@ def test_named_type_is_not_element_based_chemical_assignment():
     assert 'chemical' in discover_forcefield(ROOT,'OPLS-aa','towhee',['CT'])['candidates'][0]['coverage_status']
 
 
+@requires_towhee_assets
 def test_exact_atom_names_raw_units_and_base_charge_are_preserved():
     result = inspect_forcefield(ROOT,'OPLS-aa',['C k'],32)
     assert result['atom_types'] and result['missing_named_types']==[]
@@ -55,6 +64,7 @@ def test_exact_atom_names_raw_units_and_base_charge_are_preserved():
     assert not result['ready_to_submit']
 
 
+@requires_towhee_assets
 def test_catalog_assets_cannot_be_replaced_or_path_traversed(tmp_path):
     base=tmp_path/'forcefields/towhee/ForceFields';base.mkdir(parents=True)
     data=ROOT/'forcefields/towhee/ForceFields/towhee_ff_OPLS-aa'
@@ -82,6 +92,7 @@ def test_md_cannot_treat_towhee_opls_file_as_supported_native_opls_adapter():
     assert any('adapter' in issue for issue in issues)
 
 
+@requires_towhee_assets
 @pytest.mark.parametrize('query, potential, mixing', [
     ('COMPASSv1','9-6','Sixth Power'), ('OPLS-aa','Lennard-Jones','Geometric'),
     ('UFF','UFF 12-6','Geometric')])
@@ -91,6 +102,7 @@ def test_different_potentials_and_mixing_are_not_flattened_into_generic_lj(query
     assert candidate['engine_status']=='conversion_not_implemented' and not candidate['ready_to_submit']
 
 
+@requires_towhee_assets
 @pytest.mark.parametrize('name,version',[('ParkHijazi','14'),('Hoyt2003','5')])
 def test_legacy_formats_are_found_but_never_falsely_parsed(name,version):
     candidate=discover_forcefield(ROOT,name,'towhee')['candidates'][0]
@@ -100,6 +112,7 @@ def test_legacy_formats_are_found_but_never_falsely_parsed(name,version):
     assert result['ok'] and result['supported'] is False and result['terminal_capability_result'] and 'atom_types' not in result
 
 
+@requires_towhee_assets
 def test_fe_name_discovery_filters_without_guessing_or_assigning():
     result=inspect_forcefield(ROOT,'UFF',element='Fe')
     assert result['available_nonbonded_names']==['Fe3+2','Fe6+2']
@@ -107,6 +120,7 @@ def test_fe_name_discovery_filters_without_guessing_or_assigning():
     assert 'not_assigned' in result['typing_status'] and not result['ready_to_submit']
 
 
+@requires_towhee_assets
 def test_atom_type_pagination_is_complete_without_unbounded_page():
     values=[];offset=0
     while offset is not None:
@@ -117,12 +131,14 @@ def test_atom_type_pagination_is_complete_without_unbounded_page():
     assert len(values)==127 and len(set(values))==127
 
 
+@requires_towhee_assets
 def test_query_namespaces_do_not_treat_bond_name_as_nonbonded_name():
     result=inspect_forcefield(ROOT,'OPLS-aa',['C'],name_namespace='nonbonded')
     assert result['matched_count']==0
     assert inspect_forcefield(ROOT,'OPLS-aa',['C'],name_namespace='bonded')['matched_count']>0
 
 
+@requires_towhee_assets
 def test_charge_and_parsed_section_limits_are_explicit():
     result=inspect_forcefield(ROOT,'OPLS-aa',['C k'])
     metadata=result['metadata']
@@ -132,6 +148,7 @@ def test_charge_and_parsed_section_limits_are_explicit():
     assert 'not a benzene' in metadata['reviewed_knowledge']['atom_environments']['C k']
 
 
+@requires_towhee_assets
 def test_water_discovery_and_reviewed_tip4p_charges_geometry():
     names={c['name'] for c in discover_forcefield(ROOT,'water')['candidates']}
     assert {'TIP3P','TIP4P','TIP5P','SPC-E'} <= names
@@ -141,6 +158,7 @@ def test_water_discovery_and_reviewed_tip4p_charges_geometry():
     assert facts['geometry_in_original_file']['O-M_angstrom']==.15
 
 
+@requires_towhee_assets
 def test_framework_charge_policy_is_separate_from_guest_forcefield():
     metadata=inspect_forcefield(ROOT,'TIP4P')['metadata']
     assert 'not forcefield' in metadata['framework_charge_policy']['default_source']
@@ -162,16 +180,19 @@ def test_budget_exhaustion_is_not_api_outage_and_preserves_goal(tmp_path):
     assert checkpoints[-1][1]=='execution_budget_exhausted'
 
 
+@requires_towhee_assets
 def test_missing_family_does_not_fallback_to_opls_or_uff():
     result=discover_forcefield(ROOT,'SuperMOF-Quantum-9999','lammps')
     assert result['selection_status']=='not_found' and result['candidates']==[]
 
 
+@requires_towhee_assets
 def test_all_target_engines_keep_unassigned_assets_not_ready():
     for engine in ('towhee','raspa','lammps','cdft'):
         assert not discover_forcefield(ROOT,'TIP4P',engine)['candidates'][0]['ready_to_submit']
 
 
+@requires_towhee_assets
 def test_name_spaces_and_case_are_scientific_evidence_not_fuzzy_element_matching():
     found=inspect_forcefield(ROOT,'OPLS-aa',['C k'])
     missing=inspect_forcefield(ROOT,'OPLS-aa',['ck'])

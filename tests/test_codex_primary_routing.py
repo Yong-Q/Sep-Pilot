@@ -15,6 +15,22 @@ def test_private_settings_can_select_codex_as_primary_model(tmp_path):
     assert config.force_model_override
 
 
+def test_provider_override_is_normalized_before_role_models_are_selected(tmp_path):
+    (tmp_path / "settings.json").write_text(json.dumps({"env": {"ANTHROPIC_MODEL": "old-api-model"}}))
+    config = AgentConfig.from_env_dir(tmp_path, model_provider="codex_cli")
+    assert config.model == "gpt-6-sol"
+    assert config.orchestrator_model == config.specialist_model == "gpt-6-sol"
+    assert config.force_model_override
+
+
+def test_environment_only_provider_override_is_normalized(tmp_path, monkeypatch):
+    import agents.config
+    monkeypatch.setattr(agents.config, "ENV_DIR", tmp_path)
+    monkeypatch.setenv("ANTHROPIC_MODEL", "old-api-model")
+    config = AgentConfig.from_env(model_provider="codex_cli")
+    assert config.model == config.orchestrator_model == config.specialist_model == "gpt-6-sol"
+
+
 def test_session_routes_primary_turn_through_codex_provider(tmp_path, monkeypatch):
     from agents import codex_provider
     seen = {}

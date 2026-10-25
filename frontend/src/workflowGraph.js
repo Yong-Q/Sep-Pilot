@@ -42,7 +42,20 @@ export function retainGraph(previous, next) {
       new Set((oldGraph.nodes || []).map(node => node.step_id)).size;
   const keep = complete(oldGraph) && (!complete(newGraph) || partialSameVersion || (!oldDraft && newDraft) ||
     oldDraft === newDraft && Number(newGraph.version || 0) < Number(oldGraph.version || 0));
-  return { ...next, display_graph: keep ? { ...oldGraph, retained: true } : newGraph };
+  if (!keep) return { ...next, display_graph: newGraph };
+  // An incomplete poll must not erase topology or freeze execution facts.
+  // Only merge observations from the same committed plan; dependencies remain
+  // those of the last complete topology until a full replacement arrives.
+  const matchingRuntime = Number(next.parallel_runtime?.plan_version || 0) === Number(oldGraph.version || 0)
+    ? next.parallel_runtime?.nodes || {} : {};
+  const matchingProjection = Number(next.graph_projection?.version || 0) === Number(oldGraph.version || 0)
+    && next.graph_projection?.source === oldGraph.source
+    ? Object.fromEntries((next.graph_projection?.nodes || []).map(node => [node.step_id, node])) : {};
+  return { ...next, display_graph: { ...oldGraph, retained: true, nodes: oldGraph.nodes.map(node => ({
+    ...node, ...(matchingProjection[node.step_id] || {}), ...(matchingRuntime[node.step_id] || {}),
+    step_id: node.step_id, depends_on: node.depends_on || node.contract?.depends_on || [],
+  })) } };
+
 }
 
 export function graphViewportKey(workflow = {}, graph = selectGraph(workflow)) {

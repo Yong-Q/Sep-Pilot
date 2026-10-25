@@ -25,6 +25,11 @@ class GuestForcefieldWorkflowTest(unittest.TestCase):
         finally:
             spec_path.unlink(missing_ok=True)
 
+    @unittest.skipUnless(
+        (FIXTURE_ROOT / '1-octanol.mol').is_file()
+        and (PROJECT_ROOT / 'new_skill_test/molecule_forcefield_pipeline/scripts/build_guest_forcefield.py').is_file(),
+        'Optional guest force-field fixture and pipeline installation are required',
+    )
     def test_alias_build_executes_through_formal_workflow(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = Path(tmpdir) / "octanol"
@@ -47,6 +52,10 @@ class GuestForcefieldWorkflowTest(unittest.TestCase):
             self.assertEqual(payload["status"], "completed")
             self.assertTrue((output_dir / "package" / "guest.json").exists())
 
+    @unittest.skipUnless(
+        (PROJECT_ROOT / 'new_skill_test/molecule_forcefield_pipeline/scripts/write_raspa_case_files.py').is_file(),
+        'Optional guest force-field pipeline installation is required',
+    )
     def test_case_action_writes_mix_and_wrapper(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = Path(tmpdir) / "case"

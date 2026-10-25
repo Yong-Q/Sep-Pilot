@@ -274,8 +274,8 @@ function TaskPanel({ tasks, activeConvId }) {
 const NODE_STATUS = {
   draft: ['方案草案', '○'],
   completed: ['已完成', '✓'], succeeded: ['已完成', '✓'], prefinish: ['结果检查中', '◐'],
-  failed: ['需要处理', '!'], running: ['正在执行', '▶'], submitted: ['计算进行中', '▶'],
-  pending: ['等待前一步', '○'], waiting_jobs: ['作业执行中', '◌'], waiting_prerequisite: ['等待依赖', '○'],
+  failed: ['需要处理', '!'], validation_failed: ['验收未通过', '!'], running: ['正在执行', '▶'], submitted: ['计算进行中', '▶'],
+  pending: ['等待调度', '○'], waiting_jobs: ['作业执行中', '◌'], waiting_prerequisite: ['等待依赖', '○'],
   needs_resources: ['准备计算资源', '◌'], uncertain: ['状态待核对', '?'], cancelled: ['已取消', '⊘'],
 };
 
@@ -397,12 +397,12 @@ function graphGeometry(levels) {
 const DAG_COLORS = {
   running: '#22d3ee', submitted: '#22d3ee', waiting_jobs: '#22d3ee',
   prefinish: '#f59e0b', completed: '#22c55e', succeeded: '#22c55e',
-  failed: '#ef4444', cancelled: '#71717a', uncertain: '#eab308',
+  failed: '#ef4444', validation_failed: '#ef4444', cancelled: '#71717a', uncertain: '#eab308',
   needs_resources: '#eab308', planning: '#a78bfa', planning_queued: '#a78bfa',
   paused: '#f59e0b', pending: '#64748b',
 };
 
-function StaticWorkflowGraph({ nodes, graph, selectedStepId, onSelect }) {
+function StaticWorkflowGraph({ nodes, graph, selectedStepId, onSelect, scale }) {
   const colorFor = status => DAG_COLORS[status] || '#64748b';
   const short = (value, size) => String(value || '').length > size
     ? String(value).slice(0, size - 1) + '…' : String(value || '');
@@ -414,8 +414,8 @@ function StaticWorkflowGraph({ nodes, graph, selectedStepId, onSelect }) {
       x1: from.x + graph.nodeWidth, y1: from.y + graph.nodeHeight / 2,
       x2: to.x, y2: to.y + graph.nodeHeight / 2 };
   }).filter(Boolean));
-  return <svg className="stable-dag-svg" viewBox={`0 0 ${graph.width} ${graph.height}`}
-              preserveAspectRatio="xMidYMid meet" role="img" aria-label="持久化有向编排图">
+  return <svg className="stable-dag-svg" style={scale === null ? undefined : { width: graph.width * scale, height: graph.height * scale }} viewBox={`0 0 ${graph.width} ${graph.height}`}
+              preserveAspectRatio="xMidYMid meet" role="group" aria-label="持久化有向编排图">
     <defs>{Object.entries(DAG_COLORS).map(([status, color]) =>
       <marker key={status} id={'dag-arrow-' + status} markerWidth="8" markerHeight="8"
               refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
@@ -434,9 +434,13 @@ function StaticWorkflowGraph({ nodes, graph, selectedStepId, onSelect }) {
       const selected = selectedStepId === node.step_id;
       const meta = NODE_STATUS[status] || [status, '○'];
       return <g key={node.step_id} className="stable-dag-node" tabIndex="0" role="button"
+                aria-label={`${nodeLabel(node)}：${meta[0]}`} aria-pressed={selected}
                 transform={`translate(${position.x} ${position.y})`}
                 onClick={() => onSelect(node.step_id)} onKeyDown={event => {
-                  if (event.key === 'Enter' || event.key === ' ') onSelect(node.step_id);
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelect(node.step_id);
+                  }
                 }}>
         <title>{`${nodeLabel(node)}\n状态: ${status}\n依赖: ${nodeDependencies(node).join(', ') || '无'}`}</title>
         <rect width={graph.nodeWidth} height={graph.nodeHeight} rx="8"
@@ -469,9 +473,14 @@ function nodeElapsed(node) {
   return fmtElapsed(Math.max(0, end - start));
 }
 
-function OperationsDrawer({ workflow, partial, processing }) {
-  const [open, setOpen] = useState(() => localStorage.getItem('runtime_drawer_open') !== '0');
+export function OperationsDrawer({ workflow, partial, processing }) {
+  const [open, setOpen] = useState(() => {
+    const saved = localStorage.getItem('runtime_drawer_open');
+    return saved === null ? !window.matchMedia?.('(max-width: 1180px)').matches : saved !== '0';
+  });
+  const drawerToggleRef = useRef(null);
   const [selectedStepId, setSelectedStepId] = useState('');
+  const [graphScale, setGraphScale] = useState(null);
   useEffect(() => { localStorage.setItem('runtime_drawer_open', open ? '1' : '0'); }, [open]);
   workflow = workflow || {};
   const goal = workflow.goal_contract || {};
@@ -498,13 +507,14 @@ function OperationsDrawer({ workflow, partial, processing }) {
   const displayGraph = workflow.display_graph || selectGraph(workflow);
   const nodes = displayGraph.nodes || [];
   const viewportIdentity = graphViewportKey(workflow, displayGraph);
+  useEffect(() => { setGraphScale(null); }, [viewportIdentity]);
   const unstructuredHistoryCount = nodes.length ? 0 : steps.length;
   const graph = useMemo(() => graphGeometry(workflowLevels(nodes)), [viewportIdentity]);
   const activeStates = new Set(['running', 'submitted', 'waiting_jobs', 'waiting_prerequisite', 'uncertain', 'prefinish', 'needs_resources']);
   const activeNodes = nodes.filter(n => activeStates.has(nodeStatus(n)));
   const progressingNodes = nodes.filter(n => ['running', 'submitted', 'waiting_jobs', 'prefinish'].includes(nodeStatus(n)));
   const completedNodes = nodes.filter(n => ['completed', 'succeeded'].includes(nodeStatus(n))).length;
-  const failedNodes = nodes.filter(n => nodeStatus(n) === 'failed').length;
+  const failedNodes = nodes.filter(n => ['failed', 'validation_failed'].includes(nodeStatus(n))).length;
   const activeOwners = [...new Set(progressingNodes.map(node =>
     agentDisplayName(node.agent || node.contract?.agent || '待分配')))].filter(Boolean);
   const operations = (workflow.recent_operations || []).slice(-10).reverse();
@@ -530,7 +540,17 @@ function OperationsDrawer({ workflow, partial, processing }) {
   const liveAgentId = activity.agent || activeNodes[0]?.agent || activeNodes[0]?.contract?.agent
     || partial?.current_agent || 'lead-orchestrator';
   const liveAgent = agentDisplayName(liveAgentId);
-  const liveStatus = activity.status || (processing ? '正在执行' : '待命');
+  const userDecisionPending = Boolean(workflow.awaiting_plan_approval || patch
+    || (activity.waiting_for && activity.waiting_for !== 'lifecycle_wait'));
+  const runtimeState = workflow.parallel_runtime || {};
+  // `needs_user` is a legacy runtime bucket also used for technical failures.
+  // Only the pending-decision contract can establish a request for user input.
+  const technicalWait = runtimeState.status === 'needs_user' && !userDecisionPending
+    && (!activity.status || ['needs_user', '等待用户协商编排'].includes(activity.status));
+  const liveStatus = runtimeState.user_paused || runtimeState.pause_kind === 'user_change'
+    ? '已按用户要求暂停'
+    : technicalWait ? (processing ? '智能体正在诊断执行异常' : '执行异常 · 等待智能体诊断')
+      : activity.status || (userDecisionPending ? '等待用户确认' : processing ? '正在执行' : '待命');
   useEffect(() => {
     if (!nodes.some(node => node.step_id === selectedStepId)) {
       const preferred = activeNodes[0] || nodes[0];
@@ -542,23 +562,35 @@ function OperationsDrawer({ workflow, partial, processing }) {
   const selectedMeta = NODE_STATUS[selectedStatus] || [selectedStatus, '○'];
   const selectedBranches = selectedNode ? branches.filter(branch =>
     [branch.failed_step, branch.step_id, branch.node_id].includes(selectedNode.step_id)) : [];
-  const selectedRecoveries = selectedNode ? recoveries.filter(item =>
-    [item.step_id, item.node_id, item.task_id].includes(selectedNode.step_id)
-    || (item.tool && item.tool === (selectedNode.tool || selectedNode.contract?.tool))) : [];
+  const selectedRecoveries = selectedNode ? recoveries.filter(item => {
+    const owner = item.step_id || item.node_id;
+    if (owner) return owner === selectedNode.step_id;
+    if (item.task_id) return item.task_id === selectedNode.step_id
+      || nodeTasks(selectedNode).some(task => task.task_id === item.task_id);
+    // Legacy tool-only records are safe to attribute only when unambiguous.
+    const matchingNodes = nodes.filter(node => item.tool && item.tool === (node.tool || node.contract?.tool));
+    return matchingNodes.length === 1 && matchingNodes[0].step_id === selectedNode.step_id;
+  }) : [];
   const selectedArgs = selectedNode?.arguments || selectedNode?.contract?.arguments || {};
   const selectedPaths = selectedNode?.path_manifest || {};
   const selectedTasks = selectedNode ? nodeTasks(selectedNode) : [];
   const graphHeight = Math.min(510, Math.max(250, graph.height + 42));
 
   return (
-    <aside className={'runtime-drawer' + (open ? ' runtime-drawer-open' : ' runtime-drawer-closed')} aria-label="智能体运行面板">
-      <button className="runtime-drawer-toggle" onClick={() => setOpen(v => !v)}
+    <aside className={'runtime-drawer' + (open ? ' runtime-drawer-open' : ' runtime-drawer-closed')} aria-label="智能体运行面板"
+      onKeyDown={event => {
+        if (event.key === 'Escape' && open) {
+          event.preventDefault(); setOpen(false); drawerToggleRef.current?.focus();
+        }
+      }}>
+      <button ref={drawerToggleRef} className="runtime-drawer-toggle" aria-expanded={open}
+              aria-controls="runtime-drawer-content" onClick={() => setOpen(v => !v)}
               title={open ? '收起运行面板' : '展开运行面板'}>
         <span className={'runtime-live-dot' + (processing ? ' is-live' : '')} />
         {open ? <React.Fragment><span>运行面板</span><span className="runtime-chevron">›</span></React.Fragment> : <span className="runtime-vertical-label">运行</span>}
       </button>
       {open && (
-        <div className="runtime-drawer-body">
+        <div id="runtime-drawer-content" className="runtime-drawer-body">
           <section className="runtime-hero">
             <div className="runtime-eyebrow">当前活动</div>
             <div className="runtime-current-activity">
@@ -625,13 +657,21 @@ function OperationsDrawer({ workflow, partial, processing }) {
               <span className="is-running">● 执行中</span><span className="is-prefinish">◐ 验收中</span>
               <span className="is-success">● 成功</span><span className="is-failed">● 异常</span>
             </div>
-            <div className="runtime-graph-viewport" style={nodes.length ? { height: graphHeight } : undefined}>
+            {nodes.length > 0 && <div className="runtime-graph-controls" role="group" aria-label="编排图缩放">
+              <button type="button" aria-label="缩小编排图" disabled={graphScale !== null && graphScale <= .5}
+                onClick={() => setGraphScale(value => Math.max(.5, (value ?? 1) - .25))}>−</button>
+              <span aria-live="polite">{graphScale === null ? '适应面板' : `${Math.round(graphScale * 100)}%`}</span>
+              <button type="button" aria-label="放大编排图" disabled={graphScale >= 2}
+                onClick={() => setGraphScale(value => Math.min(2, value === null ? 1 : value + .25))}>+</button>
+              <button type="button" aria-label="适应面板" onClick={() => setGraphScale(null)}>适应面板</button>
+            </div>}
+            <div className={'runtime-graph-viewport' + (graphScale !== null ? ' is-zoomed' : '')} style={nodes.length ? { height: graphHeight } : undefined}>
               {nodes.length === 0 && <div className="runtime-empty runtime-graph-empty">
                 <b>尚未形成结构化 DAG</b>
                 <span>{unstructuredHistoryCount ? `检测到 ${unstructuredHistoryCount} 条历史 tool 记录，已避免把它们误画成编排节点。` : '编排批准后会在这里显示有向节点、分支与汇合。'}</span>
               </div>}
               {nodes.length > 0 && <StaticWorkflowGraph nodes={nodes} graph={graph}
-                selectedStepId={selectedStepId} onSelect={setSelectedStepId} />}
+                selectedStepId={selectedStepId} onSelect={setSelectedStepId} scale={graphScale} />}
             </div>
             {selectedNode && <div className={'runtime-node-inspector status-' + selectedStatus}>
               <div className="runtime-inspector-head">
@@ -1322,7 +1362,7 @@ export default function App() {
                 <h2>BiMemAgent</h2>
                 <p>MOF膜吸附研究 · AI科研助手</p>
                 <div className="capabilities">
-                  {['MOF气体吸附等温线', 'GCMC分子模拟', 'cDFT密度泛函', 'VASP DFT优化', 'PORE结构分析', 'IAST膜分离预测'].map(c => (
+                  {['MOF气体吸附等温线', 'GCMC分子模拟', 'cDFT经典吸附计算', 'VASP DFT优化', 'PORE结构分析', 'IAST混合气吸附选择性'].map(c => (
                     <div className="cap-item" key={c} onClick={() => setInput('请帮我做' + c + '分析')}>{c}</div>
                   ))}
                 </div>

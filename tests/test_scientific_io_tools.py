@@ -1,10 +1,12 @@
 import csv
 import hashlib
 import inspect
+import importlib.util
 import math
 import socket
 from pathlib import Path
 from types import SimpleNamespace
+import pytest
 
 from agents import registry
 from agents.defns import ADSORPTION, ANALYST, COMMUNICATOR
@@ -82,6 +84,8 @@ def test_ml_train_fails_closed_without_real_labelled_csv(tmp_path, monkeypatch):
     assert not (root / "ml" / "model" / "model.joblib").exists()
 
 
+@pytest.mark.skipif(importlib.util.find_spec('tools.mof_features') is None,
+                    reason='Optional scientific CIF feature extractor is not installed')
 def test_batch_feature_extraction_is_structured_atomic_and_session_scoped(tmp_path, monkeypatch):
     root = _scope(tmp_path, monkeypatch)
     source = tmp_path / "cifs"
@@ -131,6 +135,8 @@ def test_framework_md_cannot_be_misrepresented_as_guest_diffusion():
     assert any("unknown" in issue and "gas" in issue for issue in issues)
 
 
+@pytest.mark.skipif(importlib.util.find_spec('tools.mof_features') is None,
+                    reason='Optional scientific CIF feature extractor is not installed')
 def test_ml_real_training_prediction_and_rf_uncertainty_are_reproducible(tmp_path, monkeypatch):
     root = _scope(tmp_path, monkeypatch)
     data = tmp_path / "real_labels.csv"

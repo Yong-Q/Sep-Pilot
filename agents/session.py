@@ -1529,7 +1529,8 @@ class Session:
             decision.update(next_action='ask_user', reason='主chat需要处理已持久化的用户确认，监督不得用等待作业替代协商。', audited=True)
         elif action == 'ask_user' and not requires_user and event.get('kind') in {
                 'tool_failed', 'tool_outcome', 'reflection_stalled',
-                'workflow_activation_blocked', 'plan_patch_proposed'}:
+                'workflow_activation_blocked', 'plan_patch_proposed',
+                'worker_failed', 'worker_validation_failed', 'worker_recovery_ready'}:
             decision.update(
                 next_action='diagnose_and_fix', audited=True,
                 reason=(
@@ -3729,9 +3730,10 @@ class Session:
             except LLMUnavailableError as _llm_e:
                 self._api_failures += 1
                 if self._api_failures >= 3:
-                    self.task_complete = True
+                    self.task_complete = False
                     self.last_text = (f"⚠️ LLM API 连续失败 {self._api_failures} 次，无法继续执行。"
-                                      f"最后错误：{_llm_e}。请稍后重试。")
+                                      f"最后错误：{_llm_e}。任务尚未完成，原目标与执行记录已保存。")
+                    self._checkpoint('provider_unavailable')
                     print(f"  ⛔ {self.last_text}", flush=True)
                     return self.last_text
                 notice = (f"[系统] ⚠️ LLM API 调用失败（第 {self._api_failures} 次）：{_llm_e}。"

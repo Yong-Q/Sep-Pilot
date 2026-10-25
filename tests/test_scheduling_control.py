@@ -1,5 +1,6 @@
 import copy
 import json
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -60,6 +61,8 @@ def test_queued_retarget_preserves_job_cpu_memory_and_uses_control_not_shell(tmp
 def test_generation_scheduler_fields_reach_submission_not_just_description(tmp_path,monkeypatch):
     from agents.registry import _exec_structure_gen
     captured=[]
+    monkeypatch.setattr('agents.registry.get_config', lambda: SimpleNamespace(
+        project_root=tmp_path, pormake_python=sys.executable))
     monkeypatch.setattr('agents.registry.slurm.submit_and_return',lambda **kwargs:captured.append(kwargs) or {'submitted':False})
     _exec_structure_gen({'material_type':'MOF','n_structures':2,'output_dir':str(tmp_path),'partition':'bigcpu','nodelist':'node07','memory_mb':4096,'cpus_per_task':2,'walltime':'00:05:00'})
     assert captured and captured[0]['partition']=='bigcpu' and captured[0]['nodelist']=='node07'

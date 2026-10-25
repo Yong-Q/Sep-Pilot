@@ -1,6 +1,7 @@
 """Regression coverage for evaluator4 goal drift and durable memory."""
 from pathlib import Path
 import json
+import sys
 
 from agents.config import AgentConfig
 from agents.defns import ORCHESTRATOR
@@ -273,6 +274,9 @@ def test_structure_generator_uses_local_topology_aware_script(tmp_path: Path, mo
         return {"submitted": False, "work_dir": kwargs["work_dir"]}
 
     monkeypatch.setattr(registry_module.slurm, "submit_and_return", fake_submit)
+    config = AgentConfig(api_key='test', project_root=tmp_path,
+                         _tools_config={'pormake': {'python': sys.executable}})
+    monkeypatch.setattr(registry_module, 'get_config', lambda: config)
     result = registry_module._exec_structure_gen({
         "material_type": "u-HOF",
         "n_structures": 42,
@@ -280,10 +284,11 @@ def test_structure_generator_uses_local_topology_aware_script(tmp_path: Path, mo
         "topologies": ["utk", "hxg", "bto", "cds", "cdt", "srs", "eta"],
         "structures_per_topology": 6,
         "output_dir": str(tmp_path / "structures"),
+        "nodelist": "test-node", "partition": "test-partition", "memory_mb": 1024,
     })
     command = captured["command"]
     assert "pormake_generate_topo.py" in command
-    assert "/home/user/.conda/envs/pormake/bin/python" in command
+    assert sys.executable in command
     assert "conda activate" not in command
     for topology in ("utk", "hxg", "bto", "cds", "cdt", "srs", "eta"):
         assert f"--topo {topology}" in command
@@ -295,11 +300,17 @@ def test_structure_generator_uses_local_topology_aware_script(tmp_path: Path, mo
     assert result["size_class"] == "all"
 
 
-def test_agent_config_loads_workspace_tool_paths():
-    config = AgentConfig(api_key="unit-test")
-    assert config.conda_path == "/opt/conda/miniconda/3-python3.9.13/etc/profile.d/conda.sh"
-    assert config.pormake_python == "/home/user/.conda/envs/pormake/bin/python"
-    assert config.raspa_path == "/home/user/RASPA2/simulations"
+def test_agent_config_loads_workspace_tool_paths(tmp_path):
+    (tmp_path / 'env').mkdir()
+    (tmp_path / 'env/tools.json').write_text(json.dumps({
+        'conda': {'path': '/opt/test-conda/conda.sh'},
+        'pormake': {'python': '/opt/test-pormake/bin/python'},
+        'raspa': {'path': '/opt/test-raspa'},
+    }))
+    config = AgentConfig(api_key="unit-test", project_root=tmp_path)
+    assert config.conda_path == '/opt/test-conda/conda.sh'
+    assert config.pormake_python == '/opt/test-pormake/bin/python'
+    assert config.raspa_path == '/opt/test-raspa'
 
 
 def test_live_registry_has_no_retired_conda_initialization_path():
