@@ -183,8 +183,9 @@ class ToolRegistry:
             if value is not None and value < 0:
                 issues.append(f"{key} cannot be negative")
         p0, p1 = _num("pressure_start"), _num("pressure_end")
-        if p0 is not None and p1 is not None and p0 >= p1:
-            issues.append("pressure_start must be lower than pressure_end")
+        if p0 is not None and p1 is not None and (
+                p0 > p1 or p0 == p1 and params.get('n_pressure_points', 10) != 1):
+            issues.append("pressure_start must be lower than pressure_end unless n_pressure_points is 1")
         cycles = params.get("cycles")
         if cycles is not None:
             try:

@@ -193,6 +193,17 @@ def test_registry_rejects_unscientific_parameters_before_executor():
     assert any("pressure_start" in issue for issue in issues)
 
 
+def test_gcmc_single_point_allows_equal_pressure_bounds_only_for_one_point():
+    registry = get_registry()
+    parameters = {'cif': 'MOF-5.cif', 'gas': 'CH4', 'temperature': 298,
+                  'pressure_start': 1, 'pressure_end': 1, 'n_pressure_points': 1}
+    assert not registry.validate_params('run_gcmc_isotherm', parameters)
+    for points in (2, 10):
+        issues = registry.validate_params('run_gcmc_isotherm', dict(parameters, n_pressure_points=points))
+        assert any('pressure_start' in issue for issue in issues)
+    assert registry.validate_params('run_gcmc_isotherm', dict(parameters, pressure_start=2))
+
+
 def test_gcmc_schema_separates_electrostatics_from_charge_assignment():
     registry = get_registry()
     schema = registry.get("run_gcmc_isotherm").input_schema

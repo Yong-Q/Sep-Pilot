@@ -132,14 +132,18 @@ def collect_results(work_dir, gases, output_csv=None):
 
         adsorption, total = parse_output_dat(str(out_path))
         henry             = parse_hr_dat(str(hr_path))
+        # DM_cdft can number output.dat components from 1, while hr.dat
+        # remains zero-based. Shift only a complete unambiguous sequence;
+        # incomplete mixtures must not silently change component identity.
+        density_offset = 1 if set(adsorption) == set(range(1, n_gases + 1)) else 0
 
         row = {'MOF': mof_name}
 
         for i in range(n_gases):
-            row[header[1 + i]] = adsorption.get(i, {}).get('density', '')
+            row[header[1 + i]] = adsorption.get(i + density_offset, {}).get('density', '')
 
         for i in range(n_gases):
-            row[header[1 + n_gases + i]] = adsorption.get(i, {}).get('percentage', '')
+            row[header[1 + n_gases + i]] = adsorption.get(i + density_offset, {}).get('percentage', '')
 
         row['total_density_molec_A3'] = total if total is not None else ''
 

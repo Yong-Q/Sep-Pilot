@@ -176,6 +176,30 @@ def _parse_cif_tokens(lines):
     return lxa, lyb, lzc, alpha, beta, gamma, aid, atom_data
 
 
+def _cif_dataset(source):
+    """Select an explicit CIF or bounded directory while preserving identities."""
+    from itertools import islice
+    from pathlib import Path
+    source = Path(source).resolve()
+    if source.is_file():
+        if source.suffix != '.cif':
+            raise ValueError('cDFT input file must have a .cif extension')
+        dataset_root, dataset = source.parent, [source]
+    else:
+        dataset_root = source
+        dataset = sorted(islice(dataset_root.rglob('*.cif'), 10001))
+    if len(dataset) > 10000:
+        raise ValueError('CIF dataset exceeds bounded input audit')
+    stems = set()
+    for path in dataset:
+        if not path.resolve().is_relative_to(dataset_root):
+            raise ValueError('CIF dataset symlink escapes input root')
+        if path.stem in stems:
+            raise ValueError('duplicate CIF basename would overwrite a native input; normalize dataset identities first')
+        stems.add(path.stem)
+    return dataset
+
+
 def generate_cdft_inputs(
     cif_dir,
     gases,
@@ -235,15 +259,7 @@ def generate_cdft_inputs(
     os.makedirs(output_dir, exist_ok=True)
     generated_files = []
 
-    from pathlib import Path
-    dataset_root=Path(cif_dir).resolve()
-    dataset=sorted(dataset_root.rglob('*.cif'))
-    if len(dataset)>10000:raise ValueError('CIF dataset exceeds bounded input audit')
-    stems=set()
-    for path in dataset:
-        if not path.resolve().is_relative_to(dataset_root):raise ValueError('CIF dataset symlink escapes input root')
-        if path.stem in stems:raise ValueError('duplicate CIF basename would overwrite a native input; normalize dataset identities first')
-        stems.add(path.stem)
+    dataset = _cif_dataset(cif_dir)
     for entry in dataset:
         if not (entry.is_file() and entry.name.endswith('.cif')):
             continue
