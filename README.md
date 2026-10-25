@@ -6,10 +6,10 @@
 
 From a scientific question to an executable workflow, live progress, and traceable results — in one workspace.
 
-[![Release](https://img.shields.io/badge/release-v3.4.76-6C63FF?style=for-the-badge)](https://github.com/Yong-Q/Sep-Pilot/releases/tag/v3.4.76)
+[![Release](https://img.shields.io/badge/release-v3.4.77-6C63FF?style=for-the-badge)](https://github.com/Yong-Q/Sep-Pilot/releases/tag/v3.4.77)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Research](https://img.shields.io/badge/use-research_only-00A98F?style=for-the-badge)](#license)
-[![Tests](https://img.shields.io/badge/tests-529_passed-2EA44F?style=for-the-badge)](#quality)
+[![Tests](https://img.shields.io/badge/tests-647_passed-2EA44F?style=for-the-badge)](#quality)
 
 **[Features](#features) · [Scientific workflows](#scientific-workflows) · [Changelog](CHANGELOG.md) · [Quick start](#quick-start) · [License](#license)**
 
@@ -18,6 +18,30 @@ From a scientific question to an executable workflow, live progress, and traceab
 ---
 
 Sep-Pilot helps researchers plan, launch, follow, and review computational materials workflows through a conversational interface. Describe the research objective and the system turns it into a visible task graph, coordinates the required scientific programs, and keeps every result connected to its source.
+
+![SEP-Pilot agent collaboration architecture](docs/architecture-overview.png)
+
+## How the agents collaborate
+
+Sep-Pilot separates research decisions, workflow execution, and evidence review. The lead orchestrator turns the user's objective into a versioned goal contract and a structured DAG. Every node records its agent, tool, arguments, dependencies, expected outputs, and resource locks before it can run.
+
+| Role | Responsibility | Authority boundary |
+|---|---|---|
+| **Lead orchestrator** | Clarifies the objective, proposes the plan, routes work, and reviews evidence. | May coordinate registered tools through the workflow runtime; does not bypass the task graph. |
+| **Adsorption specialists** | GCMC, Henry, framework MD, pore analysis, and String/TST workflows. | Produce domain outputs and evidence for their assigned nodes. |
+| **Analyst specialists** | Classical cDFT, charges, binding energy, VASP, feature extraction, and ML preparation. | Consume declared inputs and publish structured results. |
+| **Harness maintainer** | Creates inputs, checks structures and environments, and prepares scheduler jobs. | Owns setup and job plumbing, not scientific conclusions. |
+| **Communicator** | Searches source-linked literature and assembles evidence-backed reports. | Keeps literature leads separate from calculation results. |
+| **Monitor and supervisor** | Observe resources, scheduler state, lifecycle, and evidence completeness. | Read-only: they never submit, cancel, or mutate scientific jobs. |
+| **Patcher** | Repairs framework code and runs focused checks after a diagnosed failure. | Cannot launch user calculations or alter user result files. |
+
+The durable workflow store keeps goal versions, leases, attempts, scheduler receipts, artifacts, and evidence history. Independent branches can run in parallel while leases prevent conflicting writes. A `prefinish` result means that a tool returned and still needs evidence validation; only the current node and attempt can complete the workflow. Recoverable failures are diagnosed and repaired, while completed branches and their receipts remain available after an interruption.
+
+Scientific programs stay outside the release. Deployment-specific paths are supplied through `config/runtime.json` or `BIMEM_RUNTIME_CONFIG`, so users can point MD and String workflows at their own LAMMPS, MPI, and String installations. The public source does not include scientific binaries, accounts, API keys, or private scheduler settings.
+
+### 中文说明
+
+主智能体负责澄清目标、生成并审核任务图；专业智能体分别处理吸附、MD、cDFT、结构和分析任务。所有任务都经过统一工作流运行时调度，节点带有依赖、资源锁、尝试记录、作业回执和证据。Monitor 与 Supervisor 只读监控，Patcher 只修复框架代码，不会替用户提交或修改科学计算。独立分支可以并行执行，中断后依靠持久化检查点继续，已完成结果不会被覆盖。
 
 ## Features
 
@@ -128,7 +152,7 @@ libraries, set `software.lammps_library_path`; existing library search paths are
 preserved. Configuration changes apply to the next submission, and the selected
 programs must also be accessible on compute nodes.
 
-Release `v3.4.76` passed 172 workflow backend checks, 12 frontend checks, production build validation, and a sanitized-export privacy scan.
+Release `v3.4.77` was validated with 647 backend tests passing, 31 optional integration tests skipped when site software was unavailable, frontend checks, production build validation, real MD/String smoke jobs, and a sanitized-export privacy scan.
 
 Run backend checks with `python -m pytest tests -q`. Scientific integration checks that need the optional Towhee assets, guest force-field pipeline, RASPA binary, or CIF feature extractor are skipped when those dependencies are absent. Core configuration and scheduler command tests use isolated fixtures and do not require private site settings. A passing core suite does not validate calculations from unavailable scientific installations.
 
