@@ -1360,7 +1360,8 @@ export default function App() {
             {messages.length === 0 && !processing && (
               <div className="welcome">
                 <h2>BiMemAgent</h2>
-                <p>MOF膜吸附研究 · AI科研助手</p>
+                <p>我是 SEP-Pilot 的主智能体，负责把材料科学问题拆成可审计的任务图，并协调 GCMC、MD、String、cDFT、结构与分析工具。</p>
+                <p>MOF 膜吸附研究 · AI 科研助手</p>
                 <div className="capabilities">
                   {['MOF气体吸附等温线', 'GCMC分子模拟', 'cDFT经典吸附计算', 'VASP DFT优化', 'PORE结构分析', 'IAST混合气吸附选择性'].map(c => (
                     <div className="cap-item" key={c} onClick={() => setInput('请帮我做' + c + '分析')}>{c}</div>
