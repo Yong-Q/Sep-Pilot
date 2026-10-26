@@ -3333,6 +3333,9 @@ class Session:
         # tool_use.
         trimmed = self._pair_trimmed_blocks(trimmed)
 
+        from .model_context import compact_state_snapshots
+        trimmed, history_compaction = compact_state_snapshots(self._json_safe(trimmed), evidence_root=self._evidence_root)
+
         kwargs: Dict[str, Any] = {
             "model": model,
             "max_tokens": self.config.max_tokens,
@@ -3431,6 +3434,7 @@ class Session:
                           'elapsed_seconds': elapsed, 'succeeded': succeeded,
                           'input_characters': len(json.dumps(kwargs, ensure_ascii=False, default=str)),
                           'tool_count': len(kwargs.get('tools', []))}
+                metric['history_compaction'] = history_compaction
                 metrics = self.context.setdefault('model_call_metrics', [])
                 metrics.append(metric)
                 del metrics[:-100]
