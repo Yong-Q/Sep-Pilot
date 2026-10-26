@@ -159,6 +159,18 @@ def test_parallel_report_keeps_single_source_contract_compatible(tmp_path):
     assert expand_parallel_report_nodes(changes, tmp_path / 'session') == changes
 
 
+def test_report_compilation_is_idempotent_when_replaying_saved_patch(tmp_path):
+    root = tmp_path / 'session'
+    changes = [{'operation': 'upsert', 'step_id': 'final', 'node': node(
+        'final', 'generate_scientific_report', {
+            'source_steps': ['simulation', 'analysis'],
+            'output_path': str(root / 'report.md'), 'title': 'Results',
+        }, depends_on=['simulation', 'analysis'], outputs=[str(root / 'report.md')])}]
+    compiled = expand_parallel_report_nodes(changes, root)
+
+    assert expand_parallel_report_nodes(compiled, root) == compiled
+
+
 def test_parallel_report_patch_adds_ml_branch_without_replacing_existing_fragments(tmp_path):
     root = tmp_path / 'session'
     report = root / 'report.md'

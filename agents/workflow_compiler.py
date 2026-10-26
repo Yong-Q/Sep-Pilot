@@ -31,6 +31,8 @@ def expand_parallel_report_nodes(changes, conversation_root, existing_steps=()):
 
     result = copy.deepcopy(changes)
     existing_by_id = {step.get('step_id'): step for step in existing_steps or ()}
+    proposed_by_id = {change.get('step_id'): change.get('node', {})
+                      for change in result if change.get('operation') == 'upsert'}
     occupied = set(existing_by_id)
     occupied.update(change.get('step_id') for change in result)
     expanded = []
@@ -52,6 +54,21 @@ def expand_parallel_report_nodes(changes, conversation_root, existing_steps=()):
                 'depends_on': node.get('depends_on', []),
                 'next_action': 'Use the same ordered direct dependencies for source_steps and depends_on.',
             })
+        if arguments.get('report_mode') == 'assembly':
+            # Replays and revisions may already contain compiler-owned
+            # fragments. Re-expanding those creates fragments of fragments.
+            for source in sources:
+                fragment = proposed_by_id.get(source, existing_by_id.get(source, {}))
+                if (fragment.get('report_parent') != report_id
+                        or fragment.get('report_role') != 'fragment'
+                        or fragment.get('tool') != 'generate_scientific_report'
+                        or fragment.get('arguments', {}).get('report_mode') != 'fragment'):
+                    raise WorkflowContractError('report assembly requires owned fragment dependencies', {
+                        'step_id': report_id, 'source_step': source,
+                        'next_action': 'Use compiler-owned fragments or propose an unexpanded report.',
+                    })
+            expanded.append(change)
+            continue
         fragment_ids = []
         for source in sources:
             fragment_id = f'{report_id}__fragment__{source}'
