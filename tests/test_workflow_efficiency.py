@@ -1,7 +1,7 @@
 from agents.workflow_patch import workflow_efficiency_issues, canonical_expected_outputs, operational_patch
 from agents.parallel_workflow import resources_for, conflicts
 from agents.registry import get_registry
-from agents.workflow_compiler import expand_parallel_report_nodes
+from agents.workflow_compiler import compile_dataflow_bindings, expand_parallel_report_nodes
 
 
 def node(step_id, tool, arguments, depends_on=None, outputs=None):
@@ -72,6 +72,31 @@ def test_explicit_artifact_consumer_requires_dependency(tmp_path):
     nodes[1]["depends_on"] = ["generate"]
     assert not [issue for issue in workflow_efficiency_issues(nodes, tmp_path)
                 if issue["kind"] == "missing_data_dependency"]
+
+
+def test_batch_charge_validation_accepts_directory_artifact_binding(tmp_path):
+    root = tmp_path / "runs" / "u" / "c"
+    structures = root / "charged"
+    report = root / "charge_validation.json"
+    changes = [
+        {"operation": "upsert", "step_id": "charge", "node": node(
+            "charge", "run_pacman_charge", {"cif_dir": str(root / "input")},
+            outputs=[{"kind": "directory", "path": str(structures),
+                      "pattern": "*_pacmof.cif", "min_count": 1}])},
+        {"operation": "upsert", "step_id": "validate", "node": node(
+            "validate", "validate_framework_charges", {
+                "expected_net_charge": 0,
+                "charge_source": "pacmof",
+                "output_path": str(report),
+            }, depends_on=["charge"], outputs=[str(report)])},
+    ]
+    changes[1]["node"]["input_bindings"] = {
+        "cif_path": {"step_id": "charge", "output_index": 0},
+    }
+
+    compiled = compile_dataflow_bindings(changes, get_registry(), tmp_path, root)
+
+    assert compiled[1]["node"]["arguments"]["cif_path"] == str(structures)
 
 
 def test_independent_nodes_are_not_forced_into_serial_dependencies(tmp_path):

@@ -149,6 +149,20 @@ _BINDABLE_INPUT_ARGUMENTS = frozenset({
 _READ_PATH_TOOLS = frozenset({"read_file", "inspect_path", "grep_search"})
 
 
+def _expects_directory(target, consumer_tool, arguments):
+    """Return whether a path argument consumes a directory artifact.
+
+    ``validate_framework_charges`` keeps the historical ``cif_path`` name for
+    both single-CIF and batch-directory validation.  An explicit report
+    destination is the schema-level signal for its batch form.
+    """
+    return target in _DIRECTORY_ARGUMENTS or (
+        consumer_tool == "validate_framework_charges"
+        and target == "cif_path"
+        and bool(arguments.get("output_path"))
+    )
+
+
 def _is_bindable_input(tool_name, target, arguments):
     if target in _BINDABLE_INPUT_ARGUMENTS:
         return True
@@ -247,7 +261,7 @@ def _graph_context(changes, existing_steps=()):
 
 
 def _artifact_candidate(producer_id, node, output_index, target, consumer_tool,
-                        conversation_root):
+                        conversation_root, consumer_arguments=None):
     from .output_contract import normalize_output, output_path
 
     outputs = node.get("expected_outputs", [])
@@ -257,11 +271,12 @@ def _artifact_candidate(producer_id, node, output_index, target, consumer_tool,
     output = outputs[output_index]
     contract = normalize_output(output)
     arguments = node.get("arguments", {})
+    consumer_arguments = consumer_arguments or {}
     base = (arguments.get("output_dir") or arguments.get("job_work_dir")
             or arguments.get("work_dir") or conversation_root)
     path = output_path(output, base)
     wildcard = contract["kind"] == "file" and any(char in path.name for char in "*?[")
-    if target in _DIRECTORY_ARGUMENTS:
+    if _expects_directory(target, consumer_tool, consumer_arguments):
         path = path if contract["kind"] == "directory" else path.parent
         kind = "directory"
     elif target in _FILE_ARGUMENTS or (
@@ -325,7 +340,7 @@ def compile_dataflow_bindings(changes, registry, project_root, conversation_root
                 })
             candidate = _artifact_candidate(
                 producer_id, nodes[producer_id], output_index, target,
-                node.get("tool", ""), conversation_root)
+                node.get("tool", ""), conversation_root, arguments)
             if candidate is None:
                 raise WorkflowContractError("workflow input binding selects an incompatible or missing output", {
                     "step_id": step_id, "tool": node.get("tool"),
@@ -349,7 +364,7 @@ def compile_dataflow_bindings(changes, registry, project_root, conversation_root
                     for output_index in range(len(nodes[producer_id].get("expected_outputs", []))):
                         candidate = _artifact_candidate(
                             producer_id, nodes[producer_id], output_index, target,
-                            node.get("tool", ""), conversation_root)
+                            node.get("tool", ""), conversation_root, arguments)
                         if candidate is not None:
                             candidates.append(candidate)
             unique = {}
