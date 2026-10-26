@@ -135,3 +135,35 @@ def test_changed_contract_failures_share_counter_and_auto_handoff_to_patcher(tmp
     assert list(matching.values()) == [3]
     assert session._pending_handoff.name == 'patcher'
     assert '原DAG继续' in session.context['automatic_handoff_task']
+
+
+def test_workflow_contract_error_kind_is_not_a_scientific_retry(tmp_path):
+    from agents.config import AgentConfig
+    from agents.defns import ORCHESTRATOR
+    from agents.session import Session
+    import json
+    session = Session(config=AgentConfig(api_key='test', project_root=tmp_path))
+    session.current_agent = ORCHESTRATOR
+    result = {'error': 'initial executable DAG does not match the complete persisted draft',
+              'error_kind': 'workflow_contract', 'executed': False}
+    session.memory.record_tool_call('lead-orchestrator', 'propose_workflow_patch', {},
+                                    json.dumps(result), failed=True)
+    session._handle_failures(
+        [{'type': 'tool_result', 'tool_use_id': 'p', 'content': json.dumps(result)}],
+        [{'type': 'tool_use', 'id': 'p', 'name': 'propose_workflow_patch', 'input': {}}],
+        'lead-orchestrator')
+    assert list(session._error_branches.values())[0]['category'] == 'contract_validation'
+
+
+def test_framework_repair_is_available_before_initial_dag_approval(tmp_path):
+    from agents.config import AgentConfig
+    from agents.defns import ORCHESTRATOR, PATCHER
+    from agents.session import Session
+    session = Session(config=AgentConfig(api_key='test', project_root=tmp_path))
+    session._current_line_id = 'current'
+    session._on_workflow_start = lambda version: None
+    session.current_agent = ORCHESTRATOR
+    assert session._chain_required_block('handoff_to_adsorption')
+    assert not session._chain_required_block('handoff_to_patcher')
+    session.current_agent = PATCHER
+    assert not session._chain_required_block('run_project_regressions')

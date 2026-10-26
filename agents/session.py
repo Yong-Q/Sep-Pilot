@@ -1586,6 +1586,11 @@ class Session:
 
     def _chain_required_block(self, tool: str) -> str:
         """Require a session-owned DAG before production tools or handoffs."""
+        # Framework maintenance must remain reachable when the DAG compiler
+        # itself is broken. Patcher capabilities and workspace guards still
+        # enforce its ban on user scientific jobs.
+        if tool == 'handoff_to_patcher' or getattr(self.current_agent, 'name', '') == 'patcher':
+            return ''
         if (not self._current_line_id or not self._on_workflow_start
                 or tool in self._CHAIN_CONTROL_TOOLS):
             return ''
@@ -2455,8 +2460,14 @@ class Session:
         # last call and exhausting an unrelated retry budget.
         evidence = {c.get('call_id'): c for c in self.memory.tool_call_log}
         correlated = {}
+        call_names = {(block.get('id') if isinstance(block, dict) else getattr(block, 'id', None)):
+                      (block.get('name') if isinstance(block, dict) else getattr(block, 'name', None))
+                      for block in assistant_content}
+        contract_errors = set()
         for reply in tool_results:
             obj = result_object(reply.get('content'))
+            if obj.get('error_kind') in {'workflow_contract', 'schema_validation'} and obj.get('executed') is not True:
+                contract_errors.add(call_names.get(reply.get('tool_use_id')))
             call = evidence.get(obj.get('evidence_ref', {}).get('call_id'))
             if call and (failure_reason(reply.get('content')) or obj.get('error')):
                 correlated.setdefault(call['tool'], []).append(call)
@@ -2466,7 +2477,7 @@ class Session:
             last_call = (correlated[fname].pop(0) if correlated.get(fname) else
                          next((c for c in reversed(self.memory.tool_call_log)
                                if c.get('tool') == fname and isinstance(c.get('params'), dict)), {}))
-            contract_failure = any(marker in ferr.lower() for marker in (
+            contract_failure = fname in contract_errors or any(marker in ferr.lower() for marker in (
                 'parameter validation failed', 'schema validation',
                 'not valid under any of the given schemas',
                 'workflow contains unresolved path placeholders',
