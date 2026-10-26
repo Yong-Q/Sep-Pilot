@@ -48,6 +48,38 @@ def test_session_routes_primary_turn_through_codex_provider(tmp_path, monkeypatc
     assert seen["messages"]
 
 
+def test_planner_receives_current_draft_schemas_without_schema_tool_roundtrip(tmp_path, monkeypatch):
+    from agents.defns import ORCHESTRATOR
+    from agents.registry import get_registry
+    seen = {}
+    def provider(**kwargs):
+        seen.update(kwargs)
+        return SimpleNamespace(content=[SimpleNamespace(type='text', text='Plan ready')], stop_reason='end_turn')
+    monkeypatch.setattr('agents.codex_provider.call_codex_model', provider)
+    session = Session(config=AgentConfig(model_provider='codex_cli', project_root=tmp_path))
+    session.context['workflow_draft'] = {'nodes': [
+        {'tool': 'generate_structure'}, {'tool': 'run_cdft'}, {'tool': 'run_cdft'}]}
+    session.messages = [{'role': 'user', 'content': 'Compile the saved draft.'}]
+    session._call_api(ORCHESTRATOR)
+    provided = json.loads(seen['system'].split('[CURRENT DRAFT TOOL SCHEMAS]\n')[1].split('\n', 1)[0])
+    assert [item['name'] for item in provided] == ['generate_structure', 'run_cdft']
+    assert provided[1]['input_schema'] == get_registry().get('run_cdft').input_schema
+    assert not session.memory.tool_call_log
+
+
+def test_model_timing_records_sizes_without_prompt_or_credentials(tmp_path, monkeypatch):
+    monkeypatch.setattr('agents.codex_provider.call_codex_model', lambda **kwargs: SimpleNamespace(
+        content=[SimpleNamespace(type='text', text='Ready')], stop_reason='end_turn'))
+    session = Session(config=AgentConfig(model_provider='codex_cli', project_root=tmp_path))
+    session.messages = [{'role': 'user', 'content': 'private scientific request'}]
+    session._call_api(Agent(name='analyst', instructions='private instructions', functions=[]))
+    metric = session.context['model_call_metrics'][-1]
+    assert metric['elapsed_seconds'] >= 0
+    assert metric['input_characters'] > 0
+    assert metric['tool_count'] == 0
+    assert 'private' not in json.dumps(metric)
+
+
 def test_user_supplied_api_stays_on_its_own_provider(monkeypatch):
     import auth
     import agents.config

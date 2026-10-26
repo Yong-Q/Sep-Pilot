@@ -3244,6 +3244,21 @@ class Session:
         if (agent.name == 'lead-orchestrator' and self._current_line_id and self._on_workflow_start
                 and not self.goal_contract.approved_nodes):
             system += '\n[EXECUTABLE WORKFLOW REQUIRED] 除纯对话外，任何真实工具或委派之前都必须先用record_workflow_draft持久化从输入/准备一直到验证、分析和用户最终交付物的完整DAG及completion_criteria，再读所需get_tool_schema，并用一次propose_workflow_patch编译草案中的全部节点：每个节点包含agent/tool/完整arguments/depends_on/expected_outputs。禁止只编译第一步并称后续再追加。未知的运行期文件用目录/模式产物合同表达；不得用编号文本、旧式handoff或直接工具绕过。执行后只有真实故障或用户改变科学合同才产生版本化局部补丁。'
+        if agent.name == 'lead-orchestrator' and not self.goal_contract.approved_nodes:
+            # Read the live registry once for the known draft. A separate model
+            # round per get_tool_schema adds latency without new information.
+            draft_tools = sorted({node.get('tool') for node in
+                                  (self.context.get('workflow_draft') or {}).get('nodes', [])
+                                  if isinstance(node.get('tool'), str)})
+            schemas = []
+            for name in draft_tools:
+                definition = self.registry.get(name)
+                if definition:
+                    schemas.append({'name': name, 'description': definition.description,
+                                    'input_schema': definition.input_schema})
+            if schemas:
+                system += '\n[CURRENT DRAFT TOOL SCHEMAS]\n' + json.dumps(schemas, ensure_ascii=False, separators=(',', ':'))
+                system += '\n以上来自当前注册表，已完成这些草案工具的 schema 查阅，无需再次调用 get_tool_schema。直接用真实定义编译完整计划；只有新增或未提供定义的工具才需查询。这些定义不授予执行权限，原有审批和运行时校验仍然生效。'
         if self._lifecycle_store and agent.name != 'supervisor':
             notices = [
                 {'event_id': e['event_id'], 'kind': e['kind'],
@@ -3443,13 +3458,29 @@ class Session:
                 )
             else:
                 model_call = lambda: self._stream_api(**kwargs)
-            return call_model(
-                model_call,
-                on_wait=waiting,
-                on_queue=lambda position: self._progress(agent_name=agent.name, reasoning='',
-                    status=f'等待模型调用名额（排队位置 {position}）', log=''),
-                interrupted=self._interrupt_requested,
-            )
+            started = time.monotonic()
+            succeeded = False
+            try:
+                response = call_model(
+                    model_call,
+                    on_wait=waiting,
+                    on_queue=lambda position: self._progress(agent_name=agent.name, reasoning='',
+                        status=f'等待模型调用名额（排队位置 {position}）', log=''),
+                    interrupted=self._interrupt_requested,
+                )
+                succeeded = True
+                return response
+            finally:
+                elapsed = round(time.monotonic() - started, 3)
+                metric = {'agent': agent.name, 'provider': self.config.model_provider,
+                          'elapsed_seconds': elapsed, 'succeeded': succeeded,
+                          'input_characters': len(json.dumps(kwargs, ensure_ascii=False, default=str)),
+                          'tool_count': len(kwargs.get('tools', []))}
+                metrics = self.context.setdefault('model_call_metrics', [])
+                metrics.append(metric)
+                del metrics[:-100]
+                self._progress(agent_name=agent.name,
+                    log=f'模型调用耗时 {elapsed:.1f} 秒；输入 {metric["input_characters"]} 字符；工具定义 {metric["tool_count"]} 个')
         except ModelGateInterrupted as interrupted:
             raise LLMRateLimitError("共享模型冷却等待已被用户中断") from interrupted
         except anthropic.APITimeoutError as _te:
