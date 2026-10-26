@@ -1406,7 +1406,12 @@ export default function App() {
                   ) : (
                     <React.Fragment>
                       <div className="processing-indicator">
-                        详细执行状态已同步到右侧运行面板 <span className="processing-dots"><span>.</span><span>.</span><span>.</span></span>
+                        {partial && partial.reasoning
+                          ? partial.reasoning
+                          : partial && partial.current_agent
+                            ? `${partial.current_agent} 正在处理当前阶段`
+                            : '正在连接主智能体并编译执行计划'}
+                        <span className="processing-dots"><span>.</span><span>.</span><span>.</span></span>
                       </div>
                     </React.Fragment>
                   )}
