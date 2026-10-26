@@ -60,6 +60,20 @@ def test_existing_config_paths_remain_authoritative(tmp_path, monkeypatch):
     assert module.AGENT_ENV_PYTHON == Path("/opt/python/bin/python")
 
 
+def test_pormake_database_uses_operator_installation_without_home_path(tmp_path, monkeypatch):
+    module = load_isolated_paths(tmp_path, monkeypatch, {
+        'paths': {'legacy_root': str(tmp_path / 'installed/legacy')},
+    })
+    assert module.PORMAKE_DATABASE_DIR == tmp_path / 'installed/pormake_db'
+
+
+def test_pormake_database_can_be_configured_independently(tmp_path, monkeypatch):
+    module = load_isolated_paths(tmp_path, monkeypatch, {
+        'software': {'pormake_database_dir': 'shared/building-blocks'},
+    })
+    assert module.PORMAKE_DATABASE_DIR == tmp_path / 'shared/building-blocks'
+
+
 def test_explicit_config_override_is_used(tmp_path, monkeypatch):
     module = load_isolated_paths(tmp_path, monkeypatch)
     private_config = tmp_path / "site.json"

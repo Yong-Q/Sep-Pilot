@@ -25,8 +25,10 @@ pm.log.disable_print()
 pm.log.disable_file_print()
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-PROJECT_ROOT = Path("/home/user/gcmc_agent")
-DB_DIR = PROJECT_ROOT / "pormake_db"
+from bimem_agent.paths import PORMAKE_DATABASE_DIR
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+DB_DIR = PORMAKE_DATABASE_DIR
 
 BB_DIRS = {
     "MOF": DB_DIR / "bbs_MOF",

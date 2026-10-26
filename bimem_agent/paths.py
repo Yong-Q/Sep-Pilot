@@ -76,6 +76,11 @@ def get_runtime_section(section: str) -> dict:
 LEGACY_ROOT = get_config_path("paths", "legacy_root")
 LEGACY_PARENT = LEGACY_ROOT.parent
 AGENT_ENV_PYTHON = get_config_path("paths", "agent_env_python")
+PORMAKE_DATABASE_DIR = (
+    get_config_path('software', 'pormake_database_dir')
+    if 'pormake_database_dir' in get_runtime_section('software')
+    else LEGACY_PARENT / 'pormake_db'
+)
 
 
 def ensure_project_path() -> None:
