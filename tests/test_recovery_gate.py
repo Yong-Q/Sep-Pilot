@@ -45,6 +45,34 @@ def test_persistent_single_claim_and_uncertain_outcome(tmp_path):
         b.approve('task', 'fp2', {})
 
 
+def test_changed_interpreter_recovers_only_explicitly_unexecuted_preflight(tmp_path):
+    gate = RecoveryGate()
+    attempt, _ = gate.claim('structure', 'generate_structure', {}, 'inputs')
+    gate.outcome('structure', attempt, {'blocked': True, 'executed': False,
+        'error': f'configured pormake interpreter is unavailable: {tmp_path / "missing"}'})
+    executable = tmp_path / 'python'
+    executable.write_text('#!/bin/sh\nexit 0\n')
+    executable.chmod(0o700)
+    proof = gate.approve_configured_preflight('structure', attempt, str(executable))
+    assert proof['ok']
+    assert gate.claim('structure', 'generate_structure', {}, 'inputs')[0]
+    assert gate.claim('structure', 'generate_structure', {}, 'inputs')[0] is None
+
+
+@pytest.mark.parametrize('outcome', [
+    {'error': 'scheduler outcome unknown'},
+    {'blocked': True, 'executed': False, 'error': 'some other failure'},
+    {'blocked': True, 'executed': False, 'job_id': '123',
+     'error': 'configured pormake interpreter is unavailable: /missing'},
+])
+def test_environment_recovery_never_retries_unknown_or_submitted_work(tmp_path, outcome):
+    gate = RecoveryGate()
+    attempt, _ = gate.claim('structure', 'generate_structure', {}, 'inputs')
+    gate.outcome('structure', attempt, outcome)
+    with pytest.raises(ValueError):
+        gate.approve_configured_preflight('structure', attempt, '/usr/bin/python3')
+
+
 def test_once_only_permit_and_budget_survive_wording_changes(tmp_path):
     gate = RecoveryGate(path=tmp_path / 'ledger.json')
     for attempt in range(3):

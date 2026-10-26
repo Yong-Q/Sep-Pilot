@@ -1286,6 +1286,12 @@ class Session:
                                             runtime_nodes=runtime.get('nodes', {}))
         # Old diagnostic tool receipts are audit history, not delegated nodes.
         self.goal_contract.approved_nodes=[n for n in line['steps'] if n.get('arguments') is not None and 'expected_outputs' in n]
+        from .goal_contract import _TOOL_METHOD
+        approved_methods = {_TOOL_METHOD.get(n.get('tool')) for n in self.goal_contract.approved_nodes}
+        approved_methods.discard(None)
+        approved_methods.discard('')
+        if len(approved_methods) > 1:
+            self.goal_contract.method = 'MULTI'
         self.goal_contract.approved_plan_version=plan_version
         self.goal_contract.pending_plan_version=plan_version
         self.goal_contract.execution_authorized=True
@@ -2164,57 +2170,6 @@ class Session:
                     fix_attempt=f"{tool_name} retry returned without a failure marker",
                     resolution=f"{tool_name} succeeded after recovery",
                 )
-
-    def _initial_patch_recovery_candidate(self, user_message: str):
-        """Return one saved initial patch for an explicit continuation.
-
-        A contract-validation failure already has a complete, user-authorized
-        patch in its error branch. Rebuilding that same DAG with another model
-        call is slow and can introduce a different node set. Replay is limited
-        to explicit continuation language and to the exact saved arguments.
-        """
-        text = str(user_message or '').lower()
-        if not any(word in text for word in ('继续', '确认', '执行', '重试', 'resume', 'continue', 'retry')):
-            return None
-        for branch_id in sorted(self._error_branches, reverse=True):
-            branch = self._error_branches[branch_id]
-            if branch.get('status') != 'open' or branch.get('replay_attempted'):
-                continue
-            if branch.get('failed_step') != 'propose_workflow_patch':
-                continue
-            if branch.get('category') not in {'contract_validation', 'actual_tool_failure'}:
-                continue
-            candidate = branch.get('failed_arguments')
-            if not isinstance(candidate, dict) or not candidate.get('changes'):
-                continue
-            branch['replay_attempted'] = True
-            return copy.deepcopy(candidate)
-        return None
-
-    def _replay_initial_patch_after_continue(self, user_message: str):
-        candidate = self._initial_patch_recovery_candidate(user_message)
-        if not candidate:
-            return None
-        from .defns import ORCHESTRATOR
-        self.current_agent = ORCHESTRATOR
-        try:
-            result = self._propose_workflow_patch(
-                base_version=int(candidate.get('base_version', 0)),
-                reason=str(candidate.get('reason') or '恢复已保存的完整执行计划'),
-                changes=copy.deepcopy(candidate.get('changes') or []),
-            )
-        except Exception as error:
-            self.context['initial_patch_replay_error'] = str(error)
-            return None
-        if result.get('applied') and result.get('execution', {}).get('scheduled'):
-            for branch in self._error_branches.values():
-                if branch.get('replay_attempted'):
-                    branch['status'] = 'resolved'
-                    branch['resolution'] = 'Replayed the saved complete patch after contract validation was fixed.'
-            self._checkpoint('replayed_saved_initial_patch')
-            return '已恢复并应用之前保存的完整执行计划，执行器正在按依赖启动；实际作业以提交回执为准。'
-        self.context['initial_patch_replay_result'] = result
-        return None
 
     def _get_error_branch_summary(self) -> str:
         """获取所有错误分支的摘要。"""
@@ -5562,18 +5517,6 @@ class Session:
         # If the user's reply resolves the method ambiguity, mark it done.
         if any(m in user_message.lower() for m in ("cdft", "gcmc", "用 cDFT", "用 GCMC")):
             self._method_choice_made = True
-
-        replayed = self._replay_initial_patch_after_continue(user_message)
-        if replayed:
-            self.task_complete = True
-            self.last_text = replayed
-            self._progress(
-                agent_name='lead-orchestrator',
-                reasoning='已重放经用户授权且已保存的完整执行计划。',
-                status='✅ 编排已恢复，执行器已接管',
-                log='跳过重复模型编排，重放已验证的初始 patch',
-            )
-            return replayed
 
         if verbose:
             print(f"\n🤖 [{self.current_agent.name}]", flush=True)

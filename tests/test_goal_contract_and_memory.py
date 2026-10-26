@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import sys
+import pytest
 
 from agents.config import AgentConfig
 from agents.defns import ORCHESTRATOR
@@ -19,14 +20,23 @@ EVALUATOR4_GOAL = (
 )
 
 
-def test_explicit_cdft_screening_with_gcmc_validation_preserves_both_methods():
-    goal = GoalContract.from_user_message(
-        'pormake 自己构建 CO2/N2 CDFT 挑选TOP2 GCMC验证 298K 1bar')
-    goal.execution_authorized = True
-    assert goal.method == 'CDFT'
-    assert goal.guard_tool_call('run_gcmc_batch', {
-        'gases': ['CO2', 'N2'], 'temperature': 298,
-    }, enforce_approved_node=False)[0]
+@pytest.mark.parametrize('tools', [
+    ['run_cdft', 'run_gcmc_batch'], ['run_md_optimize', 'run_string_tst'],
+    ['run_vasp', 'run_md_optimize'],
+])
+def test_multimethod_authority_comes_from_approved_nodes(tools):
+    goal = GoalContract(method='MULTI', execution_authorized=True,
+                        approved_nodes=[{'tool': tool} for tool in tools])
+    for tool in tools:
+        assert goal.guard_tool_call(tool, {}, enforce_approved_node=False)[0]
+    assert not goal.guard_tool_call('run_henry', {}, enforce_approved_node=False)[0]
+
+
+@pytest.mark.parametrize('approved_version,expected', [(0, 'MD'), (1, 'MULTI')])
+def test_restore_multimethod_scope_requires_committed_plan(approved_version, expected):
+    original = GoalContract(method='MD', approved_plan_version=approved_version,
+        approved_nodes=[{'tool': 'run_md_optimize'}, {'tool': 'run_string_tst'}])
+    assert GoalContract.from_dict(original.to_dict()).method == expected
 
 
 def test_cdft_method_comparison_does_not_authorize_gcmc_validation():
@@ -35,16 +45,6 @@ def test_cdft_method_comparison_does_not_authorize_gcmc_validation():
     assert not goal.guard_tool_call('run_gcmc_batch', {
         'gases': ['CO2', 'N2'], 'temperature': 298,
     }, enforce_approved_node=False)[0]
-
-
-def test_restored_goal_recovers_explicit_validation_method_from_original_user_goal():
-    goal = GoalContract.from_user_message(
-        'pormake 自己构建 CO2/N2 CDFT 挑选TOP2 GCMC验证 298K 1bar')
-    saved = goal.to_dict()
-    saved['parameters'].pop('validation_method')
-    restored = GoalContract.from_dict(saved)
-    assert restored.parameters['validation_method'] == 'GCMC'
-    assert restored.method == 'CDFT'
 
 
 def test_evaluator4_goal_contract_blocks_gas_and_method_drift():

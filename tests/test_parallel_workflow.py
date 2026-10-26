@@ -28,6 +28,24 @@ def test_model_gate_defaults_to_four_parallel_calls(monkeypatch):
     assert model_gate._configured_concurrency() == 4
 
 
+def test_configuration_recovery_preserves_failed_attempt_and_completed_branches(tmp_path):
+    path = tmp_path / 'workflow.json'
+    failed = {'status': 'failed', 'token': 'old', 'attempt_id': 'attempt',
+              'tool_returned': True, 'job_ids': [], 'error': 'old preflight',
+              'contract': {'tool': 'generate_structure'}}
+    path.write_text(json.dumps({'workflows': {'w': {'status': 'needs_user', 'pause_kind': 'failure',
+        'nodes': {'generate': failed, 'literature': {'status': 'succeeded'}}}}, 'leases': {}}))
+    store = WorkflowStore(path)
+    assert store.requeue_configuration_preflight('w', 'generate', 'old', {
+        'kind': 'verified_configuration_preflight', 'attempt_id': 'attempt', 'no_job_submitted': True})
+    state = store.snapshot('w')
+    assert state['status'] == 'active'
+    assert state['nodes']['generate']['status'] == 'pending'
+    assert state['nodes']['generate']['attempt_history'][0]['error'] == 'old preflight'
+    assert state['nodes']['literature']['status'] == 'succeeded'
+    assert not store.requeue_configuration_preflight('w', 'generate', 'old', {})
+
+
 def test_legacy_compatible_reset_restores_only_affected_completed_branch(tmp_path):
     state_path = tmp_path / 'parallel.json'
     store = WorkflowStore(state_path)
@@ -695,6 +713,39 @@ def test_independent_branches_really_overlap_and_join_waits(factory):
     assert set(saved['context']['dependency_results']) == {'a', 'b'}
     assert len({n['checkpoint_path'] for n in rt.snapshot()['nodes'].values()}) == 3
     assert rt.main.messages == [] and rt.main.memory.tool_call_log == []
+
+
+def test_fixed_pormake_configuration_resumes_original_node_without_model(factory, tmp_path):
+    output = tmp_path / 'runs/tester/c1/structures'
+    contract = node('generate', tool='generate_structure', args={
+        'material_type': 'MOF', 'n_structures': 2, 'output_dir': str(output)},
+        outputs=[{'kind': 'directory', 'path': str(output), 'pattern': '*.cif', 'min_count': 2}])
+    contract['agent'] = 'harness-maintainer'
+    runtime = factory([contract])
+    missing = tmp_path / 'missing-python'
+    runtime.main.config._tools_config = {'pormake': {'python': str(missing)}}
+    calls = []
+    def generator(arguments):
+        calls.append(arguments)
+        if len(calls) == 1:
+            return {'blocked': True, 'executed': False,
+                    'error': f'configured pormake interpreter is unavailable: {missing}'}
+        return {'submitted': True, 'job_id': '91001', 'work_dir': str(output)}
+    runtime.main.registry.get('generate_structure').execute = generator
+    runtime.start(1)
+    runtime.tick()
+    eventually(lambda: runtime.snapshot()['nodes']['generate']['status'] == 'failed')
+    executable = tmp_path / 'python'
+    executable.write_text('#!/bin/sh\nexit 0\n')
+    executable.chmod(0o700)
+    runtime.main.config._tools_config['pormake']['python'] = str(executable)
+    runtime.tick()
+    eventually(lambda: runtime.snapshot()['nodes']['generate']['status'] == 'waiting_jobs')
+    state = runtime.snapshot()['nodes']['generate']
+    assert len(calls) == 2
+    assert state['attempt_history'][0]['status'] == 'failed'
+    assert state['job_ids'] == ['91001']
+    assert runtime.main.memory.tool_call_log == []
 
 
 def test_shared_resource_serializes_across_conversations_not_everything(factory):

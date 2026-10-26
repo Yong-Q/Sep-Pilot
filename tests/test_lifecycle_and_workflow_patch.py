@@ -323,6 +323,31 @@ def test_user_negotiation_applies_structured_patch_only_after_approval(tmp_path,
     assert s._pending_workflow_patch is None
 
 
+@pytest.mark.parametrize('tools', [('run_cdft', 'run_gcmc_batch'), ('run_md_optimize', 'run_string_tst')])
+def test_apply_records_all_approved_methods_before_starting_executor(tmp_path, monkeypatch, tools):
+    store = TaskLineStore(str(tmp_path / 'lines.json'))
+    store.upsert_step('c1', 'history', tool='record_workflow_draft', status='completed')
+    monkeypatch.setattr('agents.task_line.get_store', lambda: store)
+    session = Session(config=AgentConfig(api_key='test', project_root=tmp_path))
+    session.current_agent = ORCHESTRATOR
+    session._current_line_id = 'c1'
+    session._execute_loop = lambda agent, **kwargs: 'main interprets request'
+    session.reply('Approve the proposed complete plan.', verbose=False)
+    session._pending_workflow_patch = {'base_version': 0, 'new_version': 1,
+        'affected_nodes': ['first', 'second'], 'reason': 'User-approved workflow',
+        'changes': [{'operation': 'upsert', 'step_id': key, 'node': {
+            'agent': 'analyst', 'tool': tool, 'arguments': {}, 'depends_on': [],
+            'expected_outputs': [],
+        }} for key, tool in zip(('first', 'second'), tools)]}
+    observed = []
+    def activate(version):
+        observed.append(session.goal_contract.method)
+        return {'scheduled': True}
+    session._on_workflow_start = activate
+    session._apply_workflow_patch(1)
+    assert observed == ['MULTI']
+
+
 def test_full_tool_evidence_is_a_file_not_unbounded_checkpoint_text(tmp_path):
     s = Session(config=AgentConfig(api_key='test', project_root=tmp_path))
     s.memory.record_tool_call('analyst', 'read_file', {'path': 'input.cif'}, '{"content":"full real evidence"}')

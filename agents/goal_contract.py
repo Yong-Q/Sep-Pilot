@@ -209,11 +209,6 @@ def extract_parameters(text: str) -> Dict[str, Any]:
     raw = str(text or "")
     low = raw.lower()
     out: Dict[str, Any] = {}
-    # Keep an explicitly requested validation stage alongside the primary
-    # screening method. Merely mentioning/comparing GCMC grants no capability.
-    if ('cdft' in low and re.search(r'top\s*\d+\s*(?:做|用|进行)?\s*gcmc\s*验证', low)
-            and not any(word in low for word in ('不要', '不做', '取消', '不使用'))):
-        out['validation_method'] = 'GCMC'
     temps = [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)\s*[kK](?![a-zA-Z])", raw)]
     if temps:
         out["temperature_K"] = temps[0] if len(temps) == 1 else temps
@@ -521,8 +516,6 @@ class GoalContract:
             expected_method = ''
         if expected_method and candidate_method:
             compatible = expected_method == candidate_method
-            if self.parameters.get('validation_method') == candidate_method:
-                compatible = True
             # Henry is commonly implemented by GCMC Widom insertion; allow the
             # pair only when the user selected Henry/GCMC, never when cDFT is pinned.
             if {expected_method, candidate_method} <= {"GCMC", "HENRY"}:
@@ -620,9 +613,13 @@ class GoalContract:
             return migrated
         allowed = {f.name for f in cls.__dataclass_fields__.values()}
         result = cls(**{k: v for k, v in data.items() if k in allowed})
-        validation_method = extract_parameters(result.active_goal).get('validation_method')
-        if validation_method:
-            result.parameters.setdefault('validation_method', validation_method)
+        # Older checkpoints kept only the primary method even after a full
+        # multi-method graph was approved. Recover authority from that exact
+        # approved graph, never from prose or an unapproved draft.
+        methods = {_TOOL_METHOD.get(node.get('tool')) for node in result.approved_nodes}
+        methods -= {None, ''}
+        if result.approved_plan_version and len(methods) > 1 and result.method in methods:
+            result.method = 'MULTI'
         if int(data.get('schema_version', 0)) < 4:
             text = '\n'.join(result.directives) or result.active_goal or result.original_goal
             for key, value in scientific_constraints(text).items():

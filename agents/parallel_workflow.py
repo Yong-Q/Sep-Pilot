@@ -593,6 +593,38 @@ class WorkflowStore:
                     changed.append(step_id)
             return changed
 
+    def requeue_configuration_preflight(self, workflow_id, step_id, token, proof):
+        """Requeue only a kernel-verified, stopped configuration rejection."""
+        with json_transaction(self.path) as data:
+            workflow = data.get('workflows', {}).get(workflow_id, {})
+            node = workflow.get('nodes', {}).get(step_id, {})
+            unclaimed = (node.get('dispatch_phase') == 'preflight' and not node.get('attempt_id')
+                         and not node.get('tool_returned'))
+            if (workflow.get('user_paused') or workflow.get('pause_kind') not in {None, 'failure', 'reconciliation'}
+                    or node.get('status') != 'failed' or node.get('token') != token
+                    or node.get('job_ids') or not (node.get('tool_returned') or unclaimed)
+                    or proof.get('kind') != 'verified_configuration_preflight'
+                    or proof.get('node_attempt_id', proof.get('attempt_id')) != node.get('attempt_id')
+                    or proof.get('no_job_submitted') is not True):
+                return False
+            if any(lease.get('workflow_id') == workflow_id and lease.get('step_id') == step_id
+                   for lease in data.get('leases', {}).values()):
+                return False
+            previous = {key: copy.deepcopy(value) for key, value in node.items() if key != 'attempt_history'}
+            node.setdefault('attempt_history', []).append(previous)
+            node['configuration_recovery'] = copy.deepcopy(proof)
+            for key in ('result', 'result_ref', 'evidence_call', 'error', 'tool_returned',
+                        'dispatch_phase', 'output_baseline', 'artifacts', 'validation_dossier'):
+                node.pop(key, None)
+            node.update(status='pending', phase=None)
+            workflow.get('branch_blockers', {}).pop(step_id, None)
+            if not any(n.get('status') in {'failed', 'uncertain', 'validation_failed', 'needs_resources'}
+                       for n in workflow['nodes'].values()):
+                workflow['status'] = 'active'
+                workflow.pop('pause_reason', None)
+                workflow.pop('pause_kind', None)
+            return True
+
     def recover_runtime_bound_failures(self, workflow_id, project_root, only_step_id=None):
         """Requeue stopped non-scheduler nodes when dependency receipts add a path.
 
@@ -1667,6 +1699,11 @@ class ParallelWorkflow:
             if is_submission(node['tool'], args):
                 recovery_key = worker.recovery_gate.key(node['tool'], args, worker.goal_contract.version, step_id, worker.config.project_root)
                 self.store.update(self.workflow_id, step_id, token, {'recovery_key': recovery_key})
+                if self.snapshot()['nodes'][step_id].get('configuration_recovery'):
+                    prior = worker.recovery_gate.snapshot().get(recovery_key, {})
+                    if prior.get('status') == 'failed':
+                        worker.recovery_gate.approve_configured_preflight(
+                            recovery_key, prior.get('attempt_id'), self.main.config.pormake_python, args)
                 attempt, reason = worker.recovery_gate.claim(recovery_key, node['tool'], args,
                     input_fingerprint(args, worker.config.project_root), worker.goal_contract.version, worker.config.project_root)
                 if not attempt: raise ValueError(reason)
@@ -1691,7 +1728,7 @@ class ParallelWorkflow:
             self._settle(step_id, token, raw)
         except Exception as error:
             # Any exception after claim/dispatch is conservatively uncertain.
-            status = 'uncertain' if recovery_key else 'failed'
+            status = 'uncertain' if attempt else 'failed'
             self.store.update(self.workflow_id, step_id, token, {'status': status, 'error': str(error)}, release=status == 'failed')
             # Keep the durable TaskLine aligned with the executor.  In
             # particular, a pre-dispatch framework exception must not leave an
@@ -2011,6 +2048,48 @@ class ParallelWorkflow:
             self.flush_events()
             gate = RecoveryGate(path=self.root / 'recovery_state.json')
             gate.sync_jobs(jobs)
+            # Upgrade repair: denial before a successful claim did not enter
+            # the scientific tool and must not strand an UNKNOWN lease.
+            for step_id, node in state['nodes'].items():
+                entry = gate.snapshot().get(node.get('recovery_key'), {})
+                if (node.get('status') == 'uncertain' and node.get('dispatch_phase') == 'preflight'
+                        and not node.get('attempt_id') and not node.get('tool_returned')
+                        and not node.get('job_ids') and entry.get('status') == 'failed'
+                        and step_id not in self.futures):
+                    self.store.update(self.workflow_id, step_id, node['token'], {'status': 'failed'}, release=True)
+                    self._step(step_id, status='failed', done=False)
+            state = self.snapshot()
+            if (not paused and not state.get('user_paused')
+                    and self.main.goal_contract.execution_authorized
+                    and not self.main._pending_workflow_patch):
+                for step_id, node in state['nodes'].items():
+                    if (node.get('status') != 'failed' or node.get('job_ids')
+                            or node.get('contract', {}).get('tool') != 'generate_structure'
+                            or not node.get('recovery_key')
+                            or not (node.get('tool_returned') or node.get('dispatch_phase') == 'preflight')):
+                        continue
+                    entry = gate.snapshot().get(node['recovery_key'], {})
+                    try:
+                        approved = gate.approve_configured_preflight(
+                            node['recovery_key'], entry.get('attempt_id'), self.main.config.pormake_python)
+                    except ValueError:
+                        continue
+                    approved['proof']['node_attempt_id'] = node.get('attempt_id')
+                    if self.store.requeue_configuration_preflight(
+                            self.workflow_id, step_id, node['token'], approved['proof']):
+                        self._step(step_id, status='pending', done=False,
+                                   validation={'configuration_recovery': approved['proof']})
+                        pending = self.main._pending_user_interaction or {}
+                        params = pending.get('params') or {}
+                        if (pending.get('tool') == 'user_decision'
+                                and step_id in params.get('related_nodes', [])
+                                and not params.get('candidate_job_id') and not params.get('recovery_key')):
+                            self.main.context['invalidated_user_decision'] = {
+                                'decision_id': params.get('decision_id'), 'step_id': step_id,
+                                'reason': 'configured interpreter now verified; original dispatch never executed'}
+                            self.main._pending_user_interaction = None
+                            self.main._waiting_for_user_input = False
+                state = self.snapshot()
             for step_id, node in state['nodes'].items():
                 dossier_state = node.get('validation_dossier') or {}
                 pending = self.main._pending_user_interaction or {}

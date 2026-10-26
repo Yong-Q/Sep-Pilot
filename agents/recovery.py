@@ -267,6 +267,42 @@ class RecoveryGate:
                     elif all(str(j.get('state', '')).upper() in {'COMPLETED', 'SUCCESS', 'DONE'} for j in tracked):
                         entry['status'] = 'completed_unverified'
 
+    def approve_configured_preflight(self, key, attempt_id, configured_interpreter, arguments=None):
+        """Kernel-only repair for the generator's explicit pre-submit rejection.
+
+        The caller supplies the operator configuration, never a model argument.
+        A changed executable path is fresh proof; no running/unknown/submitted
+        attempt or generic failure may enter this path. Dispatch counts remain.
+        """
+        with self.transaction() as data:
+            entry = data.get(key) or {}
+            result = entry.get('last_result') or {}
+            prefix = 'configured pormake interpreter is unavailable: '
+            error = str(result.get('error', ''))
+            if (entry.get('tool') != 'generate_structure' or entry.get('status') != 'failed'
+                    or entry.get('attempt_id') != attempt_id or entry.get('job_ids')
+                    or result.get('blocked') is not True or result.get('executed') is not False
+                    or not error.startswith(prefix) or entry.get('attempts', 0) >= 3):
+                raise ValueError('configuration recovery requires an unexecuted generator preflight failure')
+            old = Path(error[len(prefix):]).expanduser()
+            current = Path(configured_interpreter).expanduser()
+            if (not current.is_absolute() or current.resolve() == old.resolve()
+                    or not current.is_file() or not os.access(current, os.X_OK)):
+                raise ValueError('a changed, existing executable from operator configuration is required')
+            proof = {'kind': 'verified_configuration_preflight', 'attempt_id': attempt_id,
+                     'previous_interpreter': str(old), 'configured_interpreter': str(current.resolve()),
+                     'verified_at': time.time(), 'no_job_submitted': True}
+            approved = entry['fingerprint']
+            if arguments is not None:
+                resource_fields = {'memory_mb', 'nodelist', 'partition', 'cpus_per_task', 'resource_review_id'}
+                scientific = lambda params: {k: v for k, v in params.items() if k not in resource_fields}
+                if scientific(arguments) != scientific(entry.get('params', {})):
+                    raise ValueError('configuration repair cannot alter the scientific task')
+                approved = input_fingerprint(arguments, entry.get('project_root') or '.')
+            entry['approved_fingerprint'] = approved
+            entry.setdefault('reviews', []).append(proof)
+            return {'ok': True, 'proof': proof, 'single_use': True}
+
     def approve(self, key, fingerprint, review):
         with self.transaction() as data:
             entry = data.get(key)
