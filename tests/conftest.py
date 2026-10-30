@@ -122,3 +122,19 @@ def isolated_storage(monkeypatch, request):
             and request.node.get_closest_marker('production_guard_probe') is None):
         pytest.fail('application caught a forbidden production storage access: '
                     + repr(_blocked_storage_accesses[violations_before:]))
+"""Test-only resolver for the fake public package index, no traffic to address."""
+import socket
+import pytest
+@pytest.fixture(autouse=True)
+def public_test_domain(monkeypatch, request):
+    if request.node.module.__name__.rsplit('.', 1)[-1] not in {
+        'test_online_sandbox', 'test_integrated_sandbox',
+        'test_sandbox_self_correction', 'test_dispatch_parallel',
+    }:
+        return
+    original=socket.getaddrinfo
+    def resolve(host,port,*args,**kwargs):
+        if host=='example.invalid':
+            return [(socket.AF_INET,socket.SOCK_STREAM,socket.IPPROTO_TCP,'',('1.1.1.1',port))]
+        return original(host,port,*args,**kwargs)
+    monkeypatch.setattr(socket,'getaddrinfo',resolve)

@@ -250,7 +250,7 @@ def _publish_data_outputs(fd,out,observed,declared,audits):
             for item,_ in checked],publication
 
 
-def plot_result_code(script,input_tables=None,output_dir=None,*,owned_root,timeout_seconds=30,guidance_files=None,input_files=None,_mode='plot',_declared_outputs=None,_owner=None,_producer=None):
+def plot_result_code(script,input_tables=None,output_dir=None,*,owned_root,timeout_seconds=30,guidance_files=None,input_files=None,_mode='plot',_declared_outputs=None,_owner=None,_producer=None,_online=False,_proxy_port=None,_direct=False,_allow_local=False):
     """A new immutable attempt per call; repair code by selecting a NEW output_dir.
 
     Script reads /inputs/tableN.csv and /inputs/audit.json, writes 1..8 PNG files
@@ -259,6 +259,13 @@ def plot_result_code(script,input_tables=None,output_dir=None,*,owned_root,timeo
     """
     root=Path(os.path.abspath(owned_root));out=Path(os.path.abspath(output_dir))
     if _mode not in {'plot','data'}:raise ValueError('unsupported sandbox mode')
+    if (type(_online)is not bool or type(_direct)is not bool or type(_allow_local)is not bool
+            or (_online and _mode!='data') or (_direct and not _online)):
+        raise ValueError('invalid sandbox online mode')
+    if _online and (not isinstance(_producer,dict) or not _producer.get('step_id') or not _producer.get('runtime_token')):
+        raise PermissionError('online sandbox requires an owned active native task')
+    if _online and not _direct and (type(_proxy_port)is not int or not 1<=_proxy_port<=65535):
+        raise ValueError('online sandbox requires a configured local proxy')
     if _mode=='data':
         if (not isinstance(_owner,dict) or set(_owner)!={'username','conv_id'}
                 or (root.parent.name,root.name)!=(_owner.get('username'),_owner.get('conv_id'))):
@@ -339,7 +346,7 @@ def plot_result_code(script,input_tables=None,output_dir=None,*,owned_root,timeo
         os.mkdir(out.name,mode=0o700,dir_fd=parent)
         fd=os.open(out.name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=parent)
     finally:os.close(parent)
-    implementations=_implementation_facts(Path(__file__).resolve().parents[1],mode=_mode)
+    implementations=_implementation_facts(Path(__file__).resolve().parents[1],mode=_mode,online=_online)
     receipt={'schema_version':1,'execution_id':uuid.uuid4().hex,
         'evidence_class':'sandbox_derived_unverified','retry_authorized':False,
         'visual_review':{'status':'pending','reason':'no_native_image_to_provider_bridge'},
@@ -390,14 +397,61 @@ def plot_result_code(script,input_tables=None,output_dir=None,*,owned_root,timeo
             _write(inputsfd,'guidance_index.json',json.dumps(guidance_index).encode())
         finally:os.close(codefd);os.close(inputsfd)
         unshare=shutil.which('unshare')
-        if unshare and os.environ.get('SLURM_JOB_ID') and platform.system()=='Linux' and platform.machine()=='x86_64':
+        if unshare and (os.environ.get('SLURM_JOB_ID') or _allow_local) and platform.system()=='Linux' and platform.machine()=='x86_64':
             worker=Path(__file__).with_name('plot_sandbox_worker.py')
             env={'PATH':'/usr/bin:/bin','OMP_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','MKL_NUM_THREADS':'1','LANG':'C.UTF-8'}
-            command=[unshare,'--user','--map-root-user','--mount','--pid','--fork','--net','--ipc','--kill-child=KILL',sys.executable,'-I',str(worker),f'/proc/self/fd/{fd}',str(timeout_seconds),_mode]
-            start=time.monotonic();process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,pass_fds=(fd,),start_new_session=True)
-            try:stdout,stderr=process.communicate(timeout=timeout_seconds+15)
-            except BaseException:
-                os.killpg(process.pid,signal.SIGKILL);process.communicate();raise
+            command=[unshare,'--user','--map-root-user','--mount','--pid','--fork','--net','--ipc','--kill-child=KILL',sys.executable,'-I',str(worker),f'/proc/self/fd/{fd}',str(timeout_seconds),'data-online' if _online else _mode]
+            if _online:
+                # A separate user scope bounds the entire process tree, unlike
+                # per-process rlimits. Fail closed if the scope is unavailable.
+                systemd_run=shutil.which('systemd-run')
+                if not systemd_run:
+                    raise RuntimeError('Online sandbox requires a task resource scope')
+                runtime_dir=os.environ.get('XDG_RUNTIME_DIR',f'/run/user/{os.getuid()}')
+                if runtime_dir != f'/run/user/{os.getuid()}':
+                    raise RuntimeError('Unexpected user runtime directory')
+                env['XDG_RUNTIME_DIR']=runtime_dir
+                command=[systemd_run,'--user','--scope','--quiet','--unit=bimem-sandbox-'+uuid.uuid4().hex,
+                    '-p','TasksMax=32','-p','MemoryMax=2G','-p','CPUQuota=100%',*command]
+            start=time.monotonic()
+            if _online:
+                from .sandbox_task_proxy import host_proxy_socket
+                key=hashlib.sha256(json.dumps({'owner':_owner,'producer':_producer},sort_keys=True).encode()).hexdigest()
+                work_path=root/'.sandbox-work'/key
+                workfd=_safe_parent(root,work_path)
+                try:
+                    info=os.fstat(workfd)
+                    if info.st_uid!=os.getuid() or stat.S_IMODE(info.st_mode)&0o077:
+                        raise PermissionError('task workspace is not private and owned')
+                    # Ensure Python's import machinery sees a real directory
+                    # before a child installs a dependency during this run.
+                    try:os.mkdir('dependencies',mode=0o700,dir_fd=workfd)
+                    except FileExistsError:pass
+                    depsfd=os.open('dependencies',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=workfd)
+                    try:
+                        deps=os.fstat(depsfd)
+                        if deps.st_uid!=os.getuid():raise PermissionError('task dependency directory is not owned')
+                    finally:os.close(depsfd)
+                    try:os.mkdir('tmp',mode=0o700,dir_fd=workfd)
+                    except FileExistsError:pass
+                    tmpfd=os.open('tmp',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=workfd)
+                    try:
+                        temp_info=os.fstat(tmpfd)
+                        if temp_info.st_uid!=os.getuid():raise PermissionError('task temporary directory is not owned')
+                    finally:os.close(tmpfd)
+                    socket_name='network-proxy-'+uuid.uuid4().hex+'.sock'
+                    with host_proxy_socket(workfd,_proxy_port,socket_name=socket_name,direct=_direct):
+                        env.update(TASK_SANDBOX_WORK_FD=str(workfd),TASK_SANDBOX_PROXY_SOCKET=socket_name)
+                        process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,pass_fds=(fd,workfd),start_new_session=True)
+                        try:stdout,stderr=process.communicate(timeout=timeout_seconds+15)
+                        except BaseException:
+                            os.killpg(process.pid,signal.SIGKILL);process.communicate();raise
+                finally:os.close(workfd)
+            else:
+                process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,pass_fds=(fd,),start_new_session=True)
+                try:stdout,stderr=process.communicate(timeout=timeout_seconds+15)
+                except BaseException:
+                    os.killpg(process.pid,signal.SIGKILL);process.communicate();raise
             write('launcher.stdout',stdout[:65536]);write('launcher.stderr',stderr[:65536])
             receipt['duration_seconds']=round(time.monotonic()-start,6)
             try:observed=json.loads(stdout.decode().strip().splitlines()[-1])
@@ -409,6 +463,9 @@ def plot_result_code(script,input_tables=None,output_dir=None,*,owned_root,timeo
                 'reports':observed.get('render_diagnostics',[])}
             if process.returncode==0 and observed.get('os_isolated') is True:
                 receipt['sandbox']['os_isolated']=True;receipt['status']='execution_failed'
+                if _online:
+                    receipt['sandbox'].update(network=True,network_scope='task_private_proxy',
+                        network_connectivity_verified=False)
                 receipt['error']=('The isolated data script did not produce its declared outputs; inspect its native stderr and exit status.'
                     if _mode=='data' else 'The isolated plot script did not produce accepted PNG output; inspect its native stderr and exit status.')
                 receipt['error_kind']='data_execution_failed' if _mode=='data' else 'plot_execution_failed'
@@ -446,7 +503,7 @@ def plot_result_code(script,input_tables=None,output_dir=None,*,owned_root,timeo
             if observed!=audit['sha256']:
                 receipt['ok']=False;receipt['status']='source_changed'
                 receipt['error']='Plot source bytes changed during rendering.';receipt['error_kind']='plot_source_changed';break
-        if _implementation_facts(Path(__file__).resolve().parents[1],mode=_mode)!=implementations:
+        if _implementation_facts(Path(__file__).resolve().parents[1],mode=_mode,online=_online)!=implementations:
             receipt['ok']=False;receipt['status']='implementation_changed'
             receipt['error']='Plot implementation changed during rendering.';receipt['error_kind']='plot_implementation_changed'
         if (_mode=='data' and pending_data is not None and receipt.get('sandbox',{}).get('os_isolated') is True
@@ -466,11 +523,12 @@ def plot_result_code(script,input_tables=None,output_dir=None,*,owned_root,timeo
 from .plot_dependencies import PLOT_IMPLEMENTATIONS
 
 
-def _implementation_facts(project_root,mode='plot'):
+def _implementation_facts(project_root,mode='plot',online=False):
     root=Path(project_root)
     files={}
     names=('agents/registry.py','agents/installations.py',*PLOT_IMPLEMENTATIONS)
     if mode=='data':names=(*names,'agents/analysis_artifact_binding.py','agents/workflow_compiler.py','agents/watch_context.py')
+    if online:names=(*names,'agents/sandbox_task_proxy.py')
     for name in names:
         raw=_read(root,root/name,16*1024**2)
         files[name]={'sha256':hashlib.sha256(raw).hexdigest(),'bytes':len(raw)}

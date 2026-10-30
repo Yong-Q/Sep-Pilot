@@ -3288,7 +3288,31 @@ def _schedule_lifecycle(coro):
     task.add_done_callback(_lifecycle_tasks.discard)
 
 
+_lifecycle_dispatch_inflight = set()
+
+
 async def _dispatch_lifecycle_once():
+    # A large or slow mailbox must not delay another user's ready work.
+    # Keep one receiver sweep per conversation and bound total I/O. Claims
+    # and receipts remain serialized by the original durable mailbox locks.
+    semaphore = asyncio.Semaphore(8)
+    pending = []
+
+    async def dispatch(username, conv, store):
+        key = (username, conv.conv_id)
+        if key in _lifecycle_dispatch_inflight:
+            return
+        _lifecycle_dispatch_inflight.add(key)
+        try:
+            async with semaphore:
+                try:
+                    await _dispatch_conversation_lifecycle(username, conv, store)
+                except Exception as error:
+                    # Keep the affected conversation's state for recovery.
+                    print(f'[Lifecycle] conversation {username}/{conv.conv_id} dispatch error: {error}', flush=True)
+        finally:
+            _lifecycle_dispatch_inflight.discard(key)
+
     for username in session_manager.list_users():
         user = session_manager.get_user(username)
         for conv in list(user.conversations.values()):
@@ -3297,12 +3321,19 @@ async def _dispatch_lifecycle_once():
             store = conv.session._lifecycle_store
             if not store:
                 continue
-            try:
-                await _dispatch_conversation_lifecycle(username, conv, store)
-            except Exception as error:
-                # One corrupt mailbox or workflow receipt must not starve
-                # other conversations. Keep its state and claims for recovery.
-                print(f'[Lifecycle] conversation {username}/{conv.conv_id} dispatch error: {error}', flush=True)
+            pending.append(dispatch(username, conv, store))
+    if pending:
+        tasks = [asyncio.create_task(item) for item in pending]
+        try:
+            await asyncio.gather(*tasks)
+        except BaseException:
+            # Even a child-raised CancelledError must not leave other sweeps
+            # running in the background. Their durable I/O uses shield and
+            # settles or returns its claim before cancellation completes.
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            raise
 
 
 async def _claim_lifecycle_receiver(store, event_id, receiver):
@@ -3342,6 +3373,10 @@ async def _lifecycle_controls_changed(conv, event, goal_version):
 async def _claim_current_lifecycle_receiver(conv, event, store, receiver, goal_version):
     claimed = False
     try:
+        # Keep unchanged controls from repeatedly claiming and rewriting the
+        # durable mailbox. Still recheck after claiming to cover races.
+        if await _lifecycle_controls_changed(conv, event, goal_version):
+            return False
         claimed = await _claim_lifecycle_receiver(store, event['event_id'], receiver)
         if claimed and await _lifecycle_controls_changed(conv, event, goal_version):
             await _durable_io(store.receipt, event['event_id'], receiver, 'retry',

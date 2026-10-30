@@ -4237,8 +4237,33 @@ def _exec_run_analysis_sandbox(p):
     ctx=get_context();owner={'username':ctx.get('username'),'conv_id':ctx.get('conv_id')}
     if not all(owner.values()):return {'error':'analysis requires an authenticated owned session','executed':False}
     values=dict(p);outputs=values.pop('declared_outputs')
+    online=values.pop('network_access',None)
+    if online is not None and type(online)is not bool:return {'error':'network_access must be a boolean','executed':False}
     producer={'step_id':ctx.get('step_id',''),'runtime_token':ctx.get('runtime_token','')}
-    return plot_result_code(**values,owned_root=session_root(),_mode='data',_declared_outputs=outputs,_owner=owner,_producer=producer)
+    direct=os.environ.get('BIMEM_SANDBOX_DIRECT_EGRESS')=='1'
+    allow_local=os.environ.get('BIMEM_SANDBOX_ALLOW_LOCAL')=='1'
+    from urllib.parse import urlsplit
+    configured=os.environ.get('HTTPS_PROXY') or os.environ.get('https_proxy') or ''
+    port=None
+    try:
+        endpoint=urlsplit(configured)
+        if (endpoint.scheme=='http' and endpoint.hostname=='127.0.0.1' and endpoint.port
+                and endpoint.username is None and endpoint.password is None
+                and endpoint.path in ('','/') and not endpoint.query and not endpoint.fragment):
+            port=endpoint.port
+    except ValueError:pass
+    if online is None:online=bool((port or direct) and all(producer.values()))
+    if online:
+        # A proxy is configured by the operator, never by the model. Forward
+        # only a loopback endpoint, without credentials or host environment.
+        if not port and not direct:
+            return {'error':'Sandbox networking is unavailable: configure an operator-owned local HTTP proxy.',
+                    'error_kind':'sandbox_network_unavailable','executed':False}
+        return plot_result_code(**values,owned_root=session_root(),_mode='data',_declared_outputs=outputs,
+                                _owner=owner,_producer=producer,_online=True,_proxy_port=port,
+                                _direct=direct,_allow_local=allow_local)
+    return plot_result_code(**values,owned_root=session_root(),_mode='data',_declared_outputs=outputs,
+                            _owner=owner,_producer=producer,_allow_local=allow_local)
 
 def _exec_generate_report(p: Dict[str, Any]) -> Any:
     """自动生成科学验证报告"""
@@ -4955,6 +4980,9 @@ _SCHEMAS['run_analysis_sandbox']={
 
 _SCHEMAS['run_analysis_sandbox']['schema']['properties']['input_files']['items']['properties']['format']['enum'].append('png')
 _SCHEMAS['run_analysis_sandbox']['schema']['properties']['input_files'].pop('maxItems',None)
+_SCHEMAS['run_analysis_sandbox']['schema']['properties']['network_access']={'type':'boolean',
+    'description':'Task-scoped network and shell access is enabled automatically for an active workflow when an operator proxy is configured; set false to opt out or true to require it. Python pip installs into /work/dependencies by default; /work persists across attempts for this task. Inputs remain read-only. Network may be unavailable; inspect stderr and choose a working approach.'}
+_SCHEMAS['run_analysis_sandbox']['description'] += ' With task network enabled, use shell commands and install dependencies in your own /work. Host environment variables are not forwarded.'
 _SCHEMAS['run_analysis_sandbox']['description'] += ' Existing owned PNG images can be read as /inputs/<input_id>.png and inserted into a directly authored PDF; declare it with format file and write it to /output/<name>.pdf. Generic file output accepts any format; the server preserves ownership and bytes, not academic style.'
 
 _EXECUTORS = {

@@ -18,6 +18,7 @@ import stat
 import subprocess
 import sys
 import time
+import importlib.util
 
 
 def native_png_output_contract():
@@ -95,7 +96,10 @@ def mount(*args):
     libc.mount.restype=ctypes.c_int
     if args[0]=='--make-rprivate':source=None;target=args[1];kind=None;flags=16384|262144;data=None
     elif args[0]=='--bind':source=args[1];target=args[2];kind=None;flags=4096;data=None
-    elif args[0]=='-o':source=None;target=args[2];kind=None;flags=32|4096|1|2|4;data=None
+    elif args[0]=='-o':
+        source=None;target=args[2];kind=None
+        options=set(args[1].split(','))
+        flags=32|4096|2|4|(1 if 'ro' in options else 0);data=None
     else:
         source=args[-2];target=args[-1];kind=args[1];flags=2|4|(8 if 'noexec' in args[3] else 0);data=','.join(x for x in args[3].split(',') if x.startswith('size='))
     enc=lambda x:None if x is None else os.fsencode(x)
@@ -108,6 +112,12 @@ def bind(source,target):
     mount('--bind',source,target)
     mount('-o','remount,bind,ro,nosuid,nodev',target)
 
+def bind_task_work(source,target):
+    """The only host-backed writable workspace, scoped to this attempt."""
+    target.mkdir(parents=True,exist_ok=True)
+    mount('--bind',source,target)
+    mount('-o','remount,bind,nosuid,nodev',target)
+
 
 def secure_child(root,timeout,ready,mode='plot'):
     os.chroot(root);os.chdir('/output')
@@ -117,6 +127,10 @@ def secure_child(root,timeout,ready,mode='plot'):
     resource.setrlimit(resource.RLIMIT_FSIZE,(image_limit,image_limit))
     resource.setrlimit(resource.RLIMIT_NOFILE,(128,128))
     resource.setrlimit(resource.RLIMIT_CORE,(0,0))
+    if mode=='data-online':
+        # Limit only this child's inherited resource limit; never modify the
+        # backend, other processes or the host UID's global limits.
+        resource.setrlimit(resource.RLIMIT_NPROC,(16,16))
     libc=ctypes.CDLL(None,use_errno=True)
     for cap in range(64):libc.prctl(24,cap,0,0,0) # PR_CAPBSET_DROP
     class Header(ctypes.Structure):_fields_=[('version',ctypes.c_uint32),('pid',ctypes.c_int)]
@@ -127,14 +141,19 @@ def secure_child(root,timeout,ready,mode='plot'):
     class Filter(ctypes.Structure):_fields_=[('code',ctypes.c_ushort),('jt',ctypes.c_ubyte),('jf',ctypes.c_ubyte),('k',ctypes.c_uint32)]
     class Program(ctypes.Structure):_fields_=[('len',ctypes.c_ushort),('filter',ctypes.POINTER(Filter))]
     ops=[Filter(0x20,0,0,4),Filter(0x15,1,0,0xc000003e),Filter(0x06,0,0,0x80000000),Filter(0x20,0,0,0),Filter(0x35,0,1,0x40000000),Filter(0x06,0,0,0x80000000)]
-    ops.extend([Filter(0x15,0,4,56),Filter(0x20,0,0,16),Filter(0x45,1,0,0x10000),Filter(0x06,0,0,0x50000|errno.EPERM),Filter(0x06,0,0,0x7fff0000)])
+    online=mode=='data-online'
+    if not online:
+        ops.extend([Filter(0x15,0,4,56),Filter(0x20,0,0,16),Filter(0x45,1,0,0x10000),Filter(0x06,0,0,0x50000|errno.EPERM),Filter(0x06,0,0,0x7fff0000)])
     ops.extend([Filter(0x15,0,1,435),Filter(0x06,0,0,0x50000|errno.ENOSYS)])
-    for number in [29,30,31,64,65,66,67,68,69,70,71,220,240,241,242,243,244,245,41,53,57,58,59,62,101,155,161,165,166,200,234,272,298,304,308,310,311,321,322,425,426,427]:
+    blocked=[29,30,31,64,65,66,67,68,69,70,71,220,240,241,242,243,244,245,62,101,155,161,165,166,200,234,272,298,304,308,310,311,321,425,426,427]
+    if not online:blocked += [41,53,57,58,59,322]
+    for number in blocked:
         ops.extend([Filter(0x15,0,1,number),Filter(0x06,0,0,0x50000|errno.EPERM)])
     ops.append(Filter(0x06,0,0,0x7fff0000));array=(Filter*len(ops))(*ops)
     if libc.prctl(22,2,ctypes.byref(Program(len(ops),array)),0,0)!=0:raise OSError('seccomp unavailable')
     # Host Python already started; remove host paths and close every extra fd.
     sys.path[:]=[p for p in sys.path if p.startswith(sys.prefix+'/')]
+    if mode=='data-online':sys.path.insert(0,'/work/dependencies')
     os.write(ready,b'1')
     os.closerange(3,1048576)
     import runpy
@@ -145,7 +164,7 @@ def secure_child(root,timeout,ready,mode='plot'):
 
 
 def main(stage,timeout,mode='plot'):
-    if mode not in {'plot','data'}:raise ValueError('unsupported sandbox output mode')
+    if mode not in {'plot','data','data-online'}:raise ValueError('unsupported sandbox output mode')
     global STAGE_FD
     inherited=int(stage.rsplit('/',1)[-1])
     before=os.fstat(inherited)
@@ -161,7 +180,44 @@ def main(stage,timeout,mode='plot'):
     root=Path('.')
     for path in ['/usr','/lib','/lib64',sys.prefix]:
         if Path(path).exists():bind(path,root/path.lstrip('/'))
+    if mode=='data-online' and (root/'usr/bin').is_dir():
+        os.symlink('usr/bin',root/'bin')
+        if (root/'usr/sbin').is_dir():os.symlink('usr/sbin',root/'sbin')
+        # Permit TLS clients to use public system trust anchors without
+        # exposing unrelated host /etc configuration or private key paths.
+        for ca_dir in ('/etc/ssl/certs','/etc/pki/tls/certs'):
+            if Path(ca_dir).is_dir():bind(ca_dir,root/ca_dir.lstrip('/'))
     bind(stage/'inputs',root/'inputs');bind(stage/'code',root/'code')
+    if mode=='data-online':
+        # The host creates a task-private /work; only the isolated child may
+        # write there. A trusted relay gives this network namespace access to
+        # the configured proxy without exposing host loopback listeners.
+        work_fd=int(os.environ['TASK_SANDBOX_WORK_FD'])
+        work_info=os.fstat(work_fd)
+        if not stat.S_ISDIR(work_info.st_mode):raise ValueError('invalid task workspace descriptor')
+        work_source=os.readlink(f'/proc/self/fd/{work_fd}')
+        if not os.path.isabs(work_source) or work_source.endswith(' (deleted)'):
+            raise ValueError('invalid task workspace path')
+        check_fd=os.open(work_source,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+        try:
+            check=os.fstat(check_fd)
+            if (check.st_dev,check.st_ino)!=(work_info.st_dev,work_info.st_ino):
+                raise ValueError('task workspace changed before mount')
+            bind_task_work(work_source,root/'work')
+            mounted=os.stat(root/'work')
+            if (mounted.st_dev,mounted.st_ino)!=(work_info.st_dev,work_info.st_ino):
+                raise ValueError('task workspace changed during mount')
+        finally:os.close(check_fd)
+        subprocess.run(['/usr/sbin/ip','link','set','lo','up'],check=True,timeout=5,
+                       stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        proxy_path=Path(__file__).with_name('sandbox_task_proxy.py')
+        spec=importlib.util.spec_from_file_location('_task_proxy',proxy_path)
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        socket_name=os.environ['TASK_SANDBOX_PROXY_SOCKET']
+        if not re.fullmatch(r'network-proxy-[0-9a-f]{32}\.sock',socket_name):
+            raise ValueError('invalid task proxy socket identity')
+        proxy_context=module.namespace_proxy_socket('work/'+socket_name)
+        namespace_proxy_port=proxy_context.__enter__()
     for name,size in [('output','32m'),('tmp','32m')]:
         (root/name).mkdir();mount('-t','tmpfs','-o',f'size={size},nosuid,nodev,noexec','tmpfs',root/name)
     (root/'dev').mkdir()
@@ -176,7 +232,17 @@ def main(stage,timeout,mode='plot'):
             os.close(ready_read)
             for fd,name in [(1,'stdout.log'),(2,'stderr.log')]:
                 target=os.open(stage/name,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600);os.dup2(target,fd);os.close(target)
+            # Never forward API keys or ambient user environment into code.
             os.environ.clear();os.environ.update({'HOME':'/tmp','MPLCONFIGDIR':'/tmp/matplotlib','MPLBACKEND':'Agg','OMP_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','MKL_NUM_THREADS':'1','LANG':'C.UTF-8','PATH':'/usr/bin'})
+            if mode=='data-online':
+                endpoint='http://127.0.0.1:'+str(namespace_proxy_port)
+                os.environ.update(HOME='/work',PATH=sys.prefix+'/bin:/usr/bin:/bin',
+                    PYTHONPATH='/work/dependencies',PYTHONNOUSERSITE='1',
+                    TMPDIR='/work/tmp',
+                    PIP_CONFIG_FILE='/dev/null',PIP_NO_INPUT='1',PIP_DISABLE_PIP_VERSION_CHECK='1',
+                    PIP_CACHE_DIR='/work/pip-cache',PIP_TARGET='/work/dependencies',
+                    HTTP_PROXY=endpoint,HTTPS_PROXY=endpoint,
+                    ALL_PROXY=endpoint,NO_PROXY='')
             secure_child(str(root),timeout,ready_write,mode)
             sys.stdout.flush();sys.stderr.flush();os._exit(0)
         except BaseException:
@@ -189,6 +255,20 @@ def main(stage,timeout,mode='plot'):
         if time.monotonic()>end:
             timed_out=True;os.kill(pid,signal.SIGKILL);_,status=os.waitpid(pid,0);break
         time.sleep(.05)
+    if mode=='data-online':
+        # This process must be PID 1 of the task's dedicated PID namespace.
+        # A script may launch background processes; stop and reap those exact
+        # namespace descendants before examining or publishing any outputs.
+        if os.getpid()!=1:raise ValueError('online sandbox lacks a dedicated PID namespace')
+        try:os.kill(-1,signal.SIGKILL)
+        except ProcessLookupError:pass
+        deadline=time.monotonic()+3
+        while True:
+            try:remaining,_=os.waitpid(-1,os.WNOHANG)
+            except ChildProcessError:break
+            if remaining==0:
+                if time.monotonic()>=deadline:raise ValueError('sandbox descendants did not exit')
+                time.sleep(.02)
     code=os.waitstatus_to_exitcode(status)
     ready=os.read(ready_read,2)==b'1';os.close(ready_read)
     result={'exit_code':code,'timed_out':timed_out,'images':[],'os_isolated':ready}
@@ -210,7 +290,7 @@ def main(stage,timeout,mode='plot'):
         result['render_diagnostics']=diagnostics[-8:]
     except OSError:pass
     if code==0 and not timed_out:
-        if mode=='data':
+        if mode in {'data','data-online'}:
             try:_data_outputs(root,stage,result)
             except (OSError,ValueError,UnicodeError,csv.Error,RecursionError) as error:
                 result['output_error']=str(error)[:1000]
