@@ -1,3 +1,4 @@
+from tests.native_child_capture import native_source
 """Bounded barriers and fake scheduler receipts, never real submissions/LLMs."""
 import copy
 import json
@@ -17,7 +18,9 @@ from agents.parallel_workflow import (ParallelWorkflow, WorkflowStore, conflicts
                                       resources_for, dependency_runtime_arguments,
                                       runtime_summary)
 from agents.registry import _build_default_registry
+from agents.recovery import RecoveryGate, input_fingerprint
 from agents.session import Session
+from agents.result_validation import VALIDATION_SCHEMA_VERSION
 from agents.state_io import json_transaction,write_checkpoint
 from agents.task_line import TaskLineStore
 
@@ -26,6 +29,11 @@ def test_model_gate_defaults_to_four_parallel_calls(monkeypatch):
     from agents import model_gate
     monkeypatch.delenv('BIMEM_MODEL_CALL_CONCURRENCY', raising=False)
     assert model_gate._configured_concurrency() == 4
+
+
+def test_find_cif_is_a_readonly_runtime_query():
+    from agents.parallel_workflow import READ_ONLY
+    assert 'find_cif' in READ_ONLY
 
 
 def test_configuration_recovery_preserves_failed_attempt_and_completed_branches(tmp_path):
@@ -44,6 +52,89 @@ def test_configuration_recovery_preserves_failed_attempt_and_completed_branches(
     assert state['nodes']['generate']['attempt_history'][0]['error'] == 'old preflight'
     assert state['nodes']['literature']['status'] == 'succeeded'
     assert not store.requeue_configuration_preflight('w', 'generate', 'old', {})
+
+
+def test_verified_retry_requeues_only_matching_failed_attempt_and_keeps_history(tmp_path):
+    path = tmp_path / 'workflow.json'
+    failed = {'status': 'failed', 'token': 'old', 'attempt_id': 'attempt', 'recovery_key': 'key',
+              'tool_returned': True, 'job_ids': ['42'], 'error': 'real job failure',
+              'configuration_recovery': {'attempt_id': 'earlier-preflight'},
+              'contract': {'tool': 'generate_structure'}}
+    path.write_text(json.dumps({'workflows': {'w': {'status': 'needs_user', 'pause_kind': 'failure',
+        'nodes': {'generate': failed, 'literature': {'status': 'succeeded'}}}}, 'leases': {}}))
+    store = WorkflowStore(path)
+    permit = {'key': 'key', 'status': 'failed', 'attempt_id': 'attempt', 'approved_attempt_id': 'attempt',
+              'approved_fingerprint': 'verified', 'attempts': 1}
+    assert not store.requeue_verified_retry('w', 'generate', 'wrong', permit)
+    assert store.requeue_verified_retry('w', 'generate', 'old', permit)
+    state = store.snapshot('w')
+    assert state['nodes']['generate']['attempt_history'][0]['job_ids'] == ['42']
+    assert state['nodes']['generate']['status'] == 'pending'
+    assert 'configuration_recovery' not in state['nodes']['generate']
+    assert state['nodes']['generate']['attempt_history'][0]['configuration_recovery']['attempt_id'] == 'earlier-preflight'
+    assert state['nodes']['literature']['status'] == 'succeeded'
+    assert state['status'] == 'active'
+    assert not store.requeue_verified_retry('w', 'generate', 'old', permit)
+
+
+@pytest.mark.parametrize('blocker', [None, 'token', 'permit_attempt', 'proof_attempt', 'error',
+                                    'tool_returned', 'job_ids', 'attempt_id', 'live_lease', 'user_pause',
+                                    'missing_token', 'missing_permit', 'missing_proof', 'verified_attempt', 'dispatch_phase'])
+def test_stale_configuration_preclaim_migration_is_exact_and_single_use(tmp_path, blocker):
+    failed = {'status': 'failed', 'token': 'current', 'attempt_id': None, 'recovery_key': 'key',
+              'dispatch_phase': 'preflight', 'tool_returned': False, 'job_ids': [],
+              'error': 'configuration recovery requires an unexecuted generator preflight failure',
+              'configuration_recovery': {'attempt_id': 'older-preflight'},
+              'verified_retry': {'attempt_id': 'real-failure'},
+              'contract': {'tool': 'generate_structure'}}
+    permit = {'key': 'key', 'status': 'failed', 'attempt_id': 'real-failure',
+              'approved_attempt_id': 'real-failure', 'approved_fingerprint': 'verified', 'attempts': 2}
+    if blocker == 'permit_attempt': permit['approved_attempt_id'] = 'other'
+    if blocker == 'missing_token': failed['token'] = None
+    if blocker == 'missing_permit': permit['approved_fingerprint'] = None
+    if blocker == 'missing_proof': failed.pop('configuration_recovery')
+    if blocker == 'verified_attempt': failed['verified_retry']['attempt_id'] = 'other'
+    if blocker == 'dispatch_phase': failed['dispatch_phase'] = 'entered_tool'
+    if blocker == 'proof_attempt': failed['configuration_recovery']['attempt_id'] = 'real-failure'
+    if blocker == 'error': failed['error'] = 'unrelated preclaim failure'
+    if blocker == 'tool_returned': failed['tool_returned'] = True
+    if blocker == 'job_ids': failed['job_ids'] = ['live-job']
+    if blocker == 'attempt_id': failed['attempt_id'] = 'new-claim'
+    workflow = {'status': 'needs_user', 'pause_kind': 'failure',
+                'user_paused': blocker == 'user_pause', 'nodes': {'generate': failed}}
+    leases = {'current': {'workflow_id': 'w', 'step_id': 'generate'}} if blocker == 'live_lease' else {}
+    path = tmp_path / 'workflow.json'
+    path.write_text(json.dumps({'workflows': {'w': workflow}, 'leases': leases}))
+    store = WorkflowStore(path)
+    before = store.snapshot()
+    assert store.requeue_verified_retry('w', 'generate', 'wrong' if blocker == 'token' else 'current', permit) is (blocker is None)
+    if blocker:
+        assert store.snapshot() == before
+    else:
+        recovered = store.snapshot('w')['nodes']['generate']
+        assert recovered['status'] == 'pending'
+        assert recovered['verified_retry']['attempt_id'] == 'real-failure'
+        assert 'configuration_recovery' not in recovered
+        assert recovered['attempt_history'][0]['error'] == failed['error']
+        assert not store.requeue_verified_retry('w', 'generate', 'current', permit)
+
+
+@pytest.mark.parametrize('blocker', ['user_pause', 'live_lease'])
+def test_verified_retry_preserves_user_pause_and_live_lease(tmp_path, blocker):
+    failed = {'status': 'failed', 'token': 'old', 'attempt_id': 'attempt',
+              'recovery_key': 'key', 'job_ids': ['42'], 'contract': {'tool': 'generate_structure'}}
+    workflow = {'status': 'needs_user', 'pause_kind': 'failure',
+                'user_paused': blocker == 'user_pause', 'nodes': {'generate': failed}}
+    leases = {'old': {'workflow_id': 'w', 'step_id': 'generate', 'owner_pid': os.getpid()}} if blocker == 'live_lease' else {}
+    path = tmp_path / 'workflow.json'
+    path.write_text(json.dumps({'workflows': {'w': workflow}, 'leases': leases}))
+    store = WorkflowStore(path)
+    before = store.snapshot()
+    permit = {'key': 'key', 'status': 'failed', 'attempt_id': 'attempt',
+              'approved_attempt_id': 'attempt', 'approved_fingerprint': 'verified', 'attempts': 1}
+
+    assert not store.requeue_verified_retry('w', 'generate', 'old', permit)
+    assert store.snapshot() == before
 
 
 def test_legacy_compatible_reset_restores_only_affected_completed_branch(tmp_path):
@@ -198,6 +289,105 @@ def test_branch_failure_keeps_independent_ready_work_and_blocks_descendants(fact
     rt.store.update(rt.workflow_id, 'independent', independent['token'], {'status': 'succeeded'}, release=True)
 
 
+def stopped_branch_dag(factory, status='needs_resources', pause_kind='resource_review'):
+    rt = factory([node('gen'), node('charge', deps=['gen']),
+        node('qc', deps=['charge']), node('pore', deps=['qc']),
+        node('report', deps=['pore'])])
+    rt.start(1)
+    with json_transaction(rt.store.path) as data:
+        state = data['workflows'][rt.workflow_id]
+        for key in ('gen', 'charge'):
+            state['nodes'][key].update(status='succeeded', phase='finish', result={'content': key})
+        state['nodes']['pore'].update(status=status, token='old-pore', dispatch_phase='preflight',
+            tool_returned=False, job_ids=[], resource_review_attempts=3)
+        state.update(status='needs_user', pause_kind=pause_kind, pause_reason='old branch-local failure')
+    return rt
+
+
+@pytest.mark.parametrize('status', ['failed', 'validation_failed', 'needs_resources'])
+@pytest.mark.parametrize('pause_kind', [None, 'failure', 'resource_review'])
+def test_restart_dispatches_independent_qc_despite_stopped_downstream_branch(factory, status, pause_kind):
+    rt = stopped_branch_dag(factory, status, pause_kind)
+    calls = []
+    rt.main.registry.get('read_file').execute = lambda args: calls.append(args['path']) or {'content': 'qc checked'}
+    before = rt.snapshot()
+    rt.main._pending_workflow_patch = {'affected_nodes': ['pore', 'report'], 'plan_version': 2}
+    rt.tick()
+    eventually(lambda: rt.snapshot()['nodes']['qc']['status'] == 'succeeded')
+    rt.tick()
+    state = rt.snapshot()
+    assert calls == ['qc']
+    assert state['nodes']['pore'] == before['nodes']['pore']
+    assert state['nodes']['report']['status'] == 'pending'
+    assert all(state['nodes'][key] == before['nodes'][key] for key in ('gen', 'charge'))
+
+
+@pytest.mark.parametrize('blocker', ['user_pause', 'user_change', 'input_changed', 'uncertain',
+    'owner', 'goal_scope', 'unapproved', 'line_scope', 'affected_qc', 'lease', 'awaiting_approval'])
+def test_branch_resume_retains_approval_pause_and_lease_guards(factory, blocker):
+    rt = stopped_branch_dag(factory)
+    calls = []
+    rt.main.registry.get('read_file').execute = lambda args: calls.append(args['path']) or {'content': 'qc checked'}
+    with json_transaction(rt.store.path) as data:
+        state = data['workflows'][rt.workflow_id]
+        if blocker == 'user_pause': state['user_paused'] = True
+        if blocker in {'user_change', 'input_changed'}: state['pause_kind'] = blocker
+        if blocker == 'uncertain': state['nodes']['pore']['status'] = 'uncertain'
+        if blocker == 'owner': state['username'] = 'other'
+        if blocker == 'lease':
+            resources = state['nodes']['qc']['contract']['resources']
+            data.setdefault('leases', {})['other-owner'] = {'workflow_id': 'other', 'step_id': 'other',
+                'resources': [{**resource, 'mode': 'exclusive'} for resource in resources]}
+    if blocker == 'goal_scope': rt.main.goal_contract.parameters['temperature'] = 310
+    if blocker == 'unapproved': rt.main.goal_contract.execution_authorized = False
+    if blocker == 'line_scope':
+        rt.main.goal_contract.approved_nodes[2]['arguments']['path'] = 'different-qc'
+    if blocker == 'affected_qc':
+        rt.main._pending_workflow_patch = {'affected_nodes': ['qc'], 'plan_version': 2}
+    if blocker == 'awaiting_approval': rt.main._awaiting_plan_approval = True
+    rt.tick()
+    assert calls == []
+    assert rt.snapshot()['nodes']['qc']['status'] == 'pending'
+
+
+@pytest.mark.parametrize('status', ['failed', 'validation_failed', 'needs_resources'])
+@pytest.mark.parametrize('revised', [False, True])
+def test_activate_and_start_report_partial_when_independent_ready_branch_remains(factory, status, revised):
+    rt = factory([node('bad'), node('independent'), node('dependent', deps=['bad'])])
+    rt.start(1)
+    with json_transaction(rt.store.path) as data:
+        state = data['workflows'][rt.workflow_id]
+        state['nodes']['bad'].update(status=status, token='failed-token')
+        state.update(status='needs_user', pause_kind='resource_review')
+    if revised:
+        rt.task_lines.apply_workflow_patch(rt.main._current_line_id,
+            [{'operation': 'upsert', 'step_id': 'independent', 'node': node('independent')}], 1, 2, 'approved revision')
+        rt.main.goal_contract.approved_plan_version = 2
+    receipt = rt.start(2 if revised else 1)
+    assert receipt['scheduled'] is True
+    assert receipt['status'] == 'partial'
+    assert receipt['blocked_nodes'] == ['bad', 'dependent']
+    assert rt.snapshot()['status'] == 'active'
+    assert rt.store.claim(rt.workflow_id, 'bad') is None
+    assert rt.store.claim(rt.workflow_id, 'dependent') is None
+    assert rt.store.claim(rt.workflow_id, 'independent')
+
+
+def test_start_partial_preserves_live_branch_without_claiming_failed_nodes_recovered(factory):
+    rt = factory([node('bad'), node('live')])
+    rt.start(1)
+    live = rt.store.claim(rt.workflow_id, 'live')
+    with json_transaction(rt.store.path) as data:
+        state = data['workflows'][rt.workflow_id]
+        state['nodes']['bad'].update(status='validation_failed', token='old-bad')
+        state.update(status='needs_user', pause_kind='failure')
+    receipt = rt.start(1)
+    assert receipt['status'] == 'partial' and receipt['scheduled'] is True
+    assert receipt['blocked_nodes'] == ['bad']
+    assert rt.snapshot()['nodes']['live'] == live
+    assert rt.snapshot()['nodes']['bad']['status'] == 'validation_failed'
+
+
 def test_parallel_report_fragment_is_claimable_while_other_compute_runs(factory, tmp_path):
     fragment_path = tmp_path / 'runs' / 'tester' / 'c1' / 'reports' / 'fragments' / 'a.md'
     report = node('report__fragment__a', tool='generate_scientific_report', args={
@@ -222,44 +412,56 @@ def test_parallel_report_fragment_is_claimable_while_other_compute_runs(factory,
     assert b['token'] in rt.store.snapshot().get('leases', {})
 
 
-def test_parallel_report_assembles_current_fragments_and_rejects_stale_source(factory, tmp_path):
-    source = tmp_path / 'source.txt'
-    source.write_text('measured value: 7\n')
+def test_parallel_report_assembles_current_fragments_and_rejects_stale_source(factory, tmp_path, monkeypatch):
+    from tests.public_report_fixture_helpers import (MEASURED_CSV, install_controlled_report_provider,
+        advance_native, assert_native_report_stages)
     root = tmp_path / 'runs' / 'tester' / 'c1'
+    source = root / 'source.csv'
     fragment_path = root / 'reports' / 'fragments' / 'source.md'
     final_path = root / 'reports' / 'final.md'
     fragment = node('final__fragment__source', tool='generate_scientific_report', args={
         'source_steps': ['source'], 'output_path': str(fragment_path),
         'title': 'Source result', 'report_mode': 'fragment',
-    }, deps=['source'], outputs=[str(fragment_path)])
+    'report_requirements': {'independent_review': True}}, deps=['source'], outputs=[str(fragment_path)])
     fragment.update(agent='communicator', report_role='fragment', report_parent='final')
     final = node('final', tool='generate_scientific_report', args={
         'source_steps': ['final__fragment__source'], 'output_path': str(final_path),
         'title': 'Live report', 'report_mode': 'assembly',
-    }, deps=['final__fragment__source'], outputs=[str(final_path)])
+    'report_requirements': {'independent_review': True}}, deps=['final__fragment__source'], outputs=[str(final_path)])
     final.update(agent='communicator', report_role='assembly')
-    rt = factory([node('source', path=str(source)), fragment, final])
+    data = node('source', tool='write_file', args={'path': str(source), 'content': MEASURED_CSV}, outputs=[str(source)])
+    rt = factory([data, fragment, final])
+    calls = install_controlled_report_provider(rt, monkeypatch)
     rt.start(1)
-    rt.tick()
-    eventually(lambda: rt.snapshot()['nodes']['source']['status'] == 'succeeded')
-    rt.tick()
-    eventually(lambda: rt.snapshot()['nodes']['final__fragment__source']['status'] in {'succeeded', 'failed'})
-    assert rt.snapshot()['nodes']['final__fragment__source']['status'] == 'succeeded', rt.snapshot()['nodes']['final__fragment__source'].get('error')
-
-    fragment_result = rt.snapshot()['nodes']['final__fragment__source']['result']
+    assert advance_native(rt, 'source', blocked=['final'])['status'] == 'succeeded'
+    completed = advance_native(rt, 'final__fragment__source', blocked=['final'])
+    assert completed['status'] == 'succeeded', completed.get('error')
+    fragment_result = assert_native_report_stages(rt, completed)
     assert fragment_result['source_step'] == 'source'
     assert fragment_result['source_attempt_fingerprint']
+    assert fragment_result['source_evidence_call_id'] == rt.snapshot()['nodes']['source']['result_ref']['call_id']
     assert 'measured value' in fragment_path.read_text()
-
-    rt.tick()
-    eventually(lambda: rt.snapshot()['status'] == 'completed')
-    final_result = rt.snapshot()['nodes']['final']['result']
-    assert final_result['fragment_manifest'][0]['step_id'] == 'final__fragment__source'
+    assert '| sample | 7 | controlled_native | unknown |' in fragment_path.read_text().replace(r'\_', '_')
+    quantity = next(binding for binding in fragment_result['measurement_bindings'] if binding['column'] == 'measured_value')
+    assert quantity['source_value'] == '7'
+    assert quantity['source_sha256'] == __import__('hashlib').sha256(source.read_bytes()).hexdigest()
+    completed_final = advance_native(rt, 'final')
+    assert completed_final['status'] == 'succeeded', completed_final.get('error')
+    final_result = assert_native_report_stages(rt, completed_final)
+    # Native authored reports replaced the old JSON-index fragment manifest;
+    # exact source receipts retain stronger token/call/content-digest lineage.
+    manifest = final_result['source_receipts']
+    assert manifest[0]['step_id'] == 'final__fragment__source'
+    assert manifest[0]['token'] == completed['token']
+    assert manifest[0]['call_id'] == completed['result_ref']['call_id']
+    assert manifest[0]['source_sha256'] == __import__('hashlib').sha256(Path(completed['result_ref']['evidence_path']).read_bytes()).hexdigest()
     assert 'Source result' in final_path.read_text()
     assert final_result['report_preview'].startswith('# Live report')
+    assert final_result['report_preview'] == final_path.read_text()[:24000]
     live = runtime_summary(rt.snapshot())['live_reports']
     assert live[0]['role'] == 'assembly'
     assert live[0]['content'].startswith('# Live report')
+    assert {'author', 'review'} == {call['phase'] for call in calls}
     before = {path: path.stat().st_mtime_ns for path in (fragment_path, final_path)}
     assert rt.start(1)['status'] in {'scheduled', 'already_active'}
     rt.tick()
@@ -268,101 +470,110 @@ def test_parallel_report_assembles_current_fragments_and_rejects_stale_source(fa
 
 
 
-def test_parallel_report_rejects_fragment_from_stale_source_attempt(factory, tmp_path):
-    source = tmp_path / 'stale-source.txt'
-    source.write_text('attempt one\n')
+def test_parallel_report_rejects_fragment_from_stale_source_attempt(factory, tmp_path, monkeypatch):
+    from tests.public_report_fixture_helpers import (MEASURED_CSV, install_controlled_report_provider,
+        advance_native, assert_native_report_stages)
     root = tmp_path / 'runs' / 'tester' / 'stale'
+    source = root / 'stale-source.csv'
     fragment_path = root / 'reports' / 'fragments' / 'source.md'
     final_path = root / 'reports' / 'final.md'
     fragment = node('final__fragment__source', tool='generate_scientific_report', args={
         'source_steps': ['source'], 'output_path': str(fragment_path),
         'title': 'Source result', 'report_mode': 'fragment',
-    }, deps=['source'], outputs=[str(fragment_path)])
+    'report_requirements': {'independent_review': True}}, deps=['source'], outputs=[str(fragment_path)])
     fragment.update(agent='communicator', report_role='fragment', report_parent='final')
     final = node('final', tool='generate_scientific_report', args={
         'source_steps': ['final__fragment__source'], 'output_path': str(final_path),
         'title': 'Live report', 'report_mode': 'assembly',
-    }, deps=['final__fragment__source'], outputs=[str(final_path)])
+    'report_requirements': {'independent_review': True}}, deps=['final__fragment__source'], outputs=[str(final_path)])
     final.update(agent='communicator', report_role='assembly')
-    rt = factory([node('source', path=str(source)), fragment, final], cid='stale')
+    data = node('source', tool='write_file', args={'path': str(source), 'content': MEASURED_CSV}, outputs=[str(source)])
+    rt = factory([data, fragment, final], cid='stale')
+    install_controlled_report_provider(rt, monkeypatch)
     rt.start(1)
-    rt.tick()
-    eventually(lambda: rt.snapshot()['nodes']['source']['status'] == 'succeeded')
-    rt.tick()
-    eventually(lambda: rt.snapshot()['nodes']['final__fragment__source']['status'] in {'succeeded', 'failed'})
-    assert rt.snapshot()['nodes']['final__fragment__source']['status'] == 'succeeded', rt.snapshot()['nodes']['final__fragment__source'].get('error')
+    assert advance_native(rt, 'source', blocked=['final'])['status'] == 'succeeded'
+    completed = advance_native(rt, 'final__fragment__source', blocked=['final'])
+    assert completed['status'] == 'succeeded', completed.get('error')
+    receipt = assert_native_report_stages(rt, completed)
+    original = receipt['source_attempt_fingerprint']
+    assert original == rt.snapshot()['nodes']['source']['execution_fingerprint']
     with json_transaction(rt.store.path) as data:
         data['workflows'][rt.workflow_id]['nodes']['source']['execution_fingerprint'] = 'new-attempt'
+    failed = advance_native(rt, 'final')
+    assert failed['status'] == 'failed'
+    assert 'stale source attempt' in failed['error']
+    assert rt.snapshot()['nodes']['final__fragment__source']['result']['source_attempt_fingerprint'] == original
+    assert not final_path.exists()
 
-    rt.tick()
-    eventually(lambda: rt.snapshot()['nodes']['final']['status'] == 'failed')
-    assert 'stale source attempt' in rt.snapshot()['nodes']['final']['error']
 
-
-def test_ml_branch_finishes_and_is_added_to_final_report(factory, tmp_path):
+def test_ml_branch_finishes_and_is_added_to_final_report(factory, tmp_path, monkeypatch):
+    from tests.public_report_fixture_helpers import (MEASURED_CSV, install_controlled_report_provider,
+        controlled_safe_ml_product, assert_native_report_stages)
     root = tmp_path / 'runs' / 'tester' / 'ml-report'
-    data_csv = tmp_path / 'training.csv'
-    data_csv.write_text('feature,uptake\n1,2\n2,4\n3,6\n')
-    simulation = tmp_path / 'simulation.txt'
-    simulation.write_text('validated adsorption result\n')
+    data_csv = root / 'training.csv'
+    simulation = root / 'simulation.csv'
     model_dir = root / 'ml'
     sim_fragment = root / 'reports' / 'fragments' / 'simulation.md'
     ml_fragment = root / 'reports' / 'fragments' / 'ml.md'
     final_path = root / 'reports' / 'final.md'
     nodes = [
-        node('simulation', path=str(simulation)),
+        node('simulation', tool='write_file', args={'path': str(simulation), 'content': MEASURED_CSV}, outputs=[str(simulation)]),
         {**node('train_ml', tool='ml_train', args={
             'data_csv': str(data_csv), 'target': 'uptake', 'model_type': 'RF',
-            'output_dir': str(model_dir),
-        }, outputs=[{'kind': 'directory', 'path': str(model_dir),
-                     'pattern': '*', 'min_count': 2}]), 'agent': 'analyst'},
+            'output_dir': str(model_dir), 'synthetic_fixture': True,
+        }, outputs=[{'kind': 'directory', 'path': str(model_dir), 'pattern': '*', 'min_count': 2}]), 'agent': 'analyst'},
         {**node('final__fragment__simulation', tool='generate_scientific_report', args={
             'source_steps': ['simulation'], 'output_path': str(sim_fragment),
             'title': 'Simulation', 'report_mode': 'fragment',
-        }, deps=['simulation'], outputs=[str(sim_fragment)]),
+        'report_requirements': {'independent_review': True}}, deps=['simulation'], outputs=[str(sim_fragment)]),
          'agent': 'communicator', 'report_role': 'fragment', 'report_parent': 'final'},
         {**node('final__fragment__train_ml', tool='generate_scientific_report', args={
             'source_steps': ['train_ml'], 'output_path': str(ml_fragment),
             'title': 'Machine learning', 'report_mode': 'fragment',
-        }, deps=['train_ml'], outputs=[str(ml_fragment)]),
+        'report_requirements': {'independent_review': True}}, deps=['train_ml'], outputs=[str(ml_fragment)]),
          'agent': 'communicator', 'report_role': 'fragment', 'report_parent': 'final'},
         {**node('final', tool='generate_scientific_report', args={
             'source_steps': ['final__fragment__simulation', 'final__fragment__train_ml'],
-            'output_path': str(final_path), 'title': 'Combined report',
-            'report_mode': 'assembly',
-        }, deps=['final__fragment__simulation', 'final__fragment__train_ml'], outputs=[str(final_path)]),
+            'output_path': str(final_path), 'title': 'Combined report', 'report_mode': 'assembly',
+        'report_requirements': {'independent_review': True}}, deps=['final__fragment__simulation', 'final__fragment__train_ml'], outputs=[str(final_path)]),
          'agent': 'communicator', 'report_role': 'assembly'},
     ]
     rt = factory(nodes, cid='ml-report')
-
-    def train(_args):
-        model_dir.mkdir(parents=True)
-        (model_dir / 'model.joblib').write_bytes(b'model')
-        (model_dir / 'model_metadata.json').write_text('{"r2": 0.91}')
-        return {'status': 'success', 'model_dir': str(model_dir),
-                'metrics': {'held_out_r2': 0.91, 'cv_r2_mean': 0.87}}
-
-    rt.main.registry.get('ml_train').execute = train
+    # Fixed original labels and explicit deterministic split; no generated or
+    # random candidate labels, no joblib, no backend estimator fitting.
+    data_csv.write_text('feature,uptake\n1,2\n2,4\n3,6\n4,8\n5,10\n6,12\n7,14\n8,16\n')
+    install_controlled_report_provider(rt, monkeypatch)
+    rt.main.registry.get('ml_train').execute = controlled_safe_ml_product
     rt.start(1)
     verified_ml = False
-    for _ in range(100):
+    for _ in range(1000):
         rt.tick()
-        if rt.snapshot()['nodes']['train_ml']['status'] == 'prefinish' and not verified_ml:
-            verify_prefinish(rt, 'train_ml')
+        current = rt.snapshot()['nodes']['train_ml']
+        if current['status'] == 'prefinish' and not verified_ml:
+            metadata = json.loads((model_dir / 'model_metadata.json').read_text())
+            assert metadata['metrics']['held_out_r2'] == -49.0
+            assert metadata['train_rows'] == [1, 2, 3, 4] and metadata['test_rows'] == [7, 8]
+            assert not (model_dir / 'model.joblib').exists()
+            dossier = current['validation_dossier']
+            assert Path(dossier['evidence_path']).exists()
+            rt.finish_node('train_ml', [dossier['evidence_call_id']],
+                'Native safe JSON model, original fixed labels, deterministic split and actual metric output were checked; predictive validity remains unverified.')
             verified_ml = True
-        if rt.snapshot()['status'] == 'completed':
-            break
-        time.sleep(.05)
+        if rt.snapshot()['status'] == 'completed': break
+        time.sleep(.01)
     assert rt.snapshot()['status'] == 'completed', {
-        key: (value['status'], value.get('error'))
-        for key, value in rt.snapshot()['nodes'].items()
-    }
-
+        key: (value['status'], value.get('error')) for key, value in rt.snapshot()['nodes'].items()}
     content = final_path.read_text()
-    assert 'Machine learning' in content
-    assert 'held_out_r2' in content
+    assert 'Machine learning' in content and 'held_out_r2' in content.replace(r'\_', '_')
+    assert '-49.0' in content
     assert rt.snapshot()['nodes']['train_ml']['status'] == 'succeeded'
-    assert rt.snapshot()['nodes']['final__fragment__train_ml']['status'] == 'succeeded'
+    ml_node = rt.snapshot()['nodes']['final__fragment__train_ml']
+    assert ml_node['status'] == 'succeeded'
+    receipt = assert_native_report_stages(rt, ml_node)
+    metric = next(binding for binding in receipt['measurement_bindings'] if binding['row_selector'] == {'metric': 'held_out_r2'} and binding['column'] == 'value')
+    assert float(metric['source_value']) == metadata['metrics']['held_out_r2']
+    assert metric['source_sha256'] == __import__('hashlib').sha256((model_dir / 'metrics.csv').read_bytes()).hexdigest()
+    assert rt.snapshot()['nodes']['final']['result']['report_preview'] == content[:24000]
 
 
 def test_pending_patch_does_not_persist_user_pause(factory):
@@ -401,6 +612,35 @@ def test_start_and_tick_reports_dispatch_only_after_root_claim(factory):
     gate.set()
 
 
+@pytest.mark.parametrize('leased', [False, True])
+def test_partial_dispatch_receipt_does_not_reuse_completed_root_token(factory, leased):
+    rt = factory([node('done'), node('bad'), node('qc', deps=['done']), node('report', deps=['bad'])])
+    calls = []
+    rt.main.registry.get('read_file').execute = lambda args: calls.append(args['path']) or {'content': 'checked'}
+    rt.start(1)
+    rt.tick(blocked_nodes=['bad', 'qc', 'report'])
+    eventually(lambda: rt.snapshot()['nodes']['done']['status'] == 'succeeded')
+    with json_transaction(rt.store.path) as data:
+        state = data['workflows'][rt.workflow_id]
+        state['nodes']['bad'].update(status='failed', token='failed-token')
+        state.update(status='needs_user', pause_kind='failure')
+        if leased:
+            data.setdefault('leases', {})['lease-other'] = {'workflow_id': 'other', 'step_id': 'writer',
+                'resources': [{**resource, 'mode': 'exclusive'}
+                    for resource in state['nodes']['qc']['contract']['resources']]}
+    receipt = rt.start_and_tick(1)
+    if leased:
+        assert receipt['scheduled'] is False
+        assert receipt['dispatch_started'] is False
+        assert calls == ['done']
+    else:
+        assert receipt['status'] == 'partial' and receipt['scheduled'] is True
+        assert receipt['dispatch_started'] is True
+        assert 'qc' in receipt['dispatched_nodes']
+        assert 'done' not in receipt['dispatched_nodes']
+        eventually(lambda: calls == ['done', 'qc'])
+
+
 def test_restarting_same_plan_does_not_pause_a_live_scheduler_node(factory, tmp_path):
     inputs = tmp_path / 'input'; work = tmp_path / 'work'
     inputs.mkdir()
@@ -436,16 +676,20 @@ def test_tick_clears_stale_cache_pause_while_node_is_in_prefinish(factory):
 
 
 def test_tick_backfills_dossier_for_existing_prefinish_node(factory, tmp_path):
-    output = tmp_path / 'existing-native-output'
-    output.write_text('Simulation finished\nAverage loading absolute [mol/kg framework] 1.25\n')
+    from tests.fixture_native_dossier import prepare_native_result,write_native_result
+    work=tmp_path/'runs/tester/prefinish-dossier-backfill/native'
+    cif=work/'framework.cif';output=work/'Output/System_0/existing-native-output'
     rt = factory([node('calc', tool='run_henry', args={
-        'cif': 'x.cif', 'gas': 'Kr', 'temperature': 298,
+        'cif': str(cif), 'gas': 'Kr', 'temperature': 298,
     }, outputs=[str(output)])], cid='prefinish-dossier-backfill')
+    actual_cif,actual_output=prepare_native_result(work,filename='existing-native-output')
+    assert (actual_cif,actual_output)==(cif,output)
+    write_native_result(output,1.25)
     rt.start(1)
     ticket = rt.store.claim(rt.workflow_id, 'calc')
-    receipt = {'submitted': True, 'job_id': '499', 'work_dir': str(tmp_path)}
-    manifest = {'calculation_dir': str(tmp_path), 'result_dir': str(tmp_path),
-                'input_paths': [], 'expected_outputs': [str(output)],
+    receipt = {'submitted': True, 'job_id': '499', 'work_dir': str(work)}
+    manifest = {'calculation_dir': str(work), 'result_dir': str(work),
+                'input_paths': [str(cif),str(work/'simulation.input')], 'expected_outputs': [str(output)],
                 'output_files': [str(output)], 'checkpoint_path': None,
                 'evidence_path': None, 'updated_at': time.time()}
     rt.store.update(rt.workflow_id, 'calc', ticket['token'], {
@@ -519,6 +763,239 @@ def test_resource_review_transient_failures_retry_without_submission_or_user_vet
     assert len(reviews) == 3
     assert all(not event['payload']['requires_user'] for event in reviews)
     assert reviews[-1]['payload']['automatic_retry'] is False
+
+
+def exhausted_resource_review(factory, tmp_path, fingerprint='old-evaluator'):
+    work = tmp_path / 'resource-work'
+    work.mkdir()
+    contract = node('compute', tool='run_cdft', args={'action': 'pipeline',
+        'cif_dir': str(tmp_path / 'inputs'), 'gas': 'Kr', 'temperature': 298,
+        'job_work_dir': str(work)}, outputs=[str(work / 'result.csv')])
+    rt = factory([contract])
+    rt.start(1)
+    claim = rt.store.claim(rt.workflow_id, 'compute')
+    receipt = {'status': 'review_retry', 'retryable': True, 'reason': 'fixture provider unavailable'}
+    rt.store.update(rt.workflow_id, 'compute', claim['token'], {
+        'status': 'needs_resources', 'resource_review': receipt,
+        'resource_review_attempts': 3, 'resource_review_fingerprint': fingerprint,
+        'resource_retry_at': None, 'resource_review_history': [
+            {'review_id': f'prior{i}', 'attempt': i, 'fingerprint': fingerprint, 'receipt': receipt}
+            for i in range(1, 4)]}, release=True)
+    rt.store.pause(rt.workflow_id, 'resource review exhausted', kind='resource_review', step_id='compute')
+    return rt
+
+
+@pytest.mark.parametrize('exhausted', [False, True])
+def test_resource_review_busy_wait_does_not_consume_evaluation_or_source_recovery(factory, tmp_path, monkeypatch, exhausted):
+    rt = exhausted_resource_review(factory, tmp_path) if exhausted else factory([
+        node('compute', tool='run_henry', args={'cif': 'x.cif', 'gas': 'Kr', 'temperature': 298},
+             outputs=[str(tmp_path / 'output')])])
+    if not exhausted:
+        rt.start(1)
+    monkeypatch.setattr('agents.parallel_workflow.resource_evaluator_fingerprint', lambda main: 'fixed-evaluator')
+    reviews, science = [], []
+    busy = {'status': 'review_busy', 'review_in_progress': True, 'retryable': True, 'retry_after_seconds': 5}
+    ready = {'status': 'ready', 'resource_review_id': 'actual-ready-review', 'resource_allocations': {}}
+    rt.main._on_resource_review = lambda request: reviews.append(request) or (busy if len(reviews) <= 2 else ready)
+    tool = rt.snapshot()['nodes']['compute']['contract']['tool']
+    rt.main.registry.get(tool).execute = lambda args: science.append(args) or {'submitted': True, 'job_id': 'busy-safe-job'}
+    expected = 3 if exhausted else 0
+    for index in range(2):
+        started = time.time()
+        rt.tick()
+        eventually(lambda: rt.snapshot()['nodes']['compute']['status'] == 'needs_resources')
+        current = rt.snapshot()['nodes']['compute']
+        assert len(reviews) == index + 1 and science == []
+        assert current.get('resource_review_attempts', 0) == expected
+        assert len(current.get('resource_review_history', [])) == expected
+        assert current['resource_review_waits'] == index + 1
+        assert current['resource_retry_at'] >= started + 4
+        assert current['resource_retry_at'] < time.time() + 61
+        assert current.get('resource_review_epoch_pending') == ('fixed-evaluator' if exhausted else None)
+        assert not any(lease['workflow_id'] == rt.workflow_id for lease in rt.store.snapshot().get('leases', {}).values())
+        for future in rt.futures.values(): future.result(timeout=5)
+        rt.store.update(rt.workflow_id, 'compute', current['token'], {'resource_retry_at': time.time() - 1})
+    rt.tick()
+    eventually(lambda: rt.snapshot()['nodes']['compute']['status'] == 'waiting_jobs')
+    assert len(reviews) == 3 and len(science) == 1
+    current = rt.snapshot()['nodes']['compute']
+    assert current['resource_review_attempts'] == expected + 1
+    assert len(current['resource_review_history']) == expected + 1
+    assert current.get('resource_review_epoch_pending') is None
+
+
+@pytest.mark.parametrize('legacy', [False, True])
+def test_new_evaluator_retries_exhausted_preflight_once_and_still_requires_ready(factory, tmp_path, monkeypatch, legacy):
+    rt = exhausted_resource_review(factory, tmp_path, None if legacy else 'old-evaluator')
+    before = rt.snapshot()['nodes']['compute']
+    monkeypatch.setattr('agents.parallel_workflow.resource_evaluator_fingerprint', lambda main: 'fixed-evaluator', raising=False)
+    reviews, dispatched = [], []
+    def review(request):
+        reviews.append(request)
+        return {'status': 'ready', 'resource_review_id': 'new-verified-review',
+                'resource_allocations': {'compute': {'cpus': 1, 'memory_mb': 512}}}
+    rt.main._on_resource_review = review
+    rt.main.registry.get('run_cdft').execute = lambda args: dispatched.append(args) or {'submitted': True, 'job_id': '70301'}
+    rt.tick()
+    eventually(lambda: rt.snapshot()['nodes']['compute']['status'] == 'waiting_jobs')
+    for future in list(rt.futures.values()):future.result(timeout=5)
+    for _ in range(3):rt.tick()
+    current = rt.snapshot()['nodes']['compute']
+    assert len(reviews) == 1 and len(dispatched) == 1
+    assert current['contract'] == before['contract']
+    assert current['resource_review_attempts'] == 4
+    assert current['resource_review_history'][:3] == before['resource_review_history']
+    assert current['resource_review_history'][-1]['receipt']['status'] == 'ready'
+    assert current['resource_review_fingerprint'] == 'fixed-evaluator'
+    assert current['job_ids'] == ['70301']
+    ledger = RecoveryGate(path=rt.root / 'recovery_state.json').snapshot()
+    assert len(ledger) == 1 and next(iter(ledger.values()))['attempts'] == 1
+
+
+def test_resource_evaluator_source_epochs_are_bounded_without_resetting_history(factory, tmp_path, monkeypatch):
+    rt = exhausted_resource_review(factory, tmp_path)
+    source = ['old-evaluator']
+    monkeypatch.setattr('agents.parallel_workflow.resource_evaluator_fingerprint', lambda main: source[0], raising=False)
+    reviews = []
+    rt.main._on_resource_review = lambda req: reviews.append(req) or {
+        'status': 'review_retry', 'retryable': True, 'reason': 'still unavailable'}
+    rt.main.registry.get('run_cdft').execute = lambda args: pytest.fail('unreviewed scientific tool must not execute')
+    rt.tick(); rt.tick()
+    assert reviews == []
+    for index, value in enumerate(['new-evaluator', 'newer-evaluator'], 4):
+        source[0] = value
+        rt.tick()
+        eventually(lambda: rt.snapshot()['nodes']['compute']['resource_review_attempts'] == index)
+        for future in list(rt.futures.values()):future.result(timeout=5)
+        for _ in range(3):rt.tick()
+        assert len(reviews) == index - 3
+        assert rt.snapshot()['nodes']['compute']['resource_retry_at'] is None
+        assert not rt.store.snapshot().get('leases')
+    assert len(rt.snapshot()['nodes']['compute']['resource_review_history']) == 5
+
+
+@pytest.mark.parametrize('filename', ['resource_policy.py', 'resource_review.py', 'node_inventory.py', 'slurm.py'])
+def test_resource_evaluator_fingerprint_includes_native_review_sources(factory, monkeypatch, filename):
+    from agents.parallel_workflow import resource_evaluator_fingerprint
+    rt = factory([node('a')])
+    before = resource_evaluator_fingerprint(rt.main)
+    original = Path.read_bytes
+    monkeypatch.setattr(Path, 'read_bytes', lambda path: original(path) + (b'\n# source fix' if path.name == filename else b''))
+    assert resource_evaluator_fingerprint(rt.main) != before
+
+
+def test_resource_evaluator_fingerprint_tracks_selected_policy_not_live_inventory(factory, tmp_path):
+    from agents.parallel_workflow import resource_evaluator_fingerprint
+    rt = factory([node('a')])
+    env = tmp_path / 'env'
+    env.mkdir()
+    policy = env / 'node_policy.json'
+    policy.write_text('{"eligible_nodes":["node05"]}')
+    before = resource_evaluator_fingerprint(rt.main)
+    (env / 'node_inventory.json').write_text('{"observed_at":123}')
+    assert resource_evaluator_fingerprint(rt.main) == before
+    policy.write_text('{"eligible_nodes":["node04","node05"]}')
+    assert resource_evaluator_fingerprint(rt.main) != before
+
+
+@pytest.mark.parametrize('blocker', ['paused', 'user_paused', 'pending_patch', 'awaiting_approval',
+    'unauthorized', 'scope_changed', 'job_ids', 'attempt_id', 'recovery_key', 'entered_tool',
+    'tool_returned', 'lease', 'nonretryable', 'uncertain'])
+def test_exhausted_resource_review_recovery_preserves_dispatch_safety(factory, tmp_path, monkeypatch, blocker):
+    rt = exhausted_resource_review(factory, tmp_path)
+    monkeypatch.setattr('agents.parallel_workflow.resource_evaluator_fingerprint', lambda main: 'fixed-evaluator', raising=False)
+    reviews = []
+    rt.main._on_resource_review = lambda req: reviews.append(req) or {'status': 'ready'}
+    if blocker == 'pending_patch':rt.main._pending_workflow_patch = {'affected_nodes': ['compute']}
+    if blocker == 'awaiting_approval':rt.main._awaiting_plan_approval = True
+    if blocker == 'unauthorized':rt.main.goal_contract.execution_authorized = False
+    if blocker == 'scope_changed':rt.main.goal_contract.parameters['temperature_K'] = 310
+    with json_transaction(rt.store.path) as data:
+        workflow = data['workflows'][rt.workflow_id];current = workflow['nodes']['compute']
+        if blocker == 'user_paused':workflow['user_paused'] = True
+        if blocker == 'job_ids':current['job_ids'] = ['70301']
+        if blocker == 'attempt_id':current['attempt_id'] = 'actual-dispatch'
+        if blocker == 'recovery_key':current['recovery_key'] = 'unresolved-dispatch'
+        if blocker == 'entered_tool':current['dispatch_phase'] = 'entered_tool'
+        if blocker == 'tool_returned':current['tool_returned'] = True
+        if blocker == 'nonretryable':current['resource_review']['retryable'] = False
+        if blocker == 'uncertain':current['status'] = 'uncertain'
+        if blocker == 'lease':data.setdefault('leases', {})[current['token']] = {
+            'workflow_id': rt.workflow_id, 'step_id': 'compute', 'resources': current['contract']['resources']}
+    rt.tick(paused=blocker == 'paused')
+    assert reviews == []
+    assert rt.snapshot()['nodes']['compute']['resource_review_attempts'] == 3
+
+
+def test_changing_output_path_does_not_clear_resource_review_budget(factory, tmp_path, monkeypatch):
+    rt = exhausted_resource_review(factory, tmp_path)
+    monkeypatch.setattr('agents.parallel_workflow.resource_evaluator_fingerprint', lambda main: 'old-evaluator', raising=False)
+    reviews = []
+    rt.main._on_resource_review = lambda req: reviews.append(req) or {
+        'status': 'review_retry', 'retryable': True, 'reason': 'same old evaluator'}
+    revised = copy.deepcopy(rt.main.goal_contract.approved_nodes[0])
+    revised['arguments']['job_work_dir'] = str(tmp_path / 'new-resource-work')
+    revised['expected_outputs'] = [str(tmp_path / 'new-resource-work/result.csv')]
+    rt.task_lines.apply_workflow_patch(rt.main._current_line_id,
+        [{'operation': 'upsert', 'step_id': 'compute', 'node': revised}], 1, 2, 'authorized location edit')
+    rt.main.goal_contract.approved_nodes = [revised]
+    rt.main.goal_contract.approved_plan_version = 2
+    rt.start(2)
+    rt.tick()
+    eventually(lambda: rt.snapshot()['nodes']['compute']['status'] == 'needs_resources')
+    assert reviews == []
+    assert rt.snapshot()['nodes']['compute']['resource_review_attempts'] == 3
+
+
+def test_pause_arriving_during_recovered_review_prevents_scientific_dispatch(factory, tmp_path, monkeypatch):
+    rt = exhausted_resource_review(factory, tmp_path)
+    monkeypatch.setattr('agents.parallel_workflow.resource_evaluator_fingerprint', lambda main: 'fixed-evaluator')
+    dispatched = []
+    def review(request):
+        rt.store.user_pause(rt.workflow_id)
+        return {'status': 'ready', 'resource_review_id': 'new-ready-review',
+                'resource_allocations': {'compute': {'cpus': 1, 'memory_mb': 512}}}
+    rt.main._on_resource_review = review
+    rt.main.registry.get('run_cdft').execute = lambda args: dispatched.append(args) or {'submitted': True, 'job_id': '70301'}
+    rt.tick()
+    for future in list(rt.futures.values()):future.result(timeout=5)
+    current = rt.snapshot()['nodes']['compute']
+    assert rt.snapshot()['user_paused'] is True
+    assert current['status'] == 'pending'
+    assert current['resource_review']['status'] == 'ready'
+    assert dispatched == []
+    assert RecoveryGate(path=rt.root / 'recovery_state.json').snapshot() == {}
+    assert not rt.store.snapshot().get('leases')
+
+
+@pytest.mark.parametrize('saved_version,refreshes', [(2, 1), (3, 0)])
+def test_prefinish_dossier_refresh_uses_current_native_schema_without_overwriting_old_evidence(
+        factory, tmp_path, monkeypatch, saved_version, refreshes):
+    from agents import result_validation
+    monkeypatch.setattr(result_validation, 'VALIDATION_SCHEMA_VERSION', 3)
+    rt = factory([node('calc', tool='run_henry', args={'cif': str(tmp_path / 'fixture.cif'), 'gas': 'Kr', 'temperature': 298},
+                       outputs=[str(tmp_path / 'result.dat')])])
+    rt.start(1)
+    ticket = rt.store.claim(rt.workflow_id, 'calc')
+    rt.root.joinpath('evidence').mkdir(exist_ok=True)
+    old = rt.root / 'evidence' / 'old-dossier.json'
+    old.write_text('immutable earlier validation evidence')
+    rt.store.update(rt.workflow_id, 'calc', ticket['token'], {
+        'status': 'prefinish', 'phase': 'prefinish', 'job_ids': ['70999'],
+        'validation_dossier': {'schema_version': saved_version, 'successful_artifacts': [],
+            'evidence_call_id': 'old-dossier', 'evidence_path': str(old)}})
+    calls = []
+    def rebuild(step_id, current, manifest, result):
+        calls.append(step_id)
+        fresh = rt.root / 'evidence' / 'new-dossier.json'
+        fresh.write_text('new version validation evidence')
+        return {'schema_version': 3, 'successful_artifacts': [],
+                'evidence_call_id': 'new-dossier', 'evidence_path': str(fresh)}
+    monkeypatch.setattr(rt, '_create_validation_dossier', rebuild)
+    rt.tick()
+    assert len(calls) == refreshes
+    assert rt.snapshot()['nodes']['calc']['validation_dossier']['schema_version'] == 3
+    assert old.read_text() == 'immutable earlier validation evidence'
 
 
 def test_reviewed_resources_reach_tool_and_failed_dispatch_releases_taskline_lease(factory, tmp_path):
@@ -596,6 +1073,138 @@ def test_retry_reuses_persisted_resource_review_without_calling_model_again(fact
     assert calls[0]['resource_review_id'] == 'review-existing'
     assert calls[0]['memory_mb'] == 8192
     assert calls[0]['num_processes'] == 8
+
+
+def test_provisional_resource_receipt_is_never_reused_for_dispatch():
+    from agents.parallel_workflow import persisted_resource_review
+    state = {'contract': {'tool': 'run_cdft', 'arguments': {'action': 'submit'}},
+             'effective_arguments': {'action': 'submit', 'resource_review_id': 'preview'},
+             'resource_allocation': {'resource_review_id': 'preview', 'budget_final': False,
+                                     'evidence_call_ids': ['planning-evidence']}}
+    assert persisted_resource_review(state, 'compute') is None
+
+
+@pytest.mark.parametrize('final', [True, False])
+def test_dispatch_budget_uses_resolved_inputs_and_final_allocation(factory, tmp_path, final):
+    approved = tmp_path / 'prepared'
+    actual = approved / 'timestamp'
+    actual.mkdir(parents=True)
+    (actual / 'a.dat').write_text('prepared input')
+    work = tmp_path / 'batch'
+    rt = factory([
+        node('prepare', tool='run_cdft', args={'action': 'inputs', 'gas': 'CO2', 'temperature': 298,
+             'cif_dir': str(tmp_path / 'charged'), 'input_dir': str(approved)},
+             outputs=[{'kind': 'directory', 'path': str(actual), 'pattern': '*.dat', 'min_count': 1}]),
+        node('compute', tool='run_cdft', args={'action': 'submit', 'input_dir': str(approved),
+             'job_work_dir': str(work), 'gas': 'CO2', 'temperature': 298,
+             'num_processes': 1, 'memory_mb': 16384}, deps=['prepare'],
+             outputs=[str(work / 'results.csv')]),
+    ], cid='resolved-budget')
+    rt.start(1)
+    ticket = rt.store.claim(rt.workflow_id, 'prepare')
+    rt.store.update(rt.workflow_id, 'prepare', ticket['token'], {
+        'status': 'succeeded', 'phase': 'finish', 'result': {'input_dir': str(actual)}}, release=True)
+    reviews, calls = [], []
+    def review(request):
+        reviews.append(copy.deepcopy(request))
+        return {'status': 'ready', 'resource_review_id': 'final-review',
+                'resource_allocations': {'compute': {'budget_final': final,
+                    'cpus': 8, 'memory_mb': 8704, 'nodelist': 'node25', 'partition': 'long'}}}
+    rt.main._on_resource_review = review
+    rt.main.registry.get('run_cdft').execute = lambda args: calls.append(copy.deepcopy(args)) or {
+        'error': 'controlled failure after verifying resource propagation'}
+    rt.tick()
+    eventually(lambda: bool(reviews))
+    eventually(lambda: rt.snapshot()['nodes']['compute']['status'] in {'failed', 'needs_resources'})
+    for future in list(rt.futures.values()):
+        future.result(timeout=5)
+    assert reviews[0]['review_phase'] == 'dispatch'
+    assert reviews[0]['nodes'][0]['arguments']['input_dir'] == str(actual)
+    if final:
+        assert len(calls) == 1
+        assert calls[0]['input_dir'] == str(actual)
+        assert calls[0]['num_processes'] == 8
+        assert calls[0]['memory_mb'] == 8704
+        assert calls[0]['nodelist'] == 'node25'
+    else:
+        assert not calls
+        assert rt.snapshot()['nodes']['compute']['status'] == 'needs_resources'
+
+
+@pytest.mark.parametrize('memory_mb,cpus', [(8192, 2), (4096, 4), (8192, 4)])
+@pytest.mark.parametrize('stalled_preclaim', [False, True])
+def test_verified_retry_dispatch_uses_new_resources_instead_of_old_receipt(factory, tmp_path, memory_mb, cpus, stalled_preclaim):
+    """Two real worker dispatches, with fake tool failure and native retry ledger."""
+    from agents.recovery import RecoveryGate, input_fingerprint
+    output = tmp_path / 'runs/tester/resource-repair/cdft'
+    contract = node('generate', tool='run_cdft', args={
+        'action': 'pipeline', 'gas': 'CO2', 'temperature': 298,
+        'cif_dir': str(tmp_path / 'runs/tester/resource-repair/inputs'),
+        'job_work_dir': str(output)}, outputs=[str(output / 'result.csv')])
+    rt = factory([contract], cid='resource-repair')
+    reviews, dispatches = [], []
+
+    def review(request):
+        reviews.append(copy.deepcopy(request))
+        index = len(reviews)
+        assert index <= 2, 'the verified retry must need exactly one fresh resource review'
+        return {'status': 'ready', 'resource_review_id': f'review-{index}',
+                'resource_allocations': {'generate': {
+                    'resource_review_id': f'review-{index}', 'evidence_call_ids': [f'proof-{index}'],
+                    'memory_mb': 4096 if index == 1 else memory_mb,
+                    'cpus': 2 if index == 1 else cpus,
+                    'nodelist': 'node03', 'partition': 'debug'}}}
+
+    def dispatch(arguments):
+        dispatches.append(copy.deepcopy(arguments))
+        return {'error': 'controlled failure after worker entered the scientific adapter'}
+
+    rt.main.registry.get('run_cdft').execute = dispatch
+    rt.start(1)
+    rt.main._on_resource_review = review
+    rt.tick()
+    eventually(lambda: rt.snapshot()['nodes']['generate']['status'] == 'failed')
+    for future in list(rt.futures.values()):
+        future.result(timeout=5)
+    failed = rt.snapshot()['nodes']['generate']
+    with json_transaction(rt.store.path) as data:
+        data['workflows'][rt.workflow_id]['nodes']['generate']['configuration_recovery'] = {
+            'kind': 'verified_configuration_preflight', 'attempt_id': 'older-preflight',
+            'no_job_submitted': True}
+    assert failed['resource_allocation']['evidence_call_ids'] == ['proof-1']
+    from agents.parallel_workflow import persisted_resource_review
+    assert persisted_resource_review(failed, 'generate')['resource_review_id'] == 'review-1'
+    assert dispatches[0]['memory_mb'] == 4096 and dispatches[0]['num_processes'] == 2
+    corrected = {**dispatches[0], 'memory_mb': memory_mb, 'num_processes': cpus}
+    gate = RecoveryGate(path=rt.root / 'recovery_state.json')
+    gate.approve(failed['recovery_key'], input_fingerprint(corrected, tmp_path),
+                 {'fix_summary': 'Correct the reviewed CPU and memory budget'}, arguments=corrected)
+    if stalled_preclaim:
+        # Persist the exact old-runtime failure after requeue but before claim.
+        # No scheduler attempt or ledger claim was made by that failed worker.
+        with json_transaction(rt.store.path) as data:
+            current = data['workflows'][rt.workflow_id]['nodes']['generate']
+            current.setdefault('attempt_history', []).append(copy.deepcopy(failed))
+            current.update(attempt_id=None, dispatch_phase='preflight', tool_returned=False,
+                           job_ids=[], verified_retry={'attempt_id': failed['attempt_id']},
+                           error='configuration recovery requires an unexecuted generator preflight failure')
+
+    rt.tick()
+    eventually(lambda: len(dispatches) == 2 or rt.snapshot()['nodes']['generate']['status'] == 'failed')
+    for future in list(rt.futures.values()):
+        future.result(timeout=5)
+    assert len(reviews) == 2, rt.snapshot()['nodes']['generate']
+    assert len(dispatches) == 2, rt.snapshot()['nodes']['generate']
+    assert dispatches[1]['memory_mb'] == memory_mb
+    assert dispatches[1]['num_processes'] == cpus
+    assert dispatches[1]['resource_review_id'] == 'review-2'
+    assert gate.snapshot()[failed['recovery_key']]['attempts'] == 2
+    assert rt.snapshot()['nodes']['generate']['attempt_history'][0]['attempt_id'] == failed['attempt_id']
+    assert 'configuration_recovery' not in rt.snapshot()['nodes']['generate']
+    rt.tick()
+    for future in list(rt.futures.values()):
+        future.result(timeout=5)
+    assert len(dispatches) == 2, 'the consumed retry permit must never submit a third attempt'
 
 
 def test_resource_projection_failure_does_not_block_approved_tool(factory, tmp_path):
@@ -685,6 +1294,585 @@ def factory(tmp_path):
         for future in runtime.futures.values():
             if not future.done(): future.result(timeout=6)
         runtime.shutdown()
+
+
+def approved_activation_upgrade(factory, tmp_path, native_floor=False, missing_binding=False):
+    """Persisted completed receipts plus one formally approved pending edit."""
+    root = tmp_path / 'runs/tester/activation-upgrade'
+    generated, charged = root / 'generated', root / 'charged'
+    generate = node('generate', tool='generate_structure', args={'material_type': 'MOF',
+        'n_structures': 1, 'output_dir': str(generated)}, outputs=[{
+            'kind': 'directory', 'path': str(generated), 'pattern': '*.cif', 'min_count': 1}])
+    generate['agent'] = 'harness'
+    charge = node('charge', tool='run_pacman_charge', args={'cif_dir': str(generated),
+        'method': 'pacmof', 'output_dir': str(charged)}, deps=['generate'], outputs=[{
+            'kind': 'directory', 'path': str(charged), 'pattern': '*.cif',
+            'min_count': 30 if native_floor else 1}])
+    charge['input_bindings'] = {'cif_dir': {'step_id': 'generate', 'output_index': 0}}
+    rt = factory([generate, charge, node('rank', path='old-rank-input', deps=['charge'])], cid='activation-upgrade')
+    rt.start(1)
+    for directory in (generated, charged):
+        directory.mkdir()
+        (directory / 'fixture.cif').write_text('verified fixture artifact\n')
+    with json_transaction(rt.store.path) as data:
+        workflow = data['workflows'][rt.workflow_id]
+        for step_id, job_id in [('generate', '501'), ('charge', '502')]:
+            current = workflow['nodes'][step_id]
+            if step_id == 'charge' and native_floor:
+                current['contract']['expected_outputs'][0]['min_count'] = 1
+                current['batch_success_policy'] = {'mode': 'best_effort', 'decision_owner': 'responsible_agent',
+                    'applied_once': True, 'outputs': [{'index': 0, 'declared_target_count': 30,
+                                                       'artifact_presence_floor': 1}]}
+            current.update(status='succeeded', phase='finish', token=step_id + '-token',
+                job_ids=[job_id], attempt_id=step_id + '-attempt', node_verification={'passed': True},
+                effective_arguments=copy.deepcopy(current['contract']['arguments']),
+                result={'output_dir': str(generated if step_id == 'generate' else charged)},
+                execution_fingerprint='earlier-runtime-source')
+            current['artifacts'] = rt._artifacts(current['contract'], current['result'])
+        if missing_binding:
+            workflow['nodes']['charge']['contract'].pop('input_bindings')
+        workflow.update(status='needs_user', pause_kind='failure', pause_reason='old activation failed')
+    rt.job_watch = SimpleNamespace(list=lambda: [], get=lambda _: {
+        'username': 'tester', 'conv_id': rt.conv_id, 'terminal': True,
+        'failed': False, 'state': 'COMPLETED'})
+    revised = node('rank', path='approved-new-rank-input', deps=['charge'])
+    operations = [{'operation': 'upsert', 'step_id': 'rank', 'node': revised}]
+    if native_floor:
+        charge['expected_outputs'][0]['min_count'] = 1
+        operations.append({'operation': 'upsert', 'step_id': 'charge', 'node': charge})
+    rt.task_lines.apply_workflow_patch(rt.main._current_line_id, operations, 1, 2, 'approved pending repair')
+    rt.main.goal_contract.approved_plan_version = 2
+    rt.main.goal_contract.approved_nodes = [generate, charge, revised]
+    rt.main.registry.get('generate_structure').execute = lambda _: pytest.fail('completed generation must not resubmit')
+    rt.main.registry.get('run_pacman_charge').execute = lambda _: pytest.fail('completed charge must not resubmit')
+    return rt
+
+
+@pytest.mark.parametrize('native_floor,missing_binding', [(False, False), (True, False), (True, True)])
+def test_tick_recovers_persisted_approved_upgrade_after_restart_once(factory, tmp_path, native_floor, missing_binding):
+    rt = approved_activation_upgrade(factory, tmp_path, native_floor, missing_binding)
+    before = rt.snapshot()
+    invoked = []
+    rt.main.registry.get('read_file').execute = lambda args: invoked.append(args['path']) or {'ok': True}
+    # A new executor instance has no ephemeral memory of the failed activation.
+    restarted = ParallelWorkflow(rt.main, rt.root, rt.store, rt.lifecycle, rt.task_lines,
+                                 rt.username, rt.conv_id, job_watch=rt.job_watch)
+    try:
+        restarted.tick()
+        eventually(lambda: restarted.snapshot()['nodes']['rank']['status'] == 'succeeded')
+        for _ in range(3): restarted.tick()
+        after = restarted.snapshot()
+        assert after['plan_version'] == 2
+        assert invoked == ['approved-new-rank-input']
+        for step_id in ('generate', 'charge'):
+            for field in ('token', 'attempt_id', 'job_ids', 'artifacts', 'node_verification', 'result'):
+                assert after['nodes'][step_id][field] == before['nodes'][step_id][field]
+        attempts = restarted.store.snapshot()['activation_recoveries'][rt.workflow_id]
+        assert len(attempts) == 1
+        assert next(iter(attempts.values()))['status'] == 'activated'
+    finally:
+        restarted.pool.shutdown(wait=True)
+
+
+@pytest.mark.parametrize('blocker', ['paused_argument', 'user_paused', 'pending_patch', 'awaiting_approval',
+                                   'unauthorized', 'scope_changed', 'goal_version', 'runtime_owner',
+                                   'line_owner', 'line_version', 'line_contract', 'uncertain',
+                                   'goal_scope_change', 'missing_floor_proof'])
+def test_approved_activation_recovery_respects_durable_authority(factory, tmp_path, monkeypatch, blocker):
+    rt = approved_activation_upgrade(factory, tmp_path, native_floor=blocker == 'missing_floor_proof')
+    if blocker == 'pending_patch': rt.main._pending_workflow_patch = {'affected_nodes': ['rank']}
+    if blocker == 'awaiting_approval': rt.main._awaiting_plan_approval = True
+    if blocker == 'unauthorized': rt.main.goal_contract.execution_authorized = False
+    if blocker == 'scope_changed': rt.main.goal_contract.parameters['temperature'] = 301
+    if blocker == 'goal_version': rt.main.goal_contract.version += 1
+    with json_transaction(rt.store.path) as data:
+        workflow = data['workflows'][rt.workflow_id]
+        if blocker == 'user_paused': workflow['user_paused'] = True
+        if blocker == 'runtime_owner': workflow['username'] = 'different-user'
+        if blocker == 'goal_scope_change': workflow['pause_kind'] = 'goal_scope_change'
+        if blocker == 'uncertain': workflow['nodes']['rank']['status'] = 'uncertain'
+        if blocker == 'missing_floor_proof': workflow['nodes']['charge'].pop('batch_success_policy')
+    if blocker.startswith('line_'):
+        with rt.task_lines._process_guard():
+            line = rt.task_lines._lines[rt.main._current_line_id]
+            if blocker == 'line_owner': line['username'] = 'different-user'
+            if blocker == 'line_version': line['plan_version'] = 3
+            if blocker == 'line_contract': line['steps'][-1]['arguments']['path'] = 'unapproved-input'
+            rt.task_lines._save()
+    starts = []
+    monkeypatch.setattr(rt, 'start', lambda *args, **kwargs: starts.append(args) or {'status': 'scheduled'})
+    rt.tick(paused=blocker == 'paused_argument')
+    assert starts == []
+    assert rt.snapshot()['plan_version'] == 1
+
+
+def test_failed_native_activation_is_bounded_across_restart_and_source_change(factory, tmp_path, monkeypatch):
+    rt = approved_activation_upgrade(factory, tmp_path)
+    source = ['source-v1']
+    monkeypatch.setattr('agents.parallel_workflow.activation_framework_fingerprint', lambda: source[0])
+    calls = []
+    def blocked(*args, **kwargs):
+        calls.append(args[0])
+        raise ValueError('fixture guard refused activation')
+    monkeypatch.setattr(rt, 'start', blocked)
+    rt.tick(); rt.tick(); rt.tick()
+    assert calls == [2]
+    restarted = ParallelWorkflow(rt.main, rt.root, rt.store, rt.lifecycle, rt.task_lines,
+                                 rt.username, rt.conv_id, job_watch=rt.job_watch)
+    try:
+        monkeypatch.setattr(restarted, 'start', blocked)
+        restarted.tick()
+        assert calls == [2]
+        source[0] = 'source-v2'
+        restarted.tick(); restarted.tick()
+        assert calls == [2, 2]
+        attempts = rt.store.snapshot()['activation_recoveries'][rt.workflow_id]
+        assert len(attempts) == 2
+        assert all(item['status'] == 'blocked' for item in attempts.values())
+        events = [e for e in rt.lifecycle.snapshot()['events'].values() if e['kind'] == 'activation_blocked']
+        assert len(events) == 2
+    finally:
+        restarted.shutdown()
+
+
+def test_native_activation_does_not_clear_a_concurrent_user_pause(factory, tmp_path, monkeypatch):
+    rt = approved_activation_upgrade(factory, tmp_path)
+    original = rt.store.activate
+    def pause_before_commit(*args, **kwargs):
+        rt.store.user_pause(rt.workflow_id)
+        return original(*args, **kwargs)
+    monkeypatch.setattr(rt.store, 'activate', pause_before_commit)
+    rt.tick()
+    assert rt.snapshot()['user_paused'] is True
+    assert rt.snapshot()['plan_version'] == 1
+    attempts = rt.store.snapshot()['activation_recoveries'][rt.workflow_id]
+    assert len(attempts) == 1
+    assert next(iter(attempts.values()))['status'] == 'blocked'
+
+
+def test_native_activation_keeps_an_owned_running_scheduler_branch(factory, tmp_path):
+    rt = approved_activation_upgrade(factory, tmp_path)
+    gate = RecoveryGate(path=rt.root / 'recovery_state.json')
+    charge = rt.snapshot()['nodes']['charge']
+    key = gate.key(charge['contract']['tool'], charge['contract']['arguments'],
+                   rt.main.goal_contract.version, node='charge', project_root=tmp_path)
+    attempt, denial = gate.claim(key, charge['contract']['tool'], charge['contract']['arguments'],
+                                input_fingerprint(charge['contract']['arguments'], tmp_path))
+    assert attempt and not denial
+    gate.outcome(key, attempt, {'job_id': '502', 'submitted': True})
+    with json_transaction(rt.store.path) as data:
+        live = data['workflows'][rt.workflow_id]['nodes']['charge']
+        live.update(status='waiting_jobs', phase=None, recovery_key=key, attempt_id=attempt,
+                    result={'job_id': '502', 'submitted': True}, node_verification=None)
+        data.setdefault('leases', {})[live['token']] = {'workflow_id': rt.workflow_id, 'step_id': 'charge',
+                                        'resources': live['contract']['resources']}
+    rt.job_watch = SimpleNamespace(list=lambda: [], get=lambda job_id: {
+        'username': 'tester', 'conv_id': rt.conv_id,
+        'terminal': job_id != '502', 'failed': False,
+        'state': 'RUNNING' if job_id == '502' else 'COMPLETED'})
+    before = rt.snapshot()['nodes']['charge']
+    rt.tick(); rt.tick()
+    after = rt.snapshot()['nodes']['charge']
+    assert rt.snapshot()['plan_version'] == 2
+    for field in ('token', 'attempt_id', 'job_ids', 'recovery_key', 'result', 'status'):
+        assert after[field] == before[field]
+    assert after['status'] == 'waiting_jobs'
+    assert after['token'] in rt.store.snapshot()['leases']
+    assert rt.snapshot()['nodes']['rank']['status'] == 'pending'
+
+
+def test_new_formal_approval_allows_one_native_activation_after_a_block(factory, tmp_path, monkeypatch):
+    rt = approved_activation_upgrade(factory, tmp_path)
+    starts = []
+    def refuse(version, **kwargs):
+        starts.append(version)
+        raise ValueError('guard remains blocked')
+    monkeypatch.setattr(rt, 'start', refuse)
+    rt.tick(); rt.tick()
+    revised = node('rank', path='newly-approved-rank-input', deps=['charge'])
+    rt.task_lines.apply_workflow_patch(rt.main._current_line_id,
+        [{'operation': 'upsert', 'step_id': 'rank', 'node': revised}], 2, 3, 'new formal approval')
+    rt.main.goal_contract.approved_nodes[-1] = revised
+    rt.main.goal_contract.approved_plan_version = 3
+    rt.tick(); rt.tick()
+    assert starts == [2, 3]
+    assert len(rt.store.snapshot()['activation_recoveries'][rt.workflow_id]) == 2
+
+
+@pytest.mark.parametrize('invalid', ['target', 'floor', 'strict', 'verification', 'pattern'])
+def test_native_batch_floor_compatibility_requires_exact_kernel_proof(factory, tmp_path, invalid):
+    rt = approved_activation_upgrade(factory, tmp_path, native_floor=True)
+    with json_transaction(rt.store.path) as data:
+        current = data['workflows'][rt.workflow_id]['nodes']['charge']
+        if invalid == 'target': current['batch_success_policy']['outputs'][0]['declared_target_count'] = 29
+        if invalid == 'floor': current['batch_success_policy']['outputs'][0]['artifact_presence_floor'] = 2
+        if invalid == 'strict': current['batch_success_policy']['mode'] = 'strict'
+        if invalid == 'verification': current['node_verification'] = None
+        if invalid == 'pattern': current['contract']['expected_outputs'][0]['pattern'] = '*.dat'
+    assert rt._approved_activation_candidate(rt.snapshot()) is None
+
+
+@pytest.mark.parametrize('saved_method,approved_version,expected', [('CDFT', 1, True),
+    ('CDFT', 0, False), ('VASP', 1, False)])
+def test_activation_uses_existing_approved_multi_method_normalization(factory, tmp_path,
+                                                                    saved_method, approved_version, expected):
+    rt = approved_activation_upgrade(factory, tmp_path)
+    extra = [node('cdf', tool='run_cdft', args={'action': 'inputs'}, deps=['rank']),
+             node('gcm', tool='run_gcmc_isotherm', args={'gas': 'N2'}, deps=['rank'])]
+    with json_transaction(rt.store.path) as data:
+        old = data['workflows'][rt.workflow_id]['goal_contract']
+        old.update(method=saved_method, approved_plan_version=approved_version)
+        old['approved_nodes'].extend(copy.deepcopy(extra))
+    rt.task_lines.apply_workflow_patch(rt.main._current_line_id,
+        [{'operation': 'upsert', 'step_id': n['step_id'], 'node': n} for n in extra], 2, 3, 'approved multi-method graph')
+    rt.main.goal_contract.approved_nodes.extend(copy.deepcopy(extra))
+    rt.main.goal_contract.method = 'MULTI'
+    rt.main.goal_contract.approved_plan_version = 3
+    assert (rt._approved_activation_candidate(rt.snapshot()) is not None) is expected
+
+
+def formal_current_approval(rt):
+    from agents.parallel_workflow import _approval_digest
+    owner = {'username': rt.username, 'conv_id': rt.conv_id}
+    goal = rt.main.goal_contract.to_dict()
+    return {'schema_version': 1, 'kind': 'main_model_applied_plan', 'owner': owner,
+            'goal_version': goal['version'], 'plan_version': goal['approved_plan_version'],
+            'base_plan_version': goal['approved_plan_version'] - 1,
+            'approval_sha256': _approval_digest(goal), 'approved_at': time.time(),
+            'control_source': {'origin': 'user', 'owner': owner, 'turn_id': 'authenticated-user-turn'}}
+
+
+@pytest.mark.parametrize('missing_binding', [False, True])
+@pytest.mark.parametrize('proof_kind', ['main_model_applied_plan', 'explicit_user_parameter_patch'])
+def test_formally_approved_new_goal_reuses_unaffected_completed_results(factory, tmp_path, missing_binding, proof_kind):
+    rt = approved_activation_upgrade(factory, tmp_path, native_floor=True, missing_binding=missing_binding)
+    before = rt.snapshot()
+    rt.main.goal_contract.version += 1
+    rt.main.goal_contract.parameters['cycles'] = 1000
+    revised = node('rank', path='new-goal-approved-rank-input', deps=['charge'])
+    rt.task_lines.apply_workflow_patch(rt.main._current_line_id,
+        [{'operation': 'upsert', 'step_id': 'rank', 'node': revised}], 2, 3, 'formal new-goal approval')
+    rt.main.goal_contract.approved_nodes[-1] = revised
+    rt.main.goal_contract.approved_plan_version = 3
+    rt.main.context['approved_execution_proof'] = formal_current_approval(rt)
+    rt.main.context['approved_execution_proof']['kind'] = proof_kind
+    assert rt._recover_approved_activation(rt.snapshot()) is False
+    after = rt.snapshot()
+    assert after['plan_version'] == 3
+    assert after['goal_contract']['version'] == rt.main.goal_contract.version
+    assert after['goal_contract']['parameters']['cycles'] == 1000
+    for step_id in ('generate', 'charge'):
+        for field in ('token', 'attempt_id', 'job_ids', 'artifacts', 'node_verification', 'result'):
+            assert after['nodes'][step_id][field] == before['nodes'][step_id][field]
+    assert after['nodes']['charge']['contract']['input_bindings'] == {
+        'cif_dir': {'step_id': 'generate', 'output_index': 0}}
+    assert after['nodes']['rank']['status'] == 'pending'
+
+
+@pytest.mark.parametrize('invalid', ['missing', 'goal_version', 'plan_version', 'hash', 'owner',
+                                   'system_source', 'empty_turn', 'guard_rejects'])
+def test_new_goal_activation_requires_current_formal_approval_and_guard(factory, tmp_path, monkeypatch, invalid):
+    rt = approved_activation_upgrade(factory, tmp_path)
+    rt.main.goal_contract.version += 1
+    rt.main.goal_contract.parameters['cycles'] = 1000
+    revised = node('rank', path='formally-updated-rank-input', deps=['charge'])
+    rt.task_lines.apply_workflow_patch(rt.main._current_line_id,
+        [{'operation': 'upsert', 'step_id': 'rank', 'node': revised}], 2, 3, 'formal current goal')
+    rt.main.goal_contract.approved_plan_version = 3
+    rt.main.goal_contract.approved_nodes[-1] = revised
+    proof = formal_current_approval(rt)
+    if invalid == 'goal_version': proof['goal_version'] -= 1
+    if invalid == 'plan_version': proof['plan_version'] -= 1
+    if invalid == 'hash': proof['approval_sha256'] = 'different'
+    if invalid == 'owner': proof['owner'] = {'username': 'other', 'conv_id': rt.conv_id}
+    if invalid == 'system_source': proof['control_source']['origin'] = 'system'
+    if invalid == 'empty_turn': proof['control_source']['turn_id'] = ''
+    if invalid != 'missing': rt.main.context['approved_execution_proof'] = proof
+    if invalid == 'guard_rejects':
+        monkeypatch.setattr(rt.main.goal_contract, 'guard_tool_call', lambda *args, **kwargs: (False, 'new user parameter is not reflected'))
+    assert rt._approved_activation_candidate(rt.snapshot()) is None
+
+
+def test_new_user_parameter_cannot_reactivate_an_old_approval(factory, tmp_path):
+    rt = approved_activation_upgrade(factory, tmp_path)
+    old_proof = formal_current_approval(rt)
+    rt.main.goal_contract.version += 1
+    rt.main.goal_contract.parameters['cycles'] = 1000
+    rt.main.context['approved_execution_proof'] = old_proof
+    assert rt._approved_activation_candidate(rt.snapshot()) is None
+    assert rt.snapshot()['plan_version'] == 1
+
+
+def test_readonly_find_cif_can_deliver_an_existing_unchanged_input(factory, tmp_path):
+    original = tmp_path / 'existing.cif'
+    original.write_text('data_existing\n_cell_length_a 10\n')
+    os.utime(original, (time.time() - 3600, time.time() - 3600))
+    before = original.stat().st_mtime_ns
+    rt = factory([node('verify_input', tool='find_cif', args={'name': str(original)}, outputs=[str(original)])])
+    rt.main.registry.get('find_cif').execute = lambda _: {
+        'ok': True, 'status': 'found', 'read_only': True, 'search_complete': True,
+        'candidates': [str(original)], 'cif_path': str(original)}
+    rt.start(1); rt.tick()
+    eventually(lambda: rt.snapshot()['nodes']['verify_input']['status'] in {'succeeded', 'validation_failed'})
+    result = rt.snapshot()['nodes']['verify_input']
+    assert result['status'] == 'succeeded'
+    assert result['artifacts'][str(original)] == result['output_baseline'][str(original)]
+    assert original.stat().st_mtime_ns == before
+
+
+@pytest.mark.parametrize('case', ['read_other', 'read_receipt_mismatch', 'find_other', 'find_text_hint',
+                                 'inspect_unlisted', 'inspect_receipt_mismatch', 'inspect_text_hint',
+                                 'schema_path_annotation'])
+def test_readonly_receipt_cannot_validate_an_unobserved_existing_artifact(factory, tmp_path, case):
+    directory = tmp_path / 'inputs'
+    directory.mkdir()
+    first, other = directory / 'first.cif', directory / 'other.cif'
+    first.write_text('data_first\n'); other.write_text('data_other\n')
+    for path in (first, other):os.utime(path, (time.time() - 3600, time.time() - 3600))
+    if case.startswith('read_'):
+        tool, arguments = 'read_file', {'path': str(first)}
+        result = {'path': str(other if case == 'read_receipt_mismatch' else first), 'content': 'read fixture'}
+    elif case.startswith('find_'):
+        tool, arguments = 'find_cif', {'name': str(first)}
+        result = {'ok': True, 'status': 'found', 'read_only': True, 'search_complete': True,
+                  'candidates': [str(first)], 'cif_path': str(first)}
+        if case == 'find_text_hint':result['message'] = 'Unverified suggested path: ' + str(other)
+    elif case.startswith('inspect_'):
+        tool, arguments = 'inspect_path', {'path': str(directory)}
+        result = {'path': str(other if case == 'inspect_receipt_mismatch' else directory), 'exists': True,
+                  'kind': 'directory', 'entries': [{'name': first.name, 'path': str(first), 'kind': 'file'}]}
+        if case == 'inspect_text_hint':result['preview'] = [str(other)]
+    else:
+        tool, arguments = 'get_tool_schema', {'tool_name': 'read_file'}
+        result = {'name': 'read_file', 'input_schema': {'description': str(other)}, 'path': str(other)}
+    rt = factory([node('inspect', tool=tool, args=arguments, outputs=[str(other)])])
+    rt.main.registry.get(tool).execute = lambda _: result
+    rt.start(1); rt.tick()
+    eventually(lambda: rt.snapshot()['nodes']['inspect']['status'] in {'succeeded', 'validation_failed'})
+    assert rt.snapshot()['nodes']['inspect']['status'] == 'validation_failed'
+
+
+@pytest.mark.parametrize('case', ['read_exact', 'inspect_exact_file', 'inspect_exact_directory', 'inspect_listed_child'])
+def test_readonly_receipt_validates_only_its_exact_native_observed_paths(factory, tmp_path, case):
+    directory = tmp_path / 'inputs'
+    directory.mkdir()
+    first = directory / 'first.cif'
+    first.write_text('data_first\n')
+    os.utime(first, (time.time() - 3600, time.time() - 3600))
+    if case == 'read_exact':
+        tool, arguments = 'read_file', {'path': str(first)}
+        result = {'path': str(first), 'content': 'data_first\n'}
+        expected = str(first)
+    elif case == 'inspect_exact_file':
+        tool, arguments = 'inspect_path', {'path': str(first)}
+        result = {'path': str(first), 'exists': True, 'kind': 'file'}
+        expected = str(first)
+    else:
+        tool, arguments = 'inspect_path', {'path': str(directory)}
+        result = {'path': str(directory), 'exists': True, 'kind': 'directory',
+                  'entries': [{'name': first.name, 'path': str(first), 'kind': 'file'}]}
+        expected = ({'kind': 'directory', 'path': str(directory), 'pattern': '*.cif', 'min_count': 1}
+                    if case == 'inspect_exact_directory' else str(first))
+    rt = factory([node('inspect', tool=tool, args=arguments, outputs=[expected])])
+    rt.main.registry.get(tool).execute = lambda _: result
+    rt.start(1); rt.tick()
+    eventually(lambda: rt.snapshot()['nodes']['inspect']['status'] in {'succeeded', 'validation_failed'})
+    assert rt.snapshot()['nodes']['inspect']['status'] == 'succeeded'
+
+
+@pytest.mark.parametrize('missing_binding', [False, True])
+@pytest.mark.parametrize('blocker', [None, 'receipt_owner', 'artifact_changed', 'runtime_owner', 'input_proof_changed'])
+def test_new_plan_preserves_verified_executor_results_when_line_still_pending(factory, tmp_path, missing_binding, blocker):
+    root = tmp_path / 'runs/tester/verified-plan-upgrade'
+    generated, charged = root / 'generated', root / 'charged'
+    generate = node('generate', tool='generate_structure', args={'material_type': 'MOF',
+        'n_structures': 1, 'output_dir': str(generated)},
+        outputs=[{'kind': 'directory', 'path': str(generated), 'pattern': '*.cif', 'min_count': 1}])
+    generate['agent'] = 'harness'
+    charge = node('charge', tool='run_pacman_charge', args={'cif_dir': str(generated),
+        'method': 'pacmof', 'output_dir': str(charged)}, deps=['generate'],
+        outputs=[{'kind': 'directory', 'path': str(charged), 'pattern': '*.cif', 'min_count': 1}])
+    charge['input_bindings'] = {'cif_dir': {'step_id': 'generate', 'output_index': 0}}
+    rt = factory([generate, charge, node('rank', deps=['charge'])], cid='verified-plan-upgrade')
+    rt.start(1)
+    for directory in (generated, charged):
+        directory.mkdir()
+        (directory / 'a.cif').write_text('real artifact fixture\n')
+    with json_transaction(rt.store.path) as data:
+        w = data['workflows'][rt.workflow_id]
+        for step_id, job_id in [('generate', '101'), ('charge', '102')]:
+            current = w['nodes'][step_id]
+            current.update(status='succeeded', phase='finish', token=step_id + '-token',
+                job_ids=[job_id], attempt_id=step_id + '-attempt', node_verification={'passed': True},
+                effective_arguments=copy.deepcopy(current['contract']['arguments']),
+                result={'output_dir': str(generated if step_id == 'generate' else charged)},
+                execution_fingerprint='earlier-runtime-source')
+            current['artifacts'] = rt._artifacts(current['contract'], current['result'])
+        if missing_binding: w['nodes']['charge']['contract'].pop('input_bindings')
+        if blocker == 'input_proof_changed':
+            w['nodes']['charge']['effective_arguments']['cif_dir'] = str(root / 'different-input')
+        if blocker == 'runtime_owner': w['username'] = 'someone-else'
+    rt.job_watch = SimpleNamespace(list=lambda: [], get=lambda job_id: {
+        'username': 'someone-else' if blocker == 'receipt_owner' else 'tester',
+        'conv_id': rt.conv_id, 'terminal': True, 'failed': False, 'state': 'COMPLETED'})
+    revised = node('rank', path='corrected-rank-input', deps=['charge'])
+    rt.task_lines.apply_workflow_patch(rt.main._current_line_id,
+        [{'operation': 'upsert', 'step_id': 'rank', 'node': revised}], 1, 2, 'approved pending operation repair')
+    rt.main.goal_contract.approved_plan_version = 2
+    rt.main.goal_contract.approved_nodes[-1] = revised
+    assert not rt._line()['steps'][0]['done']
+    if blocker == 'artifact_changed':
+        (generated / 'a.cif').write_text('changed artifact fixture\n')
+    before = rt.snapshot()
+    rt.main.registry.get('generate_structure').execute = lambda _: pytest.fail('completed generation must not resubmit')
+    rt.main.registry.get('run_pacman_charge').execute = lambda _: pytest.fail('completed charge must not resubmit')
+    if blocker and (blocker != 'input_proof_changed' or missing_binding):
+        with pytest.raises((ValueError, PermissionError)):
+            rt.start(2)
+        assert rt.snapshot()['plan_version'] == 1
+        for step_id in ('generate', 'charge'):
+            assert rt.snapshot()['nodes'][step_id]['status'] == 'succeeded'
+        return
+    assert rt.start(2)['status'] == 'scheduled'
+    after = rt.snapshot()
+    assert after['plan_version'] == 2
+    for step_id in ('generate', 'charge'):
+        for field in ('status', 'phase', 'token', 'attempt_id', 'job_ids', 'result', 'node_verification', 'artifacts'):
+            assert after['nodes'][step_id][field] == before['nodes'][step_id][field]
+    assert after['nodes']['charge']['contract']['input_bindings'] == charge['input_bindings']
+    assert after['nodes']['rank']['status'] == 'pending'
+    assert after['nodes']['rank']['contract']['arguments'] == revised['arguments']
+
+
+def test_start_preserves_approved_input_bindings_in_runtime_contract(factory, tmp_path):
+    source = tmp_path / 'source.txt'
+    first = node('producer', path=str(source), outputs=[str(source)])
+    consumer = node('consumer', path=str(source), deps=['producer'])
+    consumer['input_bindings'] = {'path': {'step_id': 'producer', 'output_index': 0}}
+    rt = factory([first, consumer], cid='preserve-bindings')
+    rt.start(1)
+    assert rt.snapshot()['nodes']['consumer']['contract']['input_bindings'] == consumer['input_bindings']
+
+
+@pytest.mark.parametrize('upgrade', ['start', 'tick'])
+def test_missing_binding_upgrade_preserves_completed_and_prefinish_branches(factory, tmp_path, upgrade):
+    source = tmp_path / 'produced.txt'
+    producer = node('producer', path=str(source), outputs=[str(source)])
+    consumer = node('consumer', path=str(source), deps=['producer'])
+    consumer['input_bindings'] = {'path': {'step_id': 'producer', 'output_index': 0}}
+    rt = factory([producer, consumer, node('literature')], cid='binding-upgrade')
+    rt.start(1)
+    with json_transaction(rt.store.path) as data:
+        nodes = data['workflows'][rt.workflow_id]['nodes']
+        nodes['consumer']['contract'].pop('input_bindings')
+        nodes['producer'].update(status='prefinish', token='generation-token', job_ids=['completed-generation'],
+            result={'state': 'COMPLETED'}, validation_dossier={
+                'schema_version': VALIDATION_SCHEMA_VERSION, 'successful_artifacts': []})
+        nodes['literature'].update(status='succeeded', result={'content': 'verified literature'}, phase='finish')
+    before = rt.snapshot()
+    rt.main.registry.get('read_file').execute = lambda _: pytest.fail('metadata repair must not dispatch work')
+    if upgrade == 'start':
+        assert rt.start(1)['resubmitted'] is False
+    else:
+        rt.tick(blocked_nodes=['producer', 'consumer', 'literature'])
+    after = rt.snapshot()
+    assert after['nodes']['producer'] == before['nodes']['producer']
+    assert after['nodes']['literature'] == before['nodes']['literature']
+    restored = after['nodes']['consumer']
+    assert restored['status'] == 'pending' and not restored.get('attempt_id')
+    assert restored['contract']['input_bindings'] == consumer['input_bindings']
+    assert restored['contract_metadata_history'][0]['no_dispatch']
+    assert len(restored['contract_metadata_history']) == 1
+    assert rt.store.restore_missing_input_bindings(rt.workflow_id, rt.main.goal_contract.to_dict(),
+        rt._line(), rt.username, rt.conv_id) == []
+    from agents.workflow_view import authoritative_line
+    visible = authoritative_line(rt._line(), after)
+    assert next(n for n in visible['steps'] if n['step_id'] == 'consumer')['contract_matches_execution']
+
+
+@pytest.mark.parametrize('status', ['waiting_jobs', 'prefinish', 'succeeded', 'needs_resources'])
+@pytest.mark.parametrize('proof_valid', [True, False])
+def test_binding_metadata_upgrade_preserves_executed_and_resource_waiting_facts(factory, tmp_path, status, proof_valid):
+    source = tmp_path / 'structures'
+    source.mkdir()
+    consumer = node('consumer', args={'path': str(source)}, tool='inspect_path', deps=['producer'])
+    consumer['input_bindings'] = {'path': {'step_id': 'producer', 'output_index': 0}}
+    rt = factory([node('producer', path=str(source), outputs=[{'kind': 'directory', 'path': str(source)}]),
+                  consumer], cid='claimed-binding-upgrade')
+    rt.start(1)
+    with json_transaction(rt.store.path) as data:
+        w = data['workflows'][rt.workflow_id]
+        current = w['nodes']['consumer']
+        current['contract'].pop('input_bindings')
+        current.update(status=status, token='current-token', artifacts={'original': {'exists': True}},
+                       phase='prefinish' if status == 'prefinish' else None,
+                       dispatch_phase='preflight' if status == 'needs_resources' else 'entered_tool')
+        if status != 'needs_resources':
+            current.update(effective_arguments=copy.deepcopy(consumer['arguments']),
+                           attempt_id='actual-attempt', job_ids=['existing-job'], tool_returned=True)
+            if not proof_valid:
+                current['effective_arguments']['path'] = str(tmp_path / 'different-input')
+        elif not proof_valid:
+            current['dispatch_phase'] = 'entered_tool'
+        data.setdefault('leases', {})['current-token'] = {'workflow_id': rt.workflow_id, 'step_id': 'consumer',
+                                                       'resources': [{'path': str(source), 'mode': 'shared'}]}
+    before = rt.store.snapshot()
+    restored = rt.store.restore_missing_input_bindings(rt.workflow_id, rt.main.goal_contract.to_dict(),
+        rt._line(), rt.username, rt.conv_id, tmp_path, rt.root)
+    if not proof_valid:
+        assert restored == []
+        assert rt.store.snapshot() == before
+        return
+    assert restored == ['consumer']
+    after = rt.store.snapshot()
+    expected = copy.deepcopy(before)
+    fixed = after['workflows'][rt.workflow_id]['nodes']['consumer']
+    expected_node = expected['workflows'][rt.workflow_id]['nodes']['consumer']
+    expected_node['contract']['input_bindings'] = consumer['input_bindings']
+    expected_node['contract_metadata_history'] = fixed['contract_metadata_history']
+    assert after == expected, 'only the missing declaration and its proof may change'
+    proof = fixed['contract_metadata_history'][-1]
+    assert proof['binding_proof'][0]['resolved_path'] == str(source)
+    assert proof['binding_proof'][0]['basis'] == ('unexecuted_preflight_contract' if status == 'needs_resources' else 'persisted_effective_arguments')
+
+
+@pytest.mark.parametrize('blocker', ['owner', 'line_owner', 'goal_version', 'plan_version', 'line_version',
+    'approval_version', 'goal_science', 'approval_binding', 'line_binding', 'line_science', 'runtime_science',
+    'live_node', 'completed_node', 'attempt', 'old_token', 'tool_returned', 'jobs', 'live_lease', 'user_pause'])
+def test_missing_binding_upgrade_rejects_unowned_stale_or_executed_contracts(factory, tmp_path, blocker):
+    source = tmp_path / 'source.txt'
+    consumer = node('consumer', path=str(source))
+    consumer['input_bindings'] = {'path': {'step_id': 'producer', 'output_index': 0}}
+    rt = factory([node('producer', path=str(source), outputs=[str(source)]),
+                  {**consumer, 'depends_on': ['producer']}], cid='binding-reject')
+    rt.start(1)
+    with json_transaction(rt.store.path) as data:
+        workflow = data['workflows'][rt.workflow_id]
+        current = workflow['nodes']['consumer']
+        current['contract'].pop('input_bindings')
+        if blocker == 'owner': workflow['username'] = 'other'
+        if blocker == 'goal_version': workflow['goal_contract']['version'] += 1
+        if blocker == 'plan_version': workflow['plan_version'] += 1
+        if blocker == 'goal_science': workflow['goal_contract']['gases'] = ['different-gas']
+        if blocker == 'approval_binding': workflow['goal_contract']['approved_nodes'][1]['input_bindings'] = {}
+        if blocker == 'runtime_science': current['contract']['arguments']['path'] = 'changed'
+        if blocker == 'live_node': current['status'] = 'running'
+        if blocker == 'completed_node': current['status'] = 'succeeded'
+        if blocker == 'attempt': current['attempt_id'] = 'prior-attempt'
+        if blocker == 'old_token': current['token'] = 'old-token'
+        if blocker == 'tool_returned': current['tool_returned'] = True
+        if blocker == 'jobs': current['job_ids'] = ['existing-job']
+        if blocker == 'live_lease': data.setdefault('leases', {})['lease'] = {'workflow_id': rt.workflow_id, 'step_id': 'consumer'}
+        if blocker == 'user_pause': workflow['user_paused'] = True
+    goal, line = rt.main.goal_contract.to_dict(), rt._line()
+    if blocker == 'line_owner': line['username'] = 'other'
+    if blocker == 'line_version': line['plan_version'] += 1
+    if blocker == 'approval_version': goal['approved_plan_version'] += 1
+    if blocker == 'line_binding': line['steps'][1]['input_bindings'] = {}
+    if blocker == 'line_science': line['steps'][1]['arguments']['path'] = 'changed'
+    before = rt.store.snapshot()
+    assert rt.store.restore_missing_input_bindings(rt.workflow_id, goal, line, rt.username, rt.conv_id) == []
+    assert rt.store.snapshot() == before
 
 
 def test_independent_branches_really_overlap_and_join_waits(factory):
@@ -861,16 +2049,20 @@ def test_submitted_job_keeps_lease_unknown_cannot_release_then_fresh_output_unlo
 
 
 def test_prefinish_creates_one_validation_dossier_and_emits_it(factory, tmp_path):
-    output = tmp_path / 'native-output.any-name'
+    from tests.fixture_native_dossier import prepare_native_result,write_native_result
+    work=tmp_path/'runs/tester/one-pass-dossier/native'
+    cif=work/'framework.cif';output=work/'Output/System_0/native-output.any-name'
     rt = factory([node('calc', tool='run_henry', args={
-        'cif': 'x.cif', 'gas': 'Kr', 'temperature': 298,
+        'cif': str(cif), 'gas': 'Kr', 'temperature': 298,
     }, outputs=[str(output)])], cid='one-pass-dossier')
+    actual_cif,actual_output=prepare_native_result(work,filename='native-output.any-name')
+    assert (actual_cif,actual_output)==(cif,output)
     rt.main.registry.get('run_henry').execute = lambda params: {
-        'submitted': True, 'job_id': '420', 'work_dir': str(tmp_path),
+        'submitted': True, 'job_id': '420', 'work_dir': str(work),
     }
     rt.start(1); rt.tick()
     eventually(lambda: rt.snapshot()['nodes']['calc']['status'] == 'waiting_jobs')
-    output.write_text('native calculation output\n')
+    write_native_result(output,1.25)
 
     rt.tick([{'job_id': '420', 'state': 'COMPLETED', 'terminal': True, 'failed': False}])
 
@@ -939,18 +2131,22 @@ def test_dossier_from_another_attempt_cannot_finish_current_node(factory, tmp_pa
 
 
 def test_agent_repairs_stale_output_contract_from_current_dossier(factory, tmp_path):
-    output = tmp_path / 'native-output'
-    stale = tmp_path / 'intermediate-output-that-does-not-exist'
+    from tests.fixture_native_dossier import prepare_native_result,write_native_result
+    work=tmp_path/'runs/tester/dossier-contract-repair/native'
+    cif=work/'framework.cif';output=work/'Output/System_0/native-output'
+    stale=work/'intermediate-output-that-does-not-exist'
     rt = factory([node('calc', tool='run_henry', args={
-        'cif': 'x.cif', 'gas': 'Kr', 'temperature': 298,
+        'cif': str(cif), 'gas': 'Kr', 'temperature': 298,
     }, outputs=[str(output), str(stale)])], cid='dossier-contract-repair')
+    actual_cif,actual_output=prepare_native_result(work,filename='native-output')
+    assert (actual_cif,actual_output)==(cif,output)
     calls = []
     rt.main.registry.get('run_henry').execute = lambda params: calls.append(params) or {
-        'submitted': True, 'job_id': '423', 'work_dir': str(tmp_path),
+        'submitted': True, 'job_id': '423', 'work_dir': str(work),
     }
     rt.start(1); rt.tick()
     eventually(lambda: rt.snapshot()['nodes']['calc']['status'] == 'waiting_jobs')
-    output.write_text('Simulation finished\nAverage loading absolute [mol/kg framework] 1.5\n')
+    write_native_result(output,1.5)
     rt.tick([{'job_id': '423', 'state': 'COMPLETED', 'terminal': True, 'failed': False}])
     current = rt.snapshot()['nodes']['calc']
     assert current['validation_dossier']['verdict'] == 'pass'
@@ -995,7 +2191,7 @@ def test_native_calculations_use_one_dossier_then_finish(
         arguments['cif'] = str(source)
     if 'cif_path' in arguments:
         arguments['cif_path'] = str(source)
-    if tool == 'run_pacman_charge':
+    if tool in {'run_pacman_charge', 'run_md_optimize'}:
         arguments['output_dir'] = str(work)
     if tool == 'run_vasp':
         arguments['work_dir'] = str(work)
@@ -1049,7 +2245,7 @@ def test_native_calculation_anomalies_stay_prefinish_for_agent_recovery(
         arguments['cif'] = str(source)
     if 'cif_path' in arguments:
         arguments['cif_path'] = str(source)
-    if tool == 'run_pacman_charge':
+    if tool in {'run_pacman_charge', 'run_md_optimize'}:
         arguments['output_dir'] = str(work)
     if tool == 'run_vasp':
         arguments['work_dir'] = str(work)
@@ -1312,6 +2508,8 @@ def test_dead_readonly_worker_restored_without_killing_main_role(factory):
     rt.start(1)
     ticket = rt.store.claim(rt.workflow_id, 'a')
     rt.store.update(rt.workflow_id, 'a', ticket['token'], {'owner_pid':99999999})
+    with json_transaction(rt.store.path) as data:
+        data['leases'][ticket['token']]['owner_pid'] = 99999999
     rt.tick()
     eventually(lambda: rt.snapshot()['status'] == 'completed')
     rt.lifecycle.heartbeat()
@@ -1644,13 +2842,21 @@ def test_unknown_local_writer_has_user_negotiated_repair_exit_not_permanent_stal
 def test_two_scientific_submissions_with_disjoint_workdirs_really_overlap(factory,tmp_path):
     entered,release=threading.Barrier(3),threading.Event()
     nodes=[]
+    scope=tmp_path/'runs/tester/c1'
+    recipes={}
     for gas in ('Kr','Xe'):
-        work=tmp_path/gas;work.mkdir()
+        work=scope/gas
+        recipes[gas]=_parallel_native_input(tmp_path,scope,gas)
         nodes.append(node(gas,tool='run_cdft',args={'action':'pipeline','cif_dir':str(tmp_path/'inputs'),
-            'gas':gas,'temperature':298,'job_work_dir':str(work)},outputs=[str(work/'result.csv')]))
+            'gas':gas,'temperature':298,'job_work_dir':str(work),'input_dir':str(recipes[gas][0])},outputs=[str(work/'results.csv')]))
     rt=factory(nodes)
+    for gas in ('Kr','Xe'):
+        (scope/gas).mkdir()
+        recipes[gas][0].mkdir()
+        (recipes[gas][0]/'a.dat').write_bytes((recipes[gas][1]/'input/a.dat').read_bytes())
     seen=[]
     def compute(args):
+        _parallel_native_result(recipes[args['gas']][1],Path(args['job_work_dir']),args['gas'])
         seen.append(args['gas']);entered.wait(timeout=4);assert release.wait(4)
         return {'submitted':True,'job_id':'42' if args['gas']=='Kr' else '43','work_dir':args['job_work_dir']}
     rt.main.registry.get('run_cdft').execute=compute
@@ -1661,7 +2867,6 @@ def test_two_scientific_submissions_with_disjoint_workdirs_really_overlap(factor
         assert len(rt.store.snapshot()['leases'])==2
     finally:release.set()
     eventually(lambda:all(n['status']=='waiting_jobs' for n in rt.snapshot()['nodes'].values()))
-    for gas in ('Kr','Xe'):(tmp_path/gas/'result.csv').write_text('fresh simulated output')
     rt.tick([{'job_id':jid,'state':'COMPLETED','terminal':True,'failed':False} for jid in ('42','43')])
     for gas in ('Kr','Xe'):verify_prefinish(rt,gas)
     assert rt.snapshot()['status']=='completed' and not rt.store.snapshot()['leases']
@@ -1825,13 +3030,14 @@ def test_missing_receipt_enters_user_reconciliation_not_empty_wait(factory):
 
 
 def test_real_cdft_executor_scopes_preparation_and_submission_to_explicit_directory(tmp_path,monkeypatch):
+    monkeypatch.setattr('agents.registry._cdft_adapter_bootstrap', lambda *args: ('', []))
     from agents.registry import _exec_cdft
     config=AgentConfig(api_key='test',project_root=tmp_path)
     monkeypatch.setattr('agents.registry.get_config',lambda:config)
     monkeypatch.setattr('agents.workspace.session_dir',lambda kind:tmp_path/'unused-default')
     captured=[]
     def fake_run(command,**kwargs):
-        captured.append((command[2],kwargs['cwd']))
+        captured.append((native_source(command, kwargs),kwargs['cwd']))
         return SimpleNamespace(returncode=0,stdout='{"submitted":true,"job_id":"42"}',stderr='')
     monkeypatch.setattr('subprocess.run',fake_run)
     work=tmp_path/'isolated'
@@ -1971,22 +3177,38 @@ def test_verified_recovery_finishes_unless_user_requested_contract_change(factor
 def test_relative_outputs_use_same_actual_anchor_and_do_not_serialize_disjoint_cdft(factory,tmp_path):
     entered,release=threading.Barrier(3),threading.Event()
     nodes=[]
+    scope=tmp_path/'runs/tester/c1'
+    recipes={}
     for name in ('a','b'):
-        work=tmp_path/name;work.mkdir()
+        work=scope/name
+        recipes[name]=_parallel_native_input(tmp_path,scope,name)
         nodes.append(node(name,tool='run_cdft',args={'action':'pipeline','cif_dir':str(tmp_path/'cifs'),
-            'gas':'Kr','temperature':298,'job_work_dir':str(work)},outputs=['results.csv']))
+            'gas':'Kr','temperature':298,'job_work_dir':str(work),'input_dir':str(recipes[name][0])},outputs=['results.csv']))
     rt=factory(nodes)
+    for name in ('a','b'):
+        (scope/name).mkdir()
+        recipes[name][0].mkdir()
+        (recipes[name][0]/'a.dat').write_bytes((recipes[name][1]/'input/a.dat').read_bytes())
     def compute(args):
+        key=Path(args['job_work_dir']).name
+        _parallel_native_result(recipes[key][1],Path(args['job_work_dir']),args['gas'])
         entered.wait(timeout=4);assert release.wait(4)
-        return {'submitted':True,'job_id':'42' if args['job_work_dir'].endswith('a') else '43'}
+        return {'submitted':True,'job_id':'42' if args['job_work_dir'].endswith('a') else '43','work_dir':args['job_work_dir']}
     rt.main.registry.get('run_cdft').execute=compute
     rt.start(1);rt.tick()
     try:entered.wait(timeout=4)
     finally:release.set()
     eventually(lambda:all(n['status']=='waiting_jobs' for n in rt.snapshot()['nodes'].values()))
-    for name in ('a','b'):(tmp_path/name/'results.csv').write_text('fresh')
+    # Unowned decoys must never substitute for the source-bound native CSV.
+    for name in ('a','b'):
+        (tmp_path/name).mkdir()
+        (tmp_path/name/'results.csv').write_text('fresh')
     rt.tick([{'job_id':jid,'state':'COMPLETED','terminal':True,'failed':False} for jid in ('42','43')])
     for name in ('a','b'):verify_prefinish(rt,name)
+    for name in ('a','b'):
+        assert str(scope/name/'results.csv') in rt.snapshot()['nodes'][name]['artifacts']
+        assert str(tmp_path/name/'results.csv') not in rt.snapshot()['nodes'][name]['artifacts']
+        assert (tmp_path/name/'results.csv').read_text()=='fresh'
     assert rt.snapshot()['status']=='completed'
 
 
@@ -2223,3 +3445,19 @@ def test_kernel_lock_failure_never_falls_back_to_unlocked_shared_write(tmp_path,
         store=TaskLineStore(str(path))
         with pytest.raises(OSError):store.begin_line('c1',username='alice',conv_id='c1')
     assert path.read_text()=='{}'
+
+
+def _parallel_native_input(tmp_path, scope, gas):
+    """Native-format engineering fixture, no solver/scientific execution."""
+    from tests.test_cdft_result_facts import fixture as native_case
+    _, template, _ = native_case(tmp_path / ('native-template-' + gas))
+    original = scope / ('original-' + gas)
+    return original, template
+
+
+def _parallel_native_result(template, work, gas):
+    import shutil
+    for directory in ('input', 'input_dir'):
+        shutil.copytree(template / directory, work / directory)
+    (work / 'results.csv').write_text(
+        f'MOF,{gas}_density_mol_L,{gas}_henry_mol_L_atm\na,1.2,1.3\n')

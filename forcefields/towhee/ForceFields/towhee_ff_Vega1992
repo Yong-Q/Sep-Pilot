@@ -1,0 +1,377 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           5
+Potential Type
+Square Well                   
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.1000000000E+01
+    0.1250000000E+01
+    0.1000000000E+01
+Mass
+    0.6022045700E+00
+Element
+Sw
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Vega1992  
+Atom Names
+lam_1.25  
+lam_1.25  
+lam_1.25  
+lam_1.25  
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.1000000000E+01
+    0.1375000000E+01
+    0.1000000000E+01
+Mass
+    0.6022045700E+00
+Element
+Sw
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Vega1992  
+Atom Names
+lam_1.375 
+lam_1.375 
+lam_1.375 
+lam_1.375 
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.1000000000E+01
+    0.1500000000E+01
+    0.1000000000E+01
+Mass
+    0.6022045700E+00
+Element
+Sw
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Vega1992  
+Atom Names
+lam_1.5   
+lam_1.5   
+lam_1.5   
+lam_1.5   
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.1000000000E+01
+    0.1750000000E+01
+    0.1000000000E+01
+Mass
+    0.6022045700E+00
+Element
+Sw
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Vega1992  
+Atom Names
+lam_1.75  
+lam_1.75  
+lam_1.75  
+lam_1.75  
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.1000000000E+01
+    0.1200000000E+01
+    0.1000000000E+01
+Mass
+    0.6022045700E+00
+Element
+Sw
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Vega1992  
+Atom Names
+lam_1.2   
+lam_1.2   
+lam_1.2   
+lam_1.2   
+Number of Bonded Terms
+          15
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.25   lam_1.25  
+Bond Type Number
+           2
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.25   lam_1.375 
+Bond Type Number
+           3
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.25   lam_1.5   
+Bond Type Number
+           4
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.25   lam_1.75  
+Bond Type Number
+           5
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.25   lam_1.2   
+Bond Type Number
+           6
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.375  lam_1.375 
+Bond Type Number
+           7
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.375  lam_1.5   
+Bond Type Number
+           8
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.375  lam_1.75  
+Bond Type Number
+           9
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.375  lam_1.2   
+Bond Type Number
+          10
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.5    lam_1.5   
+Bond Type Number
+          11
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.5    lam_1.75  
+Bond Type Number
+          12
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.5    lam_1.2   
+Bond Type Number
+          13
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.75   lam_1.75  
+Bond Type Number
+          14
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.75   lam_1.2   
+Bond Type Number
+          15
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lam_1.2    lam_1.2   
+Number of Angle Terms
+           1
+Angle Type Number
+           1
+Angle Style
+           6
+Angle Coefficients
+Angle Order
+wild           
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       wild       wild      
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+           8
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Torsion Coefficients
+Torsion Order
+wild           
+Force Field Name
+Vega1992  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       wild       wild       wild      
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

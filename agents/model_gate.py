@@ -61,6 +61,16 @@ _slots = FairSlots(MODEL_CALL_CONCURRENCY)
 _state_lock = threading.Lock()
 _cooldown_until = 0.0
 _consecutive_limits = 0
+_timing_local = threading.local()
+
+
+def last_call_timing() -> dict:
+    """Content-free phases for this thread's most recent gate invocation.
+
+    Provider time is callback wall time (including transport/stream parsing),
+    not remote compute time or time to first token. Other threads see no data.
+    """
+    return dict(getattr(_timing_local, 'last', {}))
 
 
 class ProviderRateLimited(Exception):
@@ -97,28 +107,55 @@ def call_model(call: Callable[[], T], *,
                interrupted: Callable[[], bool] | None = None) -> T:
     """Run one provider call behind a rechecked slot and shared circuit."""
     global _cooldown_until, _consecutive_limits
-    while True:
-        _wait_for_circuit(on_wait, interrupted)
-        _slots.acquire(interrupted, on_queue)
-        try:
-            with _state_lock:
-                if _cooldown_until > time.monotonic():
-                    continue
+    started = time.monotonic()
+    queue_seconds = cooldown_seconds = provider_seconds = 0.0
+    provider_calls = 0
+    _timing_local.last = {}
+    try:
+        while True:
+            phase = time.monotonic()
             try:
-                result = call()
-            except anthropic.RateLimitError as error:
+                _wait_for_circuit(on_wait, interrupted)
+            finally:
+                cooldown_seconds += time.monotonic() - phase
+            phase = time.monotonic()
+            try:
+                _slots.acquire(interrupted, on_queue)
+            finally:
+                queue_seconds += time.monotonic() - phase
+            try:
                 with _state_lock:
-                    _consecutive_limits += 1
-                    wait_seconds = min(60, 15 * _consecutive_limits)
-                    _cooldown_until = max(_cooldown_until, time.monotonic() + wait_seconds)
-                    attempt = _consecutive_limits
-                raise ProviderRateLimited(wait_seconds, attempt) from error
-            with _state_lock:
-                _consecutive_limits = 0
-                _cooldown_until = 0.0
-            return result
-        finally:
-            _slots.release()
+                    if _cooldown_until > time.monotonic():
+                        continue
+                phase = time.monotonic()
+                provider_calls += 1
+                try:
+                    result = call()
+                except anthropic.RateLimitError as error:
+                    with _state_lock:
+                        _consecutive_limits += 1
+                        wait_seconds = min(60, 15 * _consecutive_limits)
+                        _cooldown_until = max(_cooldown_until, time.monotonic() + wait_seconds)
+                        attempt = _consecutive_limits
+                    raise ProviderRateLimited(wait_seconds, attempt) from error
+                finally:
+                    provider_seconds += time.monotonic() - phase
+                with _state_lock:
+                    _consecutive_limits = 0
+                    _cooldown_until = 0.0
+                return result
+            finally:
+                _slots.release()
+    finally:
+        total = time.monotonic() - started
+        _timing_local.last = {
+            'queue_wait_seconds': round(queue_seconds, 6),
+            'cooldown_wait_seconds': round(cooldown_seconds, 6),
+            'provider_seconds': round(provider_seconds, 6),
+            'gate_total_seconds': round(total, 6),
+            'gate_overhead_seconds': round(max(0.0, total - queue_seconds - cooldown_seconds - provider_seconds), 6),
+            'provider_calls': provider_calls,
+        }
 
 
 def provider_state() -> dict:

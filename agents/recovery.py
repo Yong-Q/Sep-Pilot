@@ -12,14 +12,7 @@ import re
 
 from .state_io import json_transaction
 
-SUBMISSION_TOOLS = frozenset({
-    'run_gcmc_isotherm', 'run_gcmc_batch', 'run_henry', 'run_henry_chain',
-    'run_isotherm_chain', 'run_pacman_charge', 'run_pore_analysis',
-    'generate_structure', 'run_xtb_optimize', 'run_md_optimize',
-    'run_string_tst', 'run_external_potential', 'submit_job',
-    'ml_train', 'ml_predict', 'ml_feature_importance', 'ml_active_learning',
-    'run_ga_optimization', 'build_guest_forcefield',
-})
+SUBMISSION_TOOLS = frozenset({'ml_active_learning', 'generate_structure', 'run_external_potential', 'build_guest_forcefield', 'run_isotherm_chain', 'run_henry_chain', 'ml_train', 'run_string_tst', 'run_henry', 'run_pore_analysis', 'run_pacman_charge', 'ml_predict', 'run_gcmc_batch', 'submit_job', 'run_gcmc_isotherm', 'run_xtb_optimize', 'run_md_optimize', 'run_ga_optimization'})
 FAILURE_STATES = {'FAILED', 'CANCELLED', 'TIMEOUT', 'OUT_OF_MEMORY', 'NODE_FAIL', 'REJECTED', 'FATAL'}
 
 
@@ -29,16 +22,57 @@ def is_submission(tool, params):
             or tool == 'run_vasp' and params.get('action') in {'submit', 'setup-batch'})
 
 
+def normalize_tool_result(result):
+    """Preserve native MCP transport flags instead of stringifying its model."""
+    if isinstance(result,dict):return result
+    if type(result)is bool:return {'ok':result,'result':result}
+    if isinstance(result,str):
+        try:parsed=json.loads(result)
+        except (TypeError,ValueError):
+            return {'error':result}if result.lstrip().startswith('Error:')else{'result':result}
+        return normalize_tool_result(parsed)
+    # MCP SDKs return a Pydantic CallToolResult, not a Python dict. This is an
+    # envelope conversion, never a tool execution or structuredContent override.
+    if type(getattr(result,'isError',None))is bool and hasattr(result,'content'):
+        dump=getattr(result,'model_dump',None)
+        if callable(dump):
+            value=dump(mode='json',by_alias=True)
+            if isinstance(value,dict):return value
+        return {'isError':result.isError,'content':[
+            item.model_dump(mode='json',by_alias=True)if callable(getattr(item,'model_dump',None))else item
+            for item in result.content],
+            'structuredContent':getattr(result,'structuredContent',None)}
+    return {'result':result}
+
+
 def result_object(result):
+    if not isinstance(result,(dict,str))and type(getattr(result,'isError',None))is bool:
+        result=normalize_tool_result(result)
     if isinstance(result, dict):
         parsed = result
     else:
         try:
             parsed = json.loads(result)
             if not isinstance(parsed, dict):
+                if parsed is False:return {'ok':False,'result':False}
                 return {}
         except (TypeError, ValueError):
             return {}
+    if isinstance(parsed.get('content'),list)and any(key in parsed for key in ('isError','is_error','structuredContent')):
+        inner=parsed.get('structuredContent')
+        if not isinstance(inner,dict)and len(parsed['content'])==1:
+            block=parsed['content'][0]
+            if isinstance(block,dict)and block.get('type')=='text'and isinstance(block.get('text'),str):
+                try:inner=json.loads(block['text'])
+                except ValueError:pass
+        if isinstance(inner,dict):
+            # Evidence keeps the full original envelope. This projection feeds
+            # typed result bindings without duplicating large source content.
+            projected=dict(inner)
+            for key in ('isError','is_error'):
+                if key in parsed:projected[key]=parsed[key]is True or inner.get(key)is True
+            if parsed.get('error'):projected['error']=parsed['error']
+            parsed=projected
     # Some cDFT wrappers say submitted=True merely because their helper Python
     # exited 0. The helper's last JSON result is the actual scheduler outcome.
     if parsed.get('submitted') and isinstance(parsed.get('stdout'), str):
@@ -53,25 +87,73 @@ def result_object(result):
             except ValueError:
                 continue
         if candidates:
-            return {**parsed, **max(candidates, key=lambda pair: pair[0])[1]}
+            merged={**parsed, **max(candidates, key=lambda pair: pair[0])[1]}
+            for key in ('isError','is_error'):
+                if parsed.get(key)is True:merged[key]=True
+            return merged
     return parsed
 
 
-def failure_reason(result):
+def failure_reason(result, *, diagnostic=False):
     """Structured signals only; never scan arbitrary output for 'FAILED'."""
+    if result is False and not diagnostic:return 'tool returned false'
     obj = result_object(result)
-    if obj.get('blocked') or obj.get('skipped') or obj.get('deduplicated'):
+    if obj.get('isError')is True or obj.get('is_error')is True:
+        return str(obj.get('error')or'MCP/tool transport reported an error')[:4000]
+    if diagnostic:
+        # An owned inspection can correctly observe a failed job, a missing
+        # installation or an invalid physical condition. Actual query failures
+        # use the native error/transport channels, not the observed status.
+        if obj.get('error'):return str(obj['error'])[:4000]
+        if isinstance(result,str)and result.lstrip().startswith('Error:'):return result[:4000]
+        return ''
+    if obj.get('skipped') or obj.get('deduplicated'):
         return ''
     state = str(obj.get('status') or obj.get('state') or '').upper()
+    if obj.get('blocked'):
+        # A safe duplicate/defer is not a failed execution. An explicit native
+        # error plus executed=False is a real rejected tool call, however; do
+        # not hide scope/schema failures from memory and fault supervision.
+        waiting = {'WAITING','WAITING_JOBS','WAITING_RESOURCES','NEEDS_RESOURCES',
+                   'REVIEW_BUSY','REVIEW_RETRY','AWAITING_APPROVAL','AWAITING_CONFIRMATION',
+                   'NEEDS_USER','DEFERRED','PENDING'}
+        if state in waiting or obj.get('review_in_progress') is True:
+            return ''
+        if obj.get('executed') is False and obj.get('error'):
+            return str(obj['error'])[:4000]
+        return ''
     exit_code = obj.get('exit_code', obj.get('returncode'))
     if (obj.get('failed') is True or obj.get('success') is False
+            or obj.get('ok') is False and not diagnostic
             or state in FAILURE_STATES or obj.get('chain_status') == 'failed'
-            or obj.get('error') or obj.get('isError') is True
+            or state in {'EXECUTION_FAILED','SANDBOX_UNAVAILABLE','PLOT_AUTHORING_EXHAUSTED',
+                         'REPORT_AUTHORING_FAILED','VALIDATION_FAILED'}
+            or obj.get('error')
             or isinstance(exit_code, (int, float)) and exit_code != 0):
         return str(obj.get('error') or obj.get('stderr') or obj.get('issues') or state or 'execution failed')[:4000]
     if isinstance(result, str) and result.lstrip().startswith('Error:'):
         return result[:4000]
     return ''
+
+
+def tool_failure_reason(tool,result):
+    """Native capability decides observation semantics; result data cannot."""
+    from .parallel_workflow import READ_ONLY
+    if tool not in READ_ONLY and execution_deferred(result):return ''
+    aliases={'check_job_status','get_job_status','list_jobs','inspect'}
+    return failure_reason(result,diagnostic=tool in READ_ONLY or tool in aliases)
+
+
+def execution_deferred(result):
+    """An explicit non-execution receipt is neither success nor a retry grant."""
+    obj=result_object(result)
+    if obj.get('isError')is True or obj.get('is_error')is True:return False
+    state=str(obj.get('status')or obj.get('state')or'').upper()
+    waiting={'WAITING','WAITING_JOBS','WAITING_RESOURCES','NEEDS_RESOURCES','REVIEW_BUSY',
+        'REVIEW_RETRY','AWAITING_APPROVAL','AWAITING_CONFIRMATION','NEEDS_USER','DEFERRED','PENDING'}
+    return bool(obj.get('skipped')or obj.get('deduplicated')or
+        (obj.get('blocked')or obj.get('executed')is False)and
+        (state in waiting or obj.get('review_in_progress')is True or not failure_reason(obj)))
 
 
 def _input_fingerprint(params, project_root, include_resource_review=False):
@@ -160,6 +242,8 @@ class RecoveryGate:
         return hashlib.sha256(json.dumps([family, goal_version, node, target], sort_keys=True, default=str).encode()).hexdigest()[:24]
 
     def claim(self, key, tool, params, fingerprint, goal_version=0, project_root=None, legacy_job_id=None):
+        from .installations import executor_fingerprint
+        runtime = executor_fingerprint(tool, project_root) if project_root else None
         with self.transaction() as data:
             entry = data.get(key)
             if entry:
@@ -179,8 +263,24 @@ class RecoveryGate:
                     return None, f'[RETRY_BLOCK] existing attempt is {status}; inspect its jobs, do not resubmit'
                 if entry['attempts'] >= 3:
                     return None, '[RETRY_BLOCK] three dispatch attempts exhausted; ask user to revise the plan'
+                # Older permits used the approved scientific node arguments
+                # before kernel resource allocation was attached. Restore only
+                # omitted fields from the original dispatch, while requiring
+                # the original verified input fingerprint to remain unchanged.
+                reviewed = entry.get('approved_arguments')
+                if status == 'failed' and isinstance(reviewed, dict) and entry.get('approved_fingerprint') != fingerprint:
+                    fields = {'memory_mb', 'nodelist', 'partition', 'num_processes', 'cpus_per_task'}
+                    merged = {**{k: v for k, v in entry.get('params', {}).items() if k in fields}, **reviewed}
+                    root = entry.get('project_root') or '.'
+                    if (entry.get('approved_fingerprint') == input_fingerprint(reviewed, root)
+                            and all(params.get(k) == merged.get(k) for k in fields)
+                            and input_fingerprint(merged, root) == fingerprint):
+                        entry['approved_arguments'] = merged
+                        entry['approved_fingerprint'] = fingerprint
                 if not resume_waiting_chain and entry.get('approved_fingerprint') != fingerprint:
                     return None, '[RETRY_BLOCK] failure requires prepare_retry with diagnostic and verification call IDs'
+                if entry.get('approved_runtime_fingerprint') and entry['approved_runtime_fingerprint'] != runtime:
+                    return None, '[RETRY_BLOCK] executor changed after verification; inspect and verify again'
             attempt_id = uuid.uuid4().hex
             data[key] = {
                 **(entry or {}), 'key': key, 'tool': tool, 'params': copy.deepcopy(params),
@@ -188,10 +288,12 @@ class RecoveryGate:
                 'attempts': (entry or {}).get('attempts', 0) + 1,
                 'status': 'reserved', 'started_at': time.time(), 'job_ids': [],
                 'goal_version': goal_version,
+                'identity_goal_version': (entry or {}).get('identity_goal_version', (entry or {}).get('goal_version', goal_version)),
                 'owner_pid': os.getpid(),
                 'legacy_job_id': legacy_job_id,
                 'project_root': str(project_root) if project_root else None,
                 'approved_fingerprint': None,
+                'runtime_fingerprint': runtime, 'approved_runtime_fingerprint': None,
             }
             return attempt_id, ''
 
@@ -201,6 +303,9 @@ class RecoveryGate:
             if not entry or entry.get('attempt_id') != attempt_id:
                 return
             obj = result_object(result)
+            # A result may conservatively veto acceptance/retry. It cannot use
+            # this flag to grant execution, success or scheduler ownership.
+            uncertain = uncertain or obj.get('uncertain') is True or str(obj.get('status')or'').lower() in {'uncertain','submission_unknown'}
             jobs = obj.get('job_ids') or ([obj['job_id']] if obj.get('job_id') else [])
             if obj.get('context'):
                 ctx = obj['context']
@@ -303,17 +408,49 @@ class RecoveryGate:
             entry.setdefault('reviews', []).append(proof)
             return {'ok': True, 'proof': proof, 'single_use': True}
 
-    def approve(self, key, fingerprint, review):
+    def approve(self, key, fingerprint, review, runtime_verification=None, arguments=None, *, expected_attempt_id=None, control_valid=None):
         with self.transaction() as data:
             entry = data.get(key)
+            if control_valid is not None and (not callable(control_valid) or control_valid() is not True):
+                raise ValueError('native retry control changed before permit commit')
+            if expected_attempt_id is not None and (not entry or entry.get('attempt_id') != expected_attempt_id):
+                raise ValueError('failed attempt changed during retry verification')
             if not entry or entry.get('status') != 'failed':
                 raise ValueError('retry requires a confirmed failed attempt, not UNKNOWN/running')
             if entry['attempts'] >= 3:
                 raise ValueError('attempt budget exhausted; user must revise the plan')
-            if fingerprint == entry['fingerprint']:
+            runtime = None
+            if runtime_verification is not None:
+                from .installations import executor_fingerprint
+                proof = runtime_verification
+                root = entry.get('project_root')
+                if (not root or proof.get('ok') is not True or proof.get('read_only') is not True
+                        or proof.get('verified_tool') != entry['tool']):
+                    raise ValueError('successful native executor verification required')
+                runtime = executor_fingerprint(entry['tool'], root)
+                if proof.get('runtime_fingerprint') != runtime:
+                    raise ValueError('executor changed since native verification')
+                previous = entry.get('runtime_fingerprint')
+                # Older receipts have no executor digest. Require a real source
+                # change after the recorded failure, checked from disk here.
+                legacy_changed = False
+                if not previous:
+                    from .installations import IMPLEMENTATIONS
+                    for name in ['agents/registry.py'] + IMPLEMENTATIONS.get(entry['tool'], []):
+                        file = Path(root) / name
+                        if file.is_file() and file.stat().st_mtime > entry.get('failed_at', entry['started_at']):
+                            legacy_changed = True
+                if previous == runtime or not previous and not legacy_changed:
+                    raise ValueError('a changed executor must be established before retry')
+            if fingerprint == entry['fingerprint'] and runtime is None:
                 raise ValueError('arguments and input contents are unchanged; no verified fix')
             entry['approved_fingerprint'] = fingerprint
+            entry['approved_runtime_fingerprint'] = runtime
+            entry['approved_attempt_id'] = entry['attempt_id']
+            entry['approved_arguments'] = copy.deepcopy(arguments if arguments is not None else entry.get('params', {}))
             entry.setdefault('reviews', []).append({**review, 'time': time.time()})
+            if control_valid is not None and control_valid() is not True:
+                raise ValueError('native retry control changed during permit commit')
             return {'ok': True, 'key': key, 'next_attempt': entry['attempts'] + 1, 'single_use': True}
 
     def accept_result(self, key, evidence):

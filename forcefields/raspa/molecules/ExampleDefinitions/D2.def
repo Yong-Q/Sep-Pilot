@@ -1,0 +1,18 @@
+# critical constants: Temperature [T], Pressure [Pa], and Acentric factor [-]
+33.19
+1312999.7475
+-0.215993
+# Number Of Atoms
+1
+# Number Of Groups
+1
+# Alkane-group
+flexible
+# number of atoms
+1
+# atomic positions
+0 D
+# Chiral centers Bond  BondDipoles Bend  UrayBradley InvBend  Torsion Imp. Torsion Bond/Bond Bond/Bend Bend/Bend Bond/Torsion Bend/Torsion IntraVDW Intra ch-ch Intra ch-bd Intra bd-bd
+               0    0            0    0            0       0        0            0         0         0         0            0            0        0           0           0           0
+# Number of config moves
+0

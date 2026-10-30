@@ -1,0 +1,256 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           8
+Potential Type
+Gordon n-6                    
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3785000000E+01
+    0.1167462512E+03
+    0.9000000000E+01
+Mass
+    0.1604260000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Gordon    
+Atom Names
+CH4n9     
+CH4n9     
+CH4n9     
+CH4n9     
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3778000000E+01
+    0.1288234496E+03
+    0.1000000000E+02
+Mass
+    0.1604260000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Gordon    
+Atom Names
+CH4n10    
+CH4n10    
+CH4n10    
+CH4n10    
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3736000000E+01
+    0.1383845650E+03
+    0.1100000000E+02
+Mass
+    0.1604260000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Gordon    
+Atom Names
+CH4n11    
+CH4n11    
+CH4n11    
+CH4n11    
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.3730000000E+01
+    0.1480000000E+03
+    0.1200000000E+02
+Mass
+    0.1604260000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Gordon    
+Atom Names
+CH4n12    
+CH4n12    
+CH4n12    
+CH4n12    
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.3706000000E+01
+    0.1882030084E+03
+    0.1800000000E+02
+Mass
+    0.1604260000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Gordon    
+Atom Names
+CH4n18    
+CH4n18    
+CH4n18    
+CH4n18    
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.3690000000E+01
+    0.2470793506E+03
+    0.4000000000E+02
+Mass
+    0.1604260000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Gordon    
+Atom Names
+CH4n40    
+CH4n40    
+CH4n40    
+CH4n40    
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.3680000000E+01
+    0.1107076520E+03
+    0.1400000000E+02
+Mass
+    0.1503470000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Gordon    
+Atom Names
+CH3n14    
+Csp3      
+CH3sp3    
+CH3sp3    
+Atom Type Number
+           8
+Nonbond Coefficients
+    0.3875000000E+01
+    0.7397284020E+02
+    0.2000000000E+02
+Mass
+    0.1402680000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Gordon    
+Atom Names
+CH2n20    
+Csp3      
+CH2sp3    
+CH2sp3    
+Number of Bonded Terms
+           1
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.1540000000E+01
+Vibration Order
+wild      
+Force Field Name
+Gordon    
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp3       Csp3      
+Number of Angle Terms
+           1
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1140000000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+Gordon    
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     Cwild     
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.3550300000E+03
+   -0.6819000000E+02
+    0.7913200000E+03
+Torsion Order
+wild           
+Force Field Name
+Gordon    
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     CH2sp3     Cwild     
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

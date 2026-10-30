@@ -1,0 +1,1584 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+          32
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Geometric                     
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3730000000E+01
+    0.1479456804E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1604260000E+02
+Element
+ C
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CH4       
+null      
+null      
+null      
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3775000000E+01
+    0.1041658362E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1503470000E+02
+Element
+ C
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CH3-C1    
+Csp3      
+CH3sp3    
+CH3sp3    
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3905000000E+01
+    0.8806290500E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1503470000E+02
+Element
+ C
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CH3-C2    
+Csp3      
+CH3sp3    
+CH3sp3    
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.3910000000E+01
+    0.8051465600E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1503470000E+02
+Element
+ C
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CH3-C3    
+Csp3      
+CH3sp3    
+CH3sp3    
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.3960000000E+01
+    0.7296640700E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1503470000E+02
+Element
+ C
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CH3-C4    
+Csp3      
+CH3sp3    
+CH3sp3    
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.3800000000E+01
+    0.8554682200E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1503470000E+02
+Element
+ C
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CH3-X     
+Csp3      
+CH3sp3    
+CH3sp3    
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.3905000000E+01
+    0.5937955880E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1402680000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CH2sp3    
+Csp3      
+CH2sp3    
+CH2sp3    
+Atom Type Number
+           8
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1402680000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CH2sp3-SR 
+Csp3      
+CH2sp3    
+CH2sp3    
+Atom Type Number
+           9
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1402680000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CH2sp3-N  
+Csp3      
+CH2sp3    
+CH2sp3    
+Atom Type Number
+          10
+Nonbond Coefficients
+    0.3850000000E+01
+    0.7045032400E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1402680000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CH2sp2    
+Csp2      
+CH2sp2    
+CH2sp2    
+Atom Type Number
+          11
+Nonbond Coefficients
+    0.3850000000E+01
+    0.4025732800E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301890000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CHsp3     
+Csp3      
+CHsp3     
+CHsp3     
+Atom Type Number
+          12
+Nonbond Coefficients
+    0.3800000000E+01
+    0.4025732800E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301890000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CHsp3-N   
+Csp3      
+CHsp3     
+CHsp3     
+Atom Type Number
+          13
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5786990900E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301890000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CHsp2     
+Csp2      
+CHsp2     
+CHsp2     
+Atom Type Number
+          14
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5786990900E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301890000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CHsp2-N   
+Csp2-N    
+CHsp2-N   
+CHsp2-N   
+Atom Type Number
+          15
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5535382600E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301890000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+CHarom    
+Carom     
+Carom     
+Carom     
+Atom Type Number
+          16
+Nonbond Coefficients
+    0.3800000000E+01
+    0.2516083000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Csp3      
+Csp3      
+Csp3      
+Csp3      
+Atom Type Number
+          17
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Csp2      
+Csp2      
+Csp2      
+Csp2      
+Atom Type Number
+          18
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Csp2-N    
+Csp2-N    
+Csp2-N    
+Csp2-N    
+Atom Type Number
+          19
+Nonbond Coefficients
+    0.3650000000E+01
+    0.7553062760E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp   
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Csp       
+Csp       
+Csp       
+Csp       
+Atom Type Number
+          20
+Nonbond Coefficients
+    0.1396853576E+01
+    0.5927310913E+05
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3545300000E+02
+Element
+Cl
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Cl-       
+null      
+null      
+null      
+Atom Type Number
+          21
+Nonbond Coefficients
+    0.2732948575E+00
+    0.3623159520E+09
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+F-        
+null      
+null      
+null      
+Atom Type Number
+          22
+Nonbond Coefficients
+    0.9638147944E+00
+    0.6621138447E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+F         
+F         
+null      
+null      
+Atom Type Number
+          23
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+H         
+H         
+H         
+H         
+Atom Type Number
+          24
+Nonbond Coefficients
+    0.3984220190E+00
+    0.3145103750E+07
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.6941000000E+01
+Element
+Li
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Li+       
+null      
+null      
+null      
+Atom Type Number
+          25
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1400700000E+02
+Element
+ N
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Nsp2      
+Nsp2      
+Nsp2      
+Nsp2      
+Atom Type Number
+          26
+Nonbond Coefficients
+    0.3200000000E+01
+    0.8551317870E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1400700000E+02
+Element
+ N
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Ns        
+Ns        
+Ns        
+Ns        
+Atom Type Number
+          27
+Nonbond Coefficients
+    0.3070000000E+01
+    0.8554682200E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Osp3      
+Osp3      
+Osp3      
+Osp3      
+Atom Type Number
+          28
+Nonbond Coefficients
+    0.3000000000E+01
+    0.8554682200E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Osp3-COO  
+Osp3-COO  
+Osp3-COO  
+Osp3-COO  
+Atom Type Number
+          29
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Osp2      
+Osp2      
+Osp2      
+Osp2      
+Atom Type Number
+          30
+Nonbond Coefficients
+    0.6000228602E+00
+    0.8087409643E+06
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.2299000000E+02
+Element
+Na
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+Na+       
+null      
+null      
+null      
+Atom Type Number
+          31
+Nonbond Coefficients
+    0.3700000000E+01
+    0.1258041500E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3206600000E+02
+Element
+ S
+Bond Pattern
+p    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+S-HSH     
+S         
+S         
+S         
+Atom Type Number
+          32
+Nonbond Coefficients
+    0.3550000000E+01
+    0.1258041500E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3206600000E+02
+Element
+ S
+Bond Pattern
+p    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-ua   
+Atom Names
+S-RSR     
+S         
+S         
+S         
+Number of Bonded Terms
+          17
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.1530000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp3       Csp3      
+Bond Type Number
+           2
+Bond Style
+           1
+Bond Coefficients
+    0.1500000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Csp3       Csp2      
+Csp3       Carom     
+Bond Type Number
+           3
+Bond Style
+           1
+Bond Coefficients
+    0.1458000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp3       Csp       
+Bond Type Number
+           4
+Bond Style
+           1
+Bond Coefficients
+    0.1340000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp2       Csp2      
+Bond Type Number
+           5
+Bond Style
+           1
+Bond Coefficients
+    0.1522000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp2-N     Csp3      
+Bond Type Number
+           6
+Bond Style
+           1
+Bond Coefficients
+    0.1400000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Carom      Carom     
+Bond Type Number
+           7
+Bond Style
+           1
+Bond Coefficients
+    0.1335000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp2-N     Nsp2      
+Bond Type Number
+           8
+Bond Style
+           1
+Bond Coefficients
+    0.1449000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp3       Nsp2      
+Bond Type Number
+           9
+Bond Style
+           1
+Bond Coefficients
+    0.1157000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp        Ns        
+Bond Type Number
+          10
+Bond Style
+           1
+Bond Coefficients
+    0.1229000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp2-N     Osp2      
+Bond Type Number
+          11
+Bond Style
+           1
+Bond Coefficients
+    0.1430000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp3       Osp3      
+Bond Type Number
+          12
+Bond Style
+           1
+Bond Coefficients
+    0.1820000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp3       S         
+Bond Type Number
+          13
+Bond Style
+           1
+Bond Coefficients
+    0.9170000000E+00
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          F         
+Bond Type Number
+          14
+Bond Style
+           1
+Bond Coefficients
+    0.9600000000E+00
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          Nsp2      
+Bond Type Number
+          15
+Bond Style
+           1
+Bond Coefficients
+    0.9450000000E+00
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          Osp3      
+Bond Type Number
+          16
+Bond Style
+           1
+Bond Coefficients
+    0.1340000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          S         
+Bond Type Number
+          17
+Bond Style
+           1
+Bond Coefficients
+    0.2040000000E+01
+Vibration Order
+wild      
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+S          S         
+Number of Angle Terms
+          20
+Angle Type Number
+           1
+Angle Style
+           0
+Angle Coefficients
+    0.1120000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Cwild      CH2sp3     Cwild     
+Cwild      CHsp3      Cwild     
+Angle Type Number
+           2
+Angle Style
+           0
+Angle Coefficients
+    0.1094700000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Csp3       Cwild     
+Angle Type Number
+           3
+Angle Style
+           0
+Angle Coefficients
+    0.1240000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CHsp2      Cwild     
+Angle Type Number
+           4
+Angle Style
+           0
+Angle Coefficients
+    0.1200000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Cwild      Csp2       Cwild     
+Cwild      Carom      Cwild     
+Angle Type Number
+           5
+Angle Style
+           0
+Angle Coefficients
+    0.1080000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+Cwild      CH2sp3     Osp3      
+Cwild      CHsp3      Osp3      
+Cwild      Csp3       Osp3      
+Angle Type Number
+           6
+Angle Style
+           0
+Angle Coefficients
+    0.1166000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Csp2-N     Nsp2      
+Angle Type Number
+           7
+Angle Style
+           0
+Angle Coefficients
+    0.1205000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Csp2-N     Osp2      
+Angle Type Number
+           8
+Angle Style
+           0
+Angle Coefficients
+    0.1229000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Nsp2       Csp2-N     Osp2      
+Nsp2       CHsp2-N    Osp2      
+Angle Type Number
+           9
+Angle Style
+           0
+Angle Coefficients
+    0.1800000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Csp        Ns        
+Angle Type Number
+          10
+Angle Style
+           0
+Angle Coefficients
+    0.1219000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp2-N     Nsp2       Cwild     
+Angle Type Number
+          11
+Angle Style
+           0
+Angle Coefficients
+    0.1198000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Csp2-N     Nsp2       H         
+CHsp2-N    Nsp2       H         
+Angle Type Number
+          12
+Angle Style
+           0
+Angle Coefficients
+    0.1183000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+CH2sp3     Nsp2       H         
+CHsp3      Nsp2       H         
+Angle Type Number
+          13
+Angle Style
+           0
+Angle Coefficients
+    0.1204000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          Nsp2       H         
+Angle Type Number
+          14
+Angle Style
+           0
+Angle Coefficients
+    0.1085000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+CH2sp3     Osp3       H         
+CHsp3      Osp3       H         
+Csp3       Osp3       H         
+Angle Type Number
+          15
+Angle Style
+           0
+Angle Coefficients
+    0.1144000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Cwild      C32sp3     S         
+Cwild      CH2sp3     S         
+Angle Type Number
+          16
+Angle Style
+           0
+Angle Coefficients
+    0.9200000000E+02
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          S          H         
+Angle Type Number
+          17
+Angle Style
+           0
+Angle Coefficients
+    0.9600000000E+02
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      S          H         
+Angle Type Number
+          18
+Angle Style
+           0
+Angle Coefficients
+    0.9800000000E+02
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+S          S          H         
+Angle Type Number
+          19
+Angle Style
+           0
+Angle Coefficients
+    0.9900000000E+02
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      S          Cwild     
+Angle Type Number
+          20
+Angle Style
+           0
+Angle Coefficients
+    0.1030000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      S          S         
+Number of Torsion Terms
+          13
+Torsion Type Number
+           1
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.6858842258E+03
+    0.8630164690E+02
+   -0.1097012188E+03
+   -0.2820529043E+03
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH2sp2     CHsp2      CH2sp3     CH3sp3    
+Torsion Type Number
+           2
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.1365226636E+04
+    0.3839542658E+03
+    0.1341072239E+03
+   -0.8688034599E+03
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH3sp3     CHsp3      CH2sp3     CH3sp3    
+Torsion Type Number
+           3
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.0000000000E+00
+    0.3829478326E+03
+   -0.7925661450E+02
+    0.8069078181E+03
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH3sp3     CH2sp3     CH2sp3     CH3sp3    
+Torsion Type Number
+           4
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.0000000000E+00
+    0.3550193113E+03
+   -0.6818584930E+02
+    0.7913081035E+03
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+CH3sp3     CH2sp3     CH2sp3     CH2sp3    
+CH2sp3     CH2sp3     CH2sp3     CH2sp3    
+Torsion Type Number
+           5
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.0000000000E+00
+    0.2098413222E+03
+   -0.2918656280E+02
+    0.1879514001E+03
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     Osp3       H         
+Torsion Type Number
+           6
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.0000000000E+00
+    0.1766290266E+03
+   -0.5334095960E+02
+    0.7699213980E+03
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     CH2sp3     Osp3      
+Torsion Type Number
+           7
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.2158799214E+03
+    0.1972609072E+03
+    0.3145103750E+02
+   -0.1738613353E+03
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CHsp3      Osp3       H         
+Torsion Type Number
+           8
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.1635453950E+03
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Csp3       Osp3       H         
+Torsion Type Number
+           9
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.1056754860E+03
+   -0.5200743561E+02
+   -0.1844288839E+02
+    0.3061318186E+03
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     S          H         
+Torsion Type Number
+          10
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.0000000000E+00
+    0.3673481180E+03
+   -0.2699757059E+03
+    0.5812151730E+03
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     S          Cwild     
+Torsion Type Number
+          11
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.3527548366E+04
+    0.3980443306E+03
+   -0.2181443961E+04
+    0.5052294664E+03
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      S          S          Cwild     
+Torsion Type Number
+          12
+Torsion Style
+          13
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.7045032400E+03
+    0.5334095960E+04
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Csp2-N     Nsp2       Cwild     
+Torsion Type Number
+          13
+Torsion Style
+          13
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.0000000000E+00
+    0.5032166000E+04
+Torsion Order
+wild           
+Force Field Name
+OPLS-ua   
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+wild       Csp2-N     Nsp2       H         
+wild       CHsp2-N    Nsp2       H         
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

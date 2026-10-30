@@ -438,9 +438,9 @@ class JobWatch:
                         cur['pending_since_epoch'] = submitted if cur.get('last_state')=='PENDING' else time.time()
                     cur['pending_age_seconds'] = max(0,time.time()-cur['pending_since_epoch'])
                     reason=cur.get('pending_reason') or 'Unknown'
-                    changed=cur.get('pending_warning_reason') != reason or cur.get('pending_warning_policy_version')!=1
+                    changed=cur.get('pending_warning_reason') != reason or cur.get('pending_warning_policy_version')!=2
                     if cur['pending_age_seconds']>=300 and (changed or time.time()-cur.get('pending_warning_at',0)>=900) and not cur.get('pending_notification'):
-                        cur.update(pending_warning_at=time.time(),pending_warning_reason=reason,pending_warning_policy_version=1,
+                        cur.update(pending_warning_at=time.time(),pending_warning_reason=reason,pending_warning_policy_version=2,
                             resource_warning={'kind':'pending','reason':reason,'age_seconds':cur['pending_age_seconds'],'not_failed':True})
                         self._queue_notification(cur,{'job_id':job_id,'state':'PENDING','kind':'job_pending_warning',
                             'username':cur.get('username'),'conv_id':cur.get('conv_id'),

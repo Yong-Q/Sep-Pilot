@@ -1,0 +1,58 @@
+# critical constants: Temperature [T], Pressure [Pa], and Acentric factor [-]. Created by AutoFF
+126.192
+3395800.0
+0.0
+#Number Of Atoms
+11
+#Number Of Group
+1
+# pts-group
+flexible
+#number of atoms
+11
+# atomic positions
+0      Pt_        3.377000    4.334000    3.998000
+1      Cl_         4.162000    3.472000    2.005000
+2      Cl_         5.480000    4.308000    4.960000
+3      N_         2.664000    5.066000    5.757000
+4      H_         3.325000    5.520000    6.187000
+5      H_         2.379000    4.378000    6.279000
+6      H_         1.968000    5.630000    5.592000
+7      N_         1.518000    4.341000    3.165000
+8      H_         1.042000    5.045000    3.493000
+9      H_         1.091000    3.565000    3.371000
+10     H_         1.591000    4.418000    2.262000
+# Chiralcenters Bond BondDipoles Bend UrayBradley InvBend Torsion Imp.Torsion Bond/Bond Stretch/Bend Bend/Bend Stretch/Torsion Bend/Torsion IntraVDW IntraCoulomb
+0  10  0  18  0  0  0  0  0  0  0  0  0  0
+# Bond stretch: atom n1-n2, type, parameters
+0          1          HARMONIC_BOND   197860.9507      2.3800
+0          2          HARMONIC_BOND   197860.9507      2.3800
+0          3          HARMONIC_BOND   330519.7259      2.0600
+0          7          HARMONIC_BOND   330519.7259      2.0600
+3          4          HARMONIC_BOND   531344.6405      1.0400
+3          5          HARMONIC_BOND   531344.6405      1.0400
+3          6          HARMONIC_BOND   531344.6405      1.0400
+7          8          HARMONIC_BOND   531344.6405      1.0400
+7          9          HARMONIC_BOND   531344.6405      1.0400
+7          10         HARMONIC_BOND   531344.6405      1.0400
+# Bond bending: atom n1-n2-n3, type, parameters
+1          0          2        HARMONIC_BEND   145846.1524     92.6200
+1          0          3        HARMONIC_BEND    24370.0733    180.0000
+1          0          7        HARMONIC_BEND   219645.5332     87.6300
+2          0          3        HARMONIC_BEND   217492.8979     87.8800
+2          0          7        HARMONIC_BEND    24256.7767    180.0000
+3          0          7        HARMONIC_BEND   256393.3196     90.0000
+0          3          4        HARMONIC_BEND   117716.6046    109.4800
+0          3          5        HARMONIC_BEND   117698.0826    109.5100
+0          3          6        HARMONIC_BEND   117630.2490    109.5100
+4          3          5        HARMONIC_BEND    68856.6666    109.4700
+4          3          6        HARMONIC_BEND    68910.5486    109.4700
+5          3          6        HARMONIC_BEND    68842.4744    109.4700
+0          7          8        HARMONIC_BEND   117384.8933    109.4100
+0          7          9        HARMONIC_BEND   117374.5499    109.4500
+0          7          10       HARMONIC_BEND   117356.7496    109.4600
+8          7          9        HARMONIC_BEND    68883.6076    109.4700
+8          7          10       HARMONIC_BEND    68741.6862    109.4700
+9          7          10       HARMONIC_BEND    68832.1310    109.4700
+# Number of config moves
+0

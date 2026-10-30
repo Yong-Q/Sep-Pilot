@@ -384,7 +384,9 @@ def test_lifecycle_mailbox_auto_continues_but_preserves_user_freeze(tmp_path, mo
         c.session._lifecycle_store.receipt(event['event_id'], 'supervisor', 'delivered', {
             'next_action': 'advance_dependencies', 'reason': 'confirmed', 'evidence_refs': ['42'],
         })
-    async def continue_main(c, event):
+    async def continue_main(c, event, reservation):
+        assert reservation['uid'] == c.current_uid
+        assert reservation['goal_version'] == c.session.goal_contract.version
         continued.append(event)
         c.is_processing = False
         c.session._lifecycle_store.receipt(event['event_id'], 'main_chat', 'delivered')
@@ -452,7 +454,7 @@ def test_pre_restart_event_with_active_dag_remains_recoverable(tmp_path, monkeyp
     monkeypatch.setattr(api.session_manager, 'get_user', lambda name: user)
     monkeypatch.setattr(api, '_PROCESS_STARTED_AT', time.time() + 1)
     monkeypatch.setattr(api, '_watch', SimpleNamespace(list=lambda: []))
-    monkeypatch.setattr(api, '_ensure_workflow_runtime', lambda c: SimpleNamespace(tick=lambda jobs, frozen: None))
+    monkeypatch.setattr(api, '_ensure_workflow_runtime', lambda c: SimpleNamespace(tick=lambda jobs, frozen, blocked_nodes=(), pause_revision=None: None))
     scheduled = []
     monkeypatch.setattr(api, '_schedule_lifecycle', lambda coroutine: scheduled.append(coroutine))
     asyncio.run(api._dispatch_lifecycle_once())
@@ -566,6 +568,7 @@ def test_api_checkpoint_writes_task_manifest_and_evidence_files(tmp_path, monkey
     monkeypatch.setattr('agents.workspace.get_config', lambda: config)
     store = TaskLineStore(str(tmp_path / 'lines.json'))
     monkeypatch.setattr('agents.task_line.get_store', lambda: store)
+    monkeypatch.setattr(api, '_workflow_runtimes', {})
     conv = auth.ConversationState(conv_id='c1', username='u')
     conv.session = Session(config=config)
     conv.session.current_agent = ORCHESTRATOR
@@ -574,6 +577,7 @@ def test_api_checkpoint_writes_task_manifest_and_evidence_files(tmp_path, monkey
     monkeypatch.setattr(api.session_manager, 'get_user', lambda name: user)
     previous = dict(api.app.dependency_overrides)
     api.app.dependency_overrides[api._get_user] = lambda: 'u'
+    runtime = None
     try:
         with TestClient(api.app) as client:
             response = client.get('/api/conversations/c1/workflow')
@@ -583,19 +587,31 @@ def test_api_checkpoint_writes_task_manifest_and_evidence_files(tmp_path, monkey
             assert isinstance(payload['snapshot_at'], float)
             files = payload['memory_files']
             assert 'runs/u/c1/task_manifest.json' in files['task']
+            # A cold GET must have completed real owner binding, not merely
+            # returned file labels. Checkpoint evidence is synchronous; its
+            # coalesced display has an explicit publication barrier.
+            assert api._bound_api_session(conv) is conv.session
+            assert callable(conv.session._on_checkpoint)
             conv.session.memory.record_tool_call('analyst', 'read_file', {'path': 'input.cif'}, '{"content":"real tool output"}')
             conv.session._checkpoint('after_tool_result')
+            call = conv.session.memory.tool_call_log[0]
+            assert 'result' not in call and Path(call['evidence_path']).exists()
+            evidence = json.loads(Path(call['evidence_path']).read_text())
+            assert evidence['result'] == '{"content":"real tool output"}'
+            runtime = api._ensure_workflow_runtime(conv)
+            runtime.flush_display(timeout=10)
             manifest = json.loads(Path(files['task']).read_text())
             assert manifest['negotiation_owner'] == manifest['delivery_owner'] == 'lead-orchestrator'
             assert manifest['goal_contract']['gases'] == ['Kr']
-            call = conv.session.memory.tool_call_log[0]
-            assert 'result' not in call and Path(call['evidence_path']).exists()
             observer = api._ensure_supervisor(conv)
+            assert observer is not conv.session and observer.memory is not conv.session.memory
             observer._checkpoint('supervisor_restore')
             supervisor = json.loads(Path(files['supervisor']).read_text())
             assert supervisor['current_agent'] == 'supervisor'
             assert supervisor['goal_contract']['gases'] == ['Kr']
+            assert supervisor['owner'] == {'username': 'u', 'conv_id': 'c1', 'role': 'supervisor'}
     finally:
+        if runtime is not None: runtime.shutdown()
         api.app.dependency_overrides.clear()
         api.app.dependency_overrides.update(previous)
 

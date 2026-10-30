@@ -1,0 +1,289 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           3
+Potential Type
+Exponential-6                 
+Classical Mixrule
+Explicit                      
+Atom Type Number
+           1
+Nonbond Coefficients
+   -0.1500001638E+06
+    0.6421043816E+07
+   -0.3289473684E+01
+Nonbond Coefficients
+   -0.1500001638E+06
+    0.6421043816E+07
+   -0.3289473684E+01
+Nonbond Coefficients
+   -0.7230596219E+05
+    0.6712909444E+07
+   -0.3742514970E+01
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+MM2       
+Atom Names
+Ccc**(sp3)
+C         
+Ccc**(sp3)
+C         
+Atom Type Number
+           2
+Nonbond Coefficients
+   -0.1500001638E+06
+    0.6421043816E+07
+   -0.3289473684E+01
+Nonbond Coefficients
+   -0.7230596219E+05
+    0.6712909444E+07
+   -0.3742514970E+01
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+MM2       
+Atom Names
+Cchhh(sp3)
+C         
+Cchhh(sp3)
+C         
+Atom Type Number
+           3
+Nonbond Coefficients
+   -0.3879384832E+05
+    0.6858842258E+07
+   -0.4166666667E+01
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+MM2       
+Atom Names
+H         
+H         
+H         
+H         
+Number of Bonded Terms
+           2
+Bond Type Number
+           1
+Bond Style
+           5
+Bond Coefficients
+    0.1523000000E+01
+    0.1592861697E+06
+Vibration Order
+wild      
+Force Field Name
+MM2       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C         
+Bond Type Number
+           2
+Bond Style
+           5
+Bond Coefficients
+    0.1113000000E+01
+    0.1665264501E+06
+Vibration Order
+wild      
+Force Field Name
+MM2       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          H         
+Number of Angle Terms
+           5
+Angle Type Number
+           1
+Angle Style
+          12
+Bond-Angle Logical
+ T
+Bond-Angle Coeffecients
+    0.1516437186E+03
+Angle Coefficients
+    0.1095000000E+03
+    0.4962369858E+01
+    0.7000000000E-07
+Angle Order
+wild           
+Force Field Name
+MM2       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Ccc**(sp3) Cwild     
+Angle Type Number
+           2
+Angle Style
+          12
+Bond-Angle Logical
+ T
+Bond-Angle Coeffecients
+    0.1137327889E+03
+Angle Coefficients
+    0.1094000000E+03
+    0.3969895886E+01
+    0.7000000000E-07
+Angle Order
+wild           
+Force Field Name
+MM2       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Ccc**(sp3) H         
+Angle Type Number
+           3
+Angle Style
+          12
+Bond-Angle Logical
+ T
+Bond-Angle Coeffecients
+    0.1137327889E+03
+Angle Coefficients
+    0.1100000000E+03
+    0.3969895886E+01
+    0.7000000000E-07
+Angle Order
+wild           
+Force Field Name
+MM2       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Cchhh(sp3) H         
+Angle Type Number
+           4
+Angle Style
+          12
+Bond-Angle Logical
+ F
+Angle Coefficients
+    0.1094000000E+03
+    0.3528796343E+01
+    0.7000000000E-07
+Angle Order
+wild           
+Force Field Name
+MM2       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          Ccc**(sp3) H         
+Angle Type Number
+           5
+Angle Style
+          12
+Bond-Angle Logical
+ F
+Angle Coefficients
+    0.1090000000E+03
+    0.3528796343E+01
+    0.7000000000E-07
+Angle Order
+wild           
+Force Field Name
+MM2       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          Cchhh(sp3) H         
+Number of Torsion Terms
+           3
+Torsion Type Number
+           1
+Torsion Style
+           2
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Torsion Coefficients
+    0.5032166000E+02
+    0.6793424100E+02
+    0.2339957190E+02
+Torsion Order
+wild           
+Force Field Name
+MM2       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C          C          C         
+Torsion Type Number
+           2
+Torsion Style
+           2
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Torsion Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.6717941610E+02
+Torsion Order
+wild           
+Force Field Name
+MM2       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C          C          H         
+Torsion Type Number
+           3
+Torsion Style
+           2
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Torsion Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.5963116710E+02
+Torsion Order
+wild           
+Force Field Name
+MM2       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          C          C          H         
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

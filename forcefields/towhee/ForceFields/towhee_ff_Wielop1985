@@ -1,0 +1,218 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           4
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+LB or Geometric               
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.2666600000E+01
+    0.7300000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Wielop1985
+Atom Names
+O:A       
+O:A       
+O         
+O:A       
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.2800000000E+01
+    0.9058000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Wielop1985
+Atom Names
+O:B       
+O:B       
+O         
+O:B       
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3714300000E+01
+    0.9000000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1402688000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Wielop1985
+Atom Names
+CH2:A     
+CH2:A     
+C         
+CH2:A     
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.3595000000E+01
+    0.7200000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1402688000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Wielop1985
+Atom Names
+CH2:B     
+CH2:B     
+C         
+CH2:B     
+Number of Bonded Terms
+           2
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.1431000000E+01
+Vibration Order
+wild      
+Force Field Name
+Wielop1985
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+O:A        CH2:A     
+O:B        CH2:B     
+Bond Type Number
+           2
+Bond Style
+           1
+Bond Coefficients
+    0.1466000000E+01
+Vibration Order
+wild      
+Force Field Name
+Wielop1985
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+CH2:A      CH2:A     
+CH2:B      CH2:B     
+Number of Angle Terms
+           2
+Angle Type Number
+           1
+Angle Style
+           0
+Angle Coefficients
+    0.5918756927E+02
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+Wielop1985
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+O          C          C         
+Angle Type Number
+           2
+Angle Style
+           0
+Angle Coefficients
+    0.6162486146E+02
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+Wielop1985
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          O          C         
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           4
+Bond Increment Type Number
+           1
+Bond Increment Value
+    0.1608000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Wielop1985
+Atom Names
+CH2:A      O:A       
+Bond Increment Type Number
+           2
+Bond Increment Value
+    0.1608000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Wielop1985
+Atom Names
+CH2:B      O:B       
+Bond Increment Type Number
+           3
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Wielop1985
+Atom Names
+CH2:A      CH2:A     
+Bond Increment Type Number
+           4
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Wielop1985
+Atom Names
+CH2:B      CH2:B     

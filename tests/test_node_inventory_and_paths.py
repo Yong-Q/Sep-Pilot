@@ -1,3 +1,4 @@
+from tests.native_child_capture import native_source
 import copy
 import json
 from pathlib import Path
@@ -135,6 +136,7 @@ def test_main_delivery_uses_worker_certificates_not_redundant_submission(tmp_pat
 
 @pytest.mark.parametrize('action', ['inputs', 'collect'])
 def test_successful_non_submission_cdft_receipts_are_decoded(tmp_path, monkeypatch, action):
+    monkeypatch.setattr('agents.registry._cdft_adapter_bootstrap', lambda *args: ('', []))
     config = AgentConfig(api_key='test', project_root=tmp_path)
     monkeypatch.setattr('agents.registry.get_config', lambda: config)
     monkeypatch.setattr('agents.workspace.session_dir', lambda kind: tmp_path / kind)
@@ -170,12 +172,13 @@ def test_consumed_read_receipt_uses_shared_read_lease_not_write(tmp_path):
 
 
 def test_cdft_scheduler_parameters_are_forwarded_to_the_real_helper(tmp_path, monkeypatch):
+    monkeypatch.setattr('agents.registry._cdft_adapter_bootstrap', lambda *args: ('', []))
     config = AgentConfig(api_key='test', project_root=tmp_path)
     monkeypatch.setattr('agents.registry.get_config', lambda: config)
     monkeypatch.setattr('agents.workspace.session_dir', lambda kind: tmp_path / kind)
     captured = []
     def process(argv, **kw):
-        captured.append(argv[-1])
+        captured.append(native_source(argv, kw))
         return SimpleNamespace(returncode=0, stdout='{"submitted":true,"job_id":"9","work_dir":"'+str(tmp_path/'actual')+'"}', stderr='')
     monkeypatch.setattr('subprocess.run', process)
     _exec_cdft({'action': 'submit', 'input_dir': 'inputs', 'gas': 'Kr', 'nodelist': 'node07',
@@ -186,6 +189,7 @@ def test_cdft_scheduler_parameters_are_forwarded_to_the_real_helper(tmp_path, mo
 
 @pytest.mark.parametrize('occupied', [False, True])
 def test_cdft_default_target_reads_env_profile_instead_of_legacy_node_table(tmp_path, monkeypatch, occupied):
+    monkeypatch.setattr('agents.registry._cdft_adapter_bootstrap', lambda *args: ('', []))
     config = AgentConfig(api_key='test', project_root=tmp_path)
     monkeypatch.setattr('agents.registry.get_config', lambda: config)
     monkeypatch.setattr('agents.workspace.session_dir', lambda kind: tmp_path / kind)
@@ -201,13 +205,14 @@ def test_cdft_default_target_reads_env_profile_instead_of_legacy_node_table(tmp_
         snapshot['nodes']['candidate']['memory']['available_for_scheduling_mib'] = 0
     monkeypatch.setattr('agents.node_inventory.node_inventory', lambda *a, **kw: snapshot)
     captured = []
-    monkeypatch.setattr('subprocess.run', lambda argv, **kw: captured.append(argv[-1]) or SimpleNamespace(returncode=0,
+    monkeypatch.setattr('subprocess.run', lambda argv, **kw: captured.append(native_source(argv, kw)) or SimpleNamespace(returncode=0,
         stdout='{"submitted":true,"job_id":"9","work_dir":"'+str(tmp_path/'actual')+'"}', stderr=''))
     _exec_cdft({'action': 'submit', 'input_dir': 'inputs', 'gas': 'Kr','memory_mb':512})
     assert "'nodelist': 'candidate'" in captured[0] and "'partition': 'bigcpu'" in captured[0]
 
 
 def test_cdft_profile_may_omit_optional_glibc_constraint(tmp_path, monkeypatch):
+    monkeypatch.setattr('agents.registry._cdft_adapter_bootstrap', lambda *args: ('', []))
     config = AgentConfig(api_key='test', project_root=tmp_path)
     monkeypatch.setattr('agents.registry.get_config', lambda: config)
     monkeypatch.setattr('agents.workspace.session_dir', lambda kind: tmp_path / kind)
@@ -222,7 +227,7 @@ def test_cdft_profile_may_omit_optional_glibc_constraint(tmp_path, monkeypatch):
         'verified': True, 'available_for_scheduling_mib': 2048}
     monkeypatch.setattr('agents.node_inventory.node_inventory', lambda *a, **kw: snapshot)
     captured = []
-    monkeypatch.setattr('subprocess.run', lambda argv, **kw: captured.append(argv[-1]) or SimpleNamespace(
+    monkeypatch.setattr('subprocess.run', lambda argv, **kw: captured.append(native_source(argv, kw)) or SimpleNamespace(
         returncode=0, stdout='{"submitted":true,"job_id":"10","work_dir":"'
         + str(tmp_path / 'actual') + '"}', stderr=''))
 

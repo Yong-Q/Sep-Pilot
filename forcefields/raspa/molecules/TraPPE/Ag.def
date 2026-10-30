@@ -1,0 +1,14 @@
+# critical constants: Temperature [T], Pressure [Pa], and Acentric factor [-]
+6410
+480999907.5
+0.1498
+#Number Of Atoms
+ 1
+# Number of groups
+1
+# Kr-group
+flexible
+# number of atoms
+1
+# atomic positions
+0      A001         0.935700   -0.064700   -0.041000   

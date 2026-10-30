@@ -1,0 +1,21 @@
+# critical constants: Temperature [T], Pressure [Pa], and Acentric factor [-]. Created by AutoFF/New Microporous Materials for Acetylene Storage and C2H2/CO2 Separation: Insights from Molecular Simulations
+189.35
+ 6138998.04
+0.1873
+#Number Of Atoms
+2
+#Number Of Group
+1
+# c2h2-group
+flexible
+#number of atoms
+2
+# atomic positions
+0      CH        -0.600000    0.000000    0.000000
+1      CH        0.600000    0.000000    0.000000
+# Chiralcenters Bond BondDipoles Bend UrayBradley InvBend Torsion Imp.Torsion Bond/Bond Stretch/Bend Bend/Bend Stretch/Torsion Bend/Torsion IntraVDW IntraCoulomb
+0  1  0  0  0  0  0  0  0  0  0  0  0  0
+# Bond stretch: atom n1-n2, type, parameters
+0          1          HARMONIC_BOND   565900.7368      1.2900
+# Number of config moves
+0

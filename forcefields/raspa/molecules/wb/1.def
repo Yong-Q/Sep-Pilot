@@ -1,0 +1,39 @@
+# critical constants: Temperature [T], Pressure [Pa], and Acentric factor [-]. Created by AutoFF
+635
+ 1598999.895
+0.65
+#Number Of Atoms
+11
+#Number Of Group
+1
+# 1-group
+rigid
+#number of atoms
+11
+# atomic positions
+0      O_C         4.570000    0.329000    0.674000
+1      O=C         3.367000    1.677000   -0.704000
+2      CF2        -0.291000    0.860000   -0.511000
+3      CF2         0.531000    0.526000    0.727000
+4      CF2        -1.214000   -0.239000   -1.021000
+5      CF2         1.506000   -0.643000    0.678000
+6      CF2        -2.285000   -0.725000   -0.056000
+7      CF2         2.630000   -0.597000   -0.348000
+8      CF3        -3.279000    0.300000    0.430000
+9      C_F2         3.539000    0.591000   -0.167000
+10     H_O         5.153000    1.108000    0.793000
+# Chiralcenters Bond BondDipoles Bend UrayBradley InvBend Torsion Imp.Torsion Bond/Bond Stretch/Bend Bend/Bend Stretch/Torsion Bend/Torsion IntraVDW IntraCoulomb
+0  10  0  0  0  0  0  0  0  0  0  0  0  0
+# Bond stretch: atom n1-n2, type, parameters
+0          9          HARMONIC_BOND   388489.4488      1.3640
+0          10         HARMONIC_BOND   556556.5945      0.9700
+1          9          HARMONIC_BOND   573666.4195      1.2140
+2          3          HARMONIC_BOND   261676.9237      1.5400
+2          4          HARMONIC_BOND   261676.9237      1.5400
+3          5          HARMONIC_BOND   261676.9237      1.5400
+4          6          HARMONIC_BOND   261676.9237      1.5400
+5          7          HARMONIC_BOND   261676.9237      1.5400
+6          8          HARMONIC_BOND   261676.9237      1.5400
+7          9          HARMONIC_BOND   316025.5955      1.5200
+# Number of config moves
+0

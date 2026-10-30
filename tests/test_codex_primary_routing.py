@@ -80,17 +80,43 @@ def test_model_timing_records_sizes_without_prompt_or_credentials(tmp_path, monk
     assert 'private' not in json.dumps(metric)
 
 
+def test_read_only_request_does_not_require_research_dag(tmp_path, monkeypatch):
+    from agents.defns import ORCHESTRATOR
+    from agents.goal_contract import GoalContract
+    seen = {}
+    def provider(**kwargs):
+        seen.update(kwargs)
+        return SimpleNamespace(content=[SimpleNamespace(type='text', text='No jobs')], stop_reason='end_turn')
+    monkeypatch.setattr('agents.codex_provider.call_codex_model', provider)
+    session = Session(config=AgentConfig(model_provider='codex_cli', project_root=tmp_path))
+    session._current_line_id = 'read-only'
+    session._on_workflow_start = lambda *_: None
+    session.goal_contract = GoalContract.from_user_message('只查看当前会话作业状态，不提交计算')
+    session.messages = [{'role': 'user', 'content': '只查看当前会话作业状态，不提交计算'}]
+    assert session.goal_contract.execution_mode == 'read_only'
+    assert not session._chain_required_block('inspect_path')
+    assert session._chain_required_block('generate_structure')
+    session._call_api(ORCHESTRATOR)
+    assert '[EXECUTABLE WORKFLOW REQUIRED]' not in seen['system']
+
+
 def test_user_supplied_api_stays_on_its_own_provider(monkeypatch):
     import auth
     import agents.config
     monkeypatch.setattr(agents.config, "get_config", lambda: AgentConfig(model_provider="codex_cli"))
-    monkeypatch.setattr(auth, "load_users", lambda: {"scientist": {"model_connection": {
-        "mode": "custom", "base_url": "https://example.invalid/api", "model": "user-model",
-        "api_key_ciphertext": "encrypted-placeholder"}}})
+    metadata_calls=[]
+    def metadata_snapshot(username):
+        metadata_calls.append(username)
+        assert username == "scientist"
+        return {"model_connection": {"mode": "custom", "base_url": "https://example.invalid/api",
+            "model": "user-model", "api_key_ciphertext": "encrypted-placeholder"}}
+    monkeypatch.setattr(auth, "user_metadata_snapshot", metadata_snapshot)
     monkeypatch.setattr(auth, "_decrypt_secret", lambda value: "user-provided-key")
     config = auth.config_for_user("scientist")
     assert config.model_provider == "anthropic"
     assert config.model == "user-model"
+    assert metadata_calls == ["scientist"]
+    assert agents.config.get_config().model_provider == "codex_cli"
 
 
 def test_default_connection_displays_codex_without_old_proxy(monkeypatch):

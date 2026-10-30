@@ -190,6 +190,13 @@ def test_vasp_non_submission_actions_never_submit(action, monkeypatch):
 ])
 def test_advertised_parameters_reach_actual_compute_command(tool, params, expected, tmp_path, monkeypatch):
     captured = []
+    if tool=='run_xtb_optimize':
+        from agents.config import AgentConfig
+        from bimem_agent import paths
+        executable=tmp_path/'configured xtb';executable.write_text('#!/bin/sh\nexit 0\n');executable.chmod(0o700)
+        runtime=tmp_path/'runtime.json';runtime.write_text(json.dumps({'software':{'xtb_executable':str(executable)}}))
+        monkeypatch.setattr(paths,'RUNTIME_CONFIG_PATH',runtime)
+        monkeypatch.setattr('agents.registry.get_config',lambda:AgentConfig(project_root=tmp_path))
     if tool == 'run_md_optimize':
         from agents.config import AgentConfig
         from bimem_agent import paths

@@ -48,7 +48,48 @@ def parse_pbsnodes(output):
 def load_policy(root):
     path = Path(root) / 'env/node_policy.json'
     if not path.exists(): path = Path(__file__).resolve().parents[1] / 'env/node_policy.json'
-    return json.loads(path.read_text())
+    policy = json.loads(path.read_text())
+    from bimem_agent.paths import get_runtime_section
+    site = get_runtime_section('resource_policy')
+    if site:
+        scope = site.get('scope_root')
+        if not isinstance(scope, str) or not scope:
+            raise ValueError('site resource_policy requires an explicit scope_root')
+        if Path(scope).expanduser().resolve() == Path(root).resolve():
+            import re
+            extra = site.get('excluded_nodes', [])
+            current = policy.get('excluded_nodes', [])
+            if any(not isinstance(value, list) or any(
+                    not isinstance(name, str) or not re.fullmatch(r'[A-Za-z0-9_.-]+', name)
+                    for name in value) for value in (current, extra)):
+                raise ValueError('operator excluded_nodes must be a list of literal node names')
+            policy['excluded_nodes'] = sorted(set(current) | set(extra))
+    return policy
+
+
+def read_partition_limits():
+    """Native read-only partition facts; unknown results never authorize jobs."""
+    import re
+    result = {'verified': False, 'source': 'scontrol_show_partition',
+              'observed_at': time.time(), 'limits': {}}
+    try:
+        probe = subprocess.run(['scontrol', 'show', 'partition', '-o'],
+                               capture_output=True, text=True, timeout=8)
+        if probe.returncode != 0 or len(probe.stdout) > 1024*1024:
+            return result
+        lines = probe.stdout.splitlines()
+        if not lines or len(lines) > 512: return result
+        limits = {}
+        for line in lines:
+            fields = dict(re.findall(r'(\w+)=(\S+)', line))
+            name = fields.get('PartitionName')
+            if not name or not re.fullmatch(r'[A-Za-z0-9_.-]+', name) or name in limits:
+                return result
+            limits[name] = {'verified': True, 'state': fields.get('State'),
+                            'max_time': fields.get('MaxTime')}
+        return {**result, 'verified': True, 'observed_at': time.time(), 'limits': limits}
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return result
 
 
 def node_inventory(root, refresh=False, persist=False):
@@ -80,8 +121,11 @@ def node_inventory(root, refresh=False, persist=False):
             memory_probe = subprocess.run(['scontrol', 'show', 'nodes', '-o'], capture_output=True, text=True, timeout=8)
             if memory_probe.returncode == 0:
                 for row in memory_probe.stdout.splitlines():
-                    fields = dict(re.findall(r'(\w+)=(\S+)', row))
+                    fields = dict(re.findall(r'(\w+)=(\S*)', row))
                     node = nodes.get(fields.get('NodeName'))
+                    if node:
+                        from .resource_policy import gpu_facts
+                        node['gpus'] = gpu_facts(fields)
                     if node and 'RealMemory' in fields and 'AllocMem' in fields:
                         total, allocated = int(fields['RealMemory']), int(fields['AllocMem'])
                         node['memory'] = {'total_mib': total, 'allocated_mib': allocated,
@@ -94,7 +138,9 @@ def node_inventory(root, refresh=False, persist=False):
             old = previous.get('nodes', {}).get(name, {})
             if old.get('glibc_probe') and old.get('reported_os') == node.get('reported_os'):
                 node.update(glibc=old.get('glibc'), glibc_probe=old['glibc_probe'])
+        partition_facts = read_partition_limits()
         snapshot = {'schema_version': 1, 'observed_at': time.time(), 'nodes': nodes, 'sources': sources,
+                    'partition_facts': partition_facts,
                     'verified': bool(nodes) and any(s['program'] == 'sinfo' and s['verified'] for s in sources)}
         if persist:
             from .state_io import write_checkpoint
@@ -106,13 +152,15 @@ def node_inventory(root, refresh=False, persist=False):
     return snapshot
 
 
-def candidates(snapshot, cpus=1, min_glibc=None, memory_mb=None, for_queue=False):
+def candidates(snapshot, cpus=1, min_glibc=None, memory_mb=None, for_queue=False, gpus=0):
     if not snapshot.get('verified') or snapshot.get('stale'): return []
     policy = snapshot['policy']
     preferred = policy.get('preferred_nodes', [])
     result = []
     for name, node in snapshot['nodes'].items():
         if name in policy['excluded_nodes'] or node['cpus']['total' if for_queue else 'idle'] < cpus: continue
+        gpu = node.get('gpus', {})
+        if gpus and (not gpu.get('verified') or gpu.get('total' if for_queue else 'available', 0) < gpus): continue
         allowed = set(policy['allowed_states']) | ({'alloc'} if for_queue else set())
         if not node['states'] or any(state not in allowed for state in node['states']): continue
         capacity = node.get('memory_mib', 0) if for_queue else node.get('memory', {}).get('available_for_scheduling_mib', 0)
@@ -123,32 +171,69 @@ def candidates(snapshot, cpus=1, min_glibc=None, memory_mb=None, for_queue=False
     return sorted(result, key=lambda node: (preferred.index(node['name']) if node['name'] in preferred else len(preferred), node['cpus']['total'], node['name']))
 
 
-def profiled_resources(snapshot, tool, cpus=None, nodelist='', partition='', memory_mb=None):
-    """Choose one currently schedulable target from operator policy.
+def profiled_resources(snapshot, tool, cpus=None, nodelist='', partition='', memory_mb=None,
+                       arguments=None, for_queue=False, preferred_nodelist='', preferred_partition=''):
+    """Select verified capacity; hard constraints precede soft preferences.
 
-    Dynamic RAM is based on scheduler-available memory, never Linux FreeMem.
-    The returned snapshot is advisory; callers must revalidate at mutation or
-    submission time and let Slurm remain the final allocator.
+    Immediate candidates use idle CPU/GPU and available RAM. Queue candidates
+    use compatible total capacity only when the caller explicitly requests it.
+    Operator pins/allow lists and explicit caller pins remain mandatory in both.
     """
-    profile=snapshot.get('policy',{}).get('tool_profiles',{}).get(tool,{})
-    cpus=int(cpus or profile.get('default_cpus') or 1)
-    minimum=int(profile.get('minimum_memory_mb') or 64)
-    requested=int(memory_mb) if memory_mb is not None else minimum
-    choices=candidates(snapshot,cpus=cpus,memory_mb=requested,min_glibc=profile.get('min_glibc'))
-    if nodelist: choices=[node for node in choices if node['name']==nodelist]
-    preferences=[partition] if partition else profile.get('partition_preference',[])
-    targets=[(part,node) for part in preferences for node in choices if part in node.get('partitions',[])]
-    if not targets:return None
-    selected_partition,node=targets[0]
-    if memory_mb is None:
-        fraction=float(profile.get('memory_fraction_by_partition',{}).get(
-            selected_partition,profile.get('memory_fraction_of_available')) or 0)
-        available=int(node.get('memory',{}).get('available_for_scheduling_mib') or 0)
-        if not 0 < fraction <= 1 or available < minimum:return None
-        requested=max(minimum,int(available*fraction))
-    return {'nodelist':node['name'],'partition':selected_partition,'memory_mb':requested,
-            'cpus':cpus,'available_memory_mb':int(node['memory']['available_for_scheduling_mib']),
-            'observed_at':snapshot.get('observed_at')}
+    from .resource_policy import tool_profile, allocation_hardware
+    profile = tool_profile(snapshot, tool, arguments)
+    cpus = int(cpus or profile.get('default_cpus') or 1)
+    minimum = int(profile.get('minimum_memory_mb') or 64)
+    requested = int(memory_mb) if memory_mb is not None else minimum
+    choices = candidates(snapshot, cpus=cpus, memory_mb=requested,
+                         min_glibc=profile.get('min_glibc'), gpus=profile['gpus'], for_queue=for_queue)
+    def names(value):
+        return value.split(',') if isinstance(value, str) else list(value or [])
+    for pin in (nodelist, profile.get('nodelist'), profile.get('allowed_nodes')):
+        if pin:
+            allowed = names(pin)
+            choices = [node for node in choices if node['name'] in allowed]
+    choices = [node for node in choices if node['name'] not in profile.get('excluded_nodes', [])]
+    preferences = list(dict.fromkeys(names(preferred_partition) + names(profile.get('partition_preference'))
+                                    + sorted({p for node in choices for p in node.get('partitions', [])})))
+    targets = []
+    for part in preferences:
+        if any(pin and part not in names(pin) for pin in
+               (partition, profile.get('partition'), profile.get('allowed_partitions'))):
+            continue
+        matches = [node for node in choices if part in node.get('partitions', [])]
+        matches.sort(key=lambda node: node['name'] not in names(preferred_nodelist))
+        targets.extend((part, node) for node in matches)
+    if not targets:
+        return None
+    from .placement_budget import memory_ceiling, validate_memory_budget
+    for selected_partition, node in targets:
+        requested = int(memory_mb) if memory_mb is not None else minimum
+        if memory_mb is None:
+            fraction = float(profile.get('memory_fraction_by_partition', {}).get(
+                selected_partition, profile.get('memory_fraction_of_available')) or 0)
+            available = int(node.get('memory', {}).get('available_for_scheduling_mib') or 0)
+            if not 0 < fraction <= 1 or available < minimum:
+                continue
+            requested = max(minimum, int(available*fraction))
+            ceiling = memory_ceiling(snapshot['policy'], nodelist=node['name'], partition=selected_partition)
+            if ceiling is not None:
+                # This fraction is a default sizing hint, not measured demand.
+                # Bound that default; never truncate an explicit memory budget.
+                requested = min(requested, cpus * ceiling)
+            if requested < minimum:
+                continue
+        try:
+            budget = validate_memory_budget(snapshot['policy'], cpus=cpus, memory_mb=requested,
+                nodelist=node['name'], partition=selected_partition)
+        except ValueError:
+            continue
+        selected = {'nodelist': node['name'], 'partition': selected_partition, 'memory_mb': requested,
+            'cpus': cpus, 'available_memory_mb': int(node['memory']['available_for_scheduling_mib']),
+            'scheduling_mode': 'queue' if for_queue else 'immediate', 'observed_at': snapshot.get('observed_at')}
+        if budget['limited']:
+            selected['placement_memory_budget'] = budget
+        return allocation_hardware(snapshot, selected, profile)
+    return None
 
 
 def record_probe_receipt(root, receipt_path):

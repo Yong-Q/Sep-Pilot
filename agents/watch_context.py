@@ -15,7 +15,8 @@ _local = threading.local()
 
 def set_context(username: str = "", conv_id: str = "", agent_name: str = "",
                 line_id: str = "", tool_name: str = '', recovery_key: str = '',
-                attempt_id: str = '', recovery_path: str = '', step_id: str = '', resource_allocation=None) -> None:
+                attempt_id: str = '', recovery_path: str = '', step_id: str = '', resource_allocation=None,
+                runtime_token: str = '') -> None:
     """Set the current thread's execution context (called by api.py).
 
     line_id identifies the pipeline this conversation is running (defaults to
@@ -31,6 +32,7 @@ def set_context(username: str = "", conv_id: str = "", agent_name: str = "",
         'attempt_id': attempt_id, 'recovery_path': recovery_path,
         'step_id': step_id,
     }
+    if runtime_token:_local.ctx['runtime_token']=runtime_token
     if resource_allocation:
         _local.ctx['resource_allocation'] = dict(resource_allocation)
 

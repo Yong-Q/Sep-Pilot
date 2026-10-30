@@ -96,8 +96,29 @@ def test_existing_session_reads_saved_runtime_before_next_submission(tmp_path, m
     assert '/new/lmp' in commands[0] and '/new/mpi' in commands[0]
 
 
+def test_md_retry_uses_fresh_directory_and_retains_failed_logs(tmp_path, monkeypatch):
+    from agents import registry
+    configure_runtime(tmp_path, monkeypatch, {'executable': '/configured/lmp'})
+    monkeypatch.setattr(registry, 'get_config', lambda: AgentConfig(project_root=tmp_path))
+    monkeypatch.setattr(registry, '_ws', lambda _: str(tmp_path / 'md'))
+    monkeypatch.setattr(registry.slurm, 'submit_and_return', lambda **kw: {'submitted': True, 'job_id': '43'})
+    monkeypatch.setattr(registry, '_register_jobwatch', lambda *a, **kw: None)
+    work = tmp_path / 'md';work.mkdir()
+    (work / 'interface.log').write_text('original failure')
+    (work / 'md_result.json').write_text('{"success":false}')
+    result = registry._exec_md_optimize({'cif_path': 'input.cif'})
+    assert Path(result['work_dir']).is_relative_to(work)
+    assert Path(result['work_dir']) != work
+    assert (work / 'interface.log').read_text() == 'original failure'
+    assert (work / 'md_result.json').read_text() == '{"success":false}'
+
+
 @pytest.mark.parametrize('invocation', ['python', 'cli'])
-def test_configured_executables_receive_argv_without_shell_or_path_override(tmp_path, invocation):
+@pytest.mark.parametrize('n_procs', [1, 2, 4])
+def test_configured_executables_receive_argv_without_shell_or_path_override(tmp_path, invocation, n_procs, monkeypatch):
+    # This fixture checks argv at explicit process counts, independent of the
+    # allocation used to run pytest; allocation capping has separate tests.
+    monkeypatch.delenv("SLURM_CPUS_PER_TASK", raising=False)
     module_path = Path(__file__).resolve().parents[1] / 'tools/md_runtime.py'
     spec = importlib.util.spec_from_file_location('configured_md_test', module_path)
     module = importlib.util.module_from_spec(spec)
@@ -116,11 +137,13 @@ def test_configured_executables_receive_argv_without_shell_or_path_override(tmp_
                         'out=shlex.split(re.findall(r"^write_data (.+)$",s,re.M)[-1])[0]\n'
                         'pathlib.Path(out).write_text("synthetic final data")\n'
                         'print("Temp Press Volume PotEng KinEng\\n298 1 100 -2 3")\n')
-    mpi = executable('custom mpi', 'import subprocess,sys\nassert sys.argv[1:3]==["-np","2"]\n'
+    mpi = executable('custom mpi', 'import subprocess,sys,os\n'
+                     f'assert sys.argv[1:3]==["-np","{n_procs}"]\n'
+                     'assert all(os.environ[k]=="1" for k in ("OMP_NUM_THREADS","MKL_NUM_THREADS","OPENBLAS_NUM_THREADS"))\n'
                      'raise SystemExit(subprocess.run(sys.argv[3:]).returncode)\n')
     cif = tmp_path / 'input.cif'; cif.write_text('synthetic fixture')
     parameters = dict(cif_path=str(cif), output_dir=str(tmp_path / 'work'), mode='md', temperature=298,
-                      pressure=1, npt_ps=.1, timestep=.5, n_procs=2,
+                      pressure=1, npt_ps=.1, timestep=.5, n_procs=n_procs,
                       executable=solver, mpi_executable=mpi,
                       interface_executable=interface, skip_convert=True)
     if invocation == 'python':

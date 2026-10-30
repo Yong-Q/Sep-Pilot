@@ -4,7 +4,7 @@ import copy
 from .workflow_patch import execution_contract
 
 
-def authoritative_line(line, runtime):
+def authoritative_line(line, runtime, current_goal=None, proof_runtime=None, advisory_cache=False):
     result = copy.deepcopy(line or {})
     if not runtime:
         result['state_authority'] = 'task_line_legacy'
@@ -12,6 +12,8 @@ def authoritative_line(line, runtime):
     if ((result.get('username') and result['username'] != runtime.get('username'))
             or (result.get('conv_id') and result['conv_id'] != runtime.get('conv_id'))):
         raise PermissionError('runtime and approved line belong to different user/session scopes')
+    if proof_runtime and any(proof_runtime.get(k)!=runtime.get(k) for k in ('username','conv_id','plan_version')):
+        raise PermissionError('proof runtime belongs to a different scope or plan')
     result.update(state_authority='workflow_executor', execution_plan_version=runtime.get('plan_version'),
                   execution_status=runtime.get('status'), user_paused=runtime.get('user_paused', False))
     for step in result.get('steps', []):
@@ -20,13 +22,24 @@ def authoritative_line(line, runtime):
             continue
         step['reported_state'] = {k: step.get(k) for k in ('status', 'done', 'job_ids')}
         step['execution_contract'] = copy.deepcopy(actual['contract'])
-        step['contract_matches_execution'] = execution_contract(step) == execution_contract(actual['contract'])
+        from .native_resource_carry import view_contract_status
+        step.update(view_contract_status(proof_runtime or runtime, step['step_id'], step,current_goal,advisory_cache=advisory_cache))
         if not step['contract_matches_execution']:
             step['previous_execution'] = copy.deepcopy(actual)
+            if (step['science_contract_status'] == 'matches'
+                    and step['resource_contract_status'] == 'receipt_identity_changed'):
+                # Preserve facts about the original execution without accepting
+                # the mismatched approval as a newly completed contract.
+                step.update(status=actual['status'], done=False, phase=actual.get('phase'),
+                            job_ids=list(actual.get('job_ids', [])),
+                            state_authority='workflow_executor',
+                            error=actual.get('error'), result_ref=copy.deepcopy(actual.get('result_ref')))
+                continue
             step.update(status='pending', done=False, job_ids=[], output_files=[],
                         path_manifest={}, error=None, node_verification=None)
             continue
-        step.update(status=actual['status'], done=actual['status'] == 'succeeded', phase=actual.get('phase'),
+        step.update(status=actual['status'], done=(actual['status'] == 'succeeded'
+                    and step['execution_acceptance_status'] == 'contract_accepted'), phase=actual.get('phase'),
                     job_ids=list(actual.get('job_ids', [])), state_authority='workflow_executor',
                     execution_plan_version=actual.get('execution_plan_version', runtime.get('plan_version')),
                     error=actual.get('error'), result_ref=copy.deepcopy(actual.get('result_ref')),
@@ -41,7 +54,7 @@ def authoritative_line(line, runtime):
             receipt = actual.get('result') or {}
             step['report_receipt'] = copy.deepcopy({key: receipt.get(key) for key in (
                 'report_file', 'output_path', 'source_steps', 'source_step',
-                'source_attempt_fingerprint', 'evidence_fingerprint',
+                'source_attempt_fingerprint', 'source_evidence_call_id', 'evidence_fingerprint',
                 'fragment_fingerprint', 'fragment_manifest') if receipt.get(key) is not None})
     return result
 
@@ -54,15 +67,30 @@ def line_digest(line):
         rows.append(f"{node['step_id']}: agent={node.get('agent')} tool={node.get('tool')} status={node.get('status')} "
                     f"done={node.get('done')} dependencies={node.get('depends_on', [])} jobs={node.get('job_ids', [])} "
                     f"contract_matches_execution={node.get('contract_matches_execution', True)} error={str(node.get('error') or '')[:400]}")
+        if 'science_contract_status' in node:
+            rows.append(f"  science={node['science_contract_status']}; resource={node['resource_contract_status']}; "
+                        f"effective_receipt={node['effective_resource_receipt_status']}; "
+                        f"acceptance={node['execution_acceptance_status']}; "
+                        f"resource_changed_fields={node['resource_contract_changed_fields']}; "
+                        f"effective_resource_changed_fields={node['effective_resource_changed_fields']}")
+            if (node['science_contract_status'] == 'matches' and (
+                    node['resource_contract_status'] == 'receipt_identity_changed'
+                    or node['effective_resource_changed_fields'] == ['resource_review_id'])):
+                rows.append('  Resource receipt refresh, no science replan; this is not scientific drift. '
+                            'Reconcile allocation approval before completion; receipt identity alone does not require a scientific rerun.')
     return '\n'.join(rows)
 
 
 def bind_result_handoff(session, runtime_getter):
     """Production and SDK acceptance use the same parameter-preserving binding."""
+    from .workflow_metadata_alignment import prove_forward_transition
+    session._on_workflow_metadata_transition = lambda nodes, version, affected: prove_forward_transition(
+        runtime_getter(), nodes, version, affected)
     session._on_workflow_revalidate = lambda step_id, expected_outputs, completed_job_id=None: runtime_getter().revalidate_outputs(
         step_id, expected_outputs, completed_job_id=completed_job_id)
     session._on_workflow_finish = lambda step_id, evidence_call_ids, conclusion: runtime_getter().finish_node(
         step_id, evidence_call_ids, conclusion)
+    session._on_workflow_result_inspect = lambda step_id: runtime_getter().inspect_workflow_result(step_id)
     session._on_workflow_runtime_repair = lambda step_id: runtime_getter().repair_runtime_inputs(step_id)
 
 
@@ -88,10 +116,11 @@ def restore_approved_nodes(goal, runtime, owner):
             for key, node in runtime['nodes'].items()]
 
 
-def workflow_completion(line, runtime, approved_nodes, approved_version):
+def workflow_completion(line, runtime, approved_nodes, approved_version, current_goal=None):
     """Executable contracts alone determine completion; diagnostics are history."""
     from .recovery import is_submission
-    view = authoritative_line(line, runtime)  # Also enforces scope isolation.
+    from .native_resource_carry import view_contract_matches, view_contract_status
+    view = authoritative_line(line, runtime,current_goal)  # Also enforces scope isolation.
     if runtime and runtime.get('plan_version') != approved_version:
         return {'ok': False, 'reason': 'plan_version_mismatch', 'blockers': []}
     ids = {n['step_id'] for n in approved_nodes}
@@ -106,8 +135,11 @@ def workflow_completion(line, runtime, approved_nodes, approved_version):
             node = nodes.get(key)
             if not node:
                 blockers.append({'step_id': key, 'status': 'missing'})
-            elif key in contracts and execution_contract(contracts[key]) != execution_contract(node['contract']):
+            elif key in contracts and not view_contract_matches(runtime, key, contracts[key]):
                 blockers.append({'step_id': key, 'status': 'contract_mismatch'})
+            elif view_contract_status(runtime, key, contracts.get(key, node['contract']),current_goal)['execution_acceptance_status'] in {
+                    'effective_science_changed', 'effective_resources_unverified'}:
+                blockers.append({'step_id': key, 'status': 'effective_arguments_unverified'})
             elif node.get('status') != 'succeeded' or (is_submission(
                     node['contract'].get('tool'), node['contract'].get('arguments', {}))
                     and not node.get('node_verification')):

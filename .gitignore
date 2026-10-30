@@ -27,3 +27,16 @@ config/runtime.json
 tools/cdft/cDFT_Initialization/inputCOF/
 tools/cdft/cDFT_Initialization/cdft_data/
 tools/cdft/cDFT_Initialization/cdft_heat_data/
+tools/cdft/cDFT_Initialization/Molecule_FF/
+tools/cdft/cDFT_Initialization/data_ff_UFF
+tools/cdft/cDFT_Initialization/cdft_config.json
+
+# Local credentials, account state and unpublished run artifacts
+auth.json
+.codex/auth.json
+.claude/settings.local.json
+config/runtime.json.lock
+reports/
+output/
+results/
+*.log

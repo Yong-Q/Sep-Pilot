@@ -53,6 +53,18 @@ def validate_scope_component(value):
     return value
 
 
+def credential_scope_paths():
+    """Credential locations from environment only; never import/load auth."""
+    auth_root = Path(os.environ.get('BIMEM_AUTH_STATE_DIR') or Path(__file__).resolve().parents[1]).expanduser().resolve()
+    codex_roots = {Path.home() / '.codex'}
+    if os.environ.get('CODEX_HOME'):
+        codex_roots.add(Path(os.environ['CODEX_HOME']).expanduser())
+    directories = {path.resolve() for path in codex_roots} | {(auth_root / 'data/state').resolve()}
+    files = {auth_root / name for name in ('users.json', 'tokens.json', 'conversation_logs.jsonl')}
+    files |= {Path(str(path) + '.lock') for path in files}
+    return directories, {path.resolve() for path in files}
+
+
 def tool_scope_issues(params, username, conv_id, project_root):
     """Native tool paths cannot read another private session or credential store.
 
@@ -64,6 +76,7 @@ def tool_scope_issues(params, username, conv_id, project_root):
     project = Path(project_root).resolve()
     private = (project / 'runs').resolve()
     own = private / username / conv_id
+    credential_dirs, credential_files = credential_scope_paths()
     issues = []
     for key in PATH_ARGUMENTS:
         value = params.get(key)
@@ -75,8 +88,24 @@ def tool_scope_issues(params, username, conv_id, project_root):
             issues.append(f'{key}: credential/global conversation stores are not task inputs')
         if path.is_relative_to(project / 'data/state') or path.is_relative_to(project / 'logs'):
             issues.append(f'{key}: use scoped task/lifecycle tools, not global state/log files')
-        if any(part in {'.ssh', '.aws', '.kube'} for part in path.parts):
+        if any(part in {'.ssh', '.aws', '.kube', '.codex'} for part in path.parts):
             issues.append(f'{key}: service credential directories are not task inputs')
+        candidates = [path]
+        # read_file/grep share a legacy relative-path fallback to the project
+        # parent and home. Check its actual target before allowing that read.
+        supplied = Path(value).expanduser()
+        if key == 'path' and not supplied.is_absolute() and not path.exists():
+            for base in (project.parent, Path.home()):
+                candidate = (base / supplied).resolve()
+                if candidate.exists():
+                    candidates.append(candidate)
+                    break
+        if any(candidate in credential_files
+               or any(candidate.is_relative_to(directory) for directory in credential_dirs)
+               or candidate.name == 'credential_master.key'
+               or candidate.parent.name == '.claude' and candidate.name in {'settings.json', 'settings.local.json'}
+               for candidate in candidates):
+            issues.append(f'{key}: authentication and model credential stores are not task inputs')
     return issues
 
 

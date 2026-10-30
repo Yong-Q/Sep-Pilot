@@ -1,0 +1,276 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           5
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3730000000E+01
+    0.1480000000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1604260000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UAf
+Atom Names
+CH4       
+none      
+none      
+none      
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3750000000E+01
+    0.9800000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1503470000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UAf
+Atom Names
+CH3*(sp3) 
+Csp3      
+CH3sp3    
+CH3sp3    
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3950000000E+01
+    0.4600000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1402680000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UAf
+Atom Names
+CH2**(sp3)
+Csp3      
+CH2sp3    
+CH2sp3    
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.4680000000E+01
+    0.1000000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301890000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UAf
+Atom Names
+CHccc(sp3)
+Csp3      
+CHsp3     
+CHsp3     
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.6400000000E+01
+    0.5000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UAf
+Atom Names
+Ccccc(sp3)
+Csp3      
+Csp3      
+Csp3      
+Number of Bonded Terms
+           1
+Bond Type Number
+           1
+Bond Style
+           2
+Bond Coefficients
+    0.1540000000E+01
+    0.2264500000E+06
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UAf
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp3       Csp3      
+Number of Angle Terms
+           3
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1140000000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UAf
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     Cwild     
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1120000000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UAf
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CHsp3      Cwild     
+Angle Type Number
+           3
+Angle Style
+           1
+Angle Coefficients
+    0.1094700000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UAf
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Csp3       Cwild     
+Number of Torsion Terms
+           3
+Torsion Type Number
+           1
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.3550300000E+03
+   -0.6819000000E+02
+    0.7913200000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UAf
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     CH2sp3     Cwild     
+Torsion Type Number
+           2
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+   -0.2510600000E+03
+    0.4287300000E+03
+   -0.1118500000E+03
+    0.4412700000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UAf
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Cwild      CH2sp3     CHsp3      Cwild     
+Cwild      CHsp3      CHsp3      Cwild     
+Torsion Type Number
+           3
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.4612900000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UAf
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     Csp3       Cwild     
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           1
+Bond Increment Type Number
+           1
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UAf
+Atom Names
+Csp3       Csp3      

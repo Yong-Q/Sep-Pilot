@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .python_child import project_python_environment, run_project_python
 
 import json
 import re
@@ -324,6 +325,7 @@ def run_literature_rag(query: str, n_results: int = 5, query_type: str = "auto")
             text=True,
             check=False,
             timeout=20,
+            env=project_python_environment(),
         )
     except subprocess.TimeoutExpired:
         raise RuntimeError("RAG query exceeded time limit") from None
@@ -1008,13 +1010,18 @@ def build_guest_forcefield_command(action: str, params: Dict[str, Any]) -> Dict[
 
 def run_subprocess_plan(plan: Dict[str, Any]) -> Dict[str, Any]:
     command = plan["command"]
-    result = subprocess.run(
-        command,
-        cwd=plan.get("cwd"),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    if (isinstance(command, (list, tuple)) and len(command) == 3 and command[1] == "-c"
+            and re.fullmatch(r"python(?:[0-9.]+)?", Path(command[0]).name)):
+        result = run_project_python(command[0], command[2], cwd=plan.get("cwd"))
+    else:
+        result = subprocess.run(
+            command,
+            cwd=plan.get("cwd"),
+            capture_output=True,
+            text=True,
+            check=False,
+            env=project_python_environment(),
+        )
     return {
         "returncode": result.returncode,
         "stdout": result.stdout,

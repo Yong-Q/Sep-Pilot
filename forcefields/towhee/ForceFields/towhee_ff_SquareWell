@@ -1,0 +1,140 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           2
+Potential Type
+Square Well                   
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.1000000000E+01
+    0.1500000000E+01
+    0.1000000000E+01
+Mass
+    0.1000000000E+01
+Element
+Sw
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+SquareWell
+Atom Names
+type_a    
+type_a    
+type_a    
+type_a    
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.2000000000E+01
+    0.3000000000E+01
+    0.1000000000E+01
+Mass
+    0.1000000000E+01
+Element
+Sw
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+SquareWell
+Atom Names
+type_b    
+type_b    
+type_b    
+type_b    
+Number of Bonded Terms
+           3
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+SquareWell
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+type_a     type_a    
+Bond Type Number
+           2
+Bond Style
+           1
+Bond Coefficients
+    0.1500000000E+01
+Vibration Order
+wild      
+Force Field Name
+SquareWell
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+type_a     type_b    
+Bond Type Number
+           3
+Bond Style
+           1
+Bond Coefficients
+    0.2000000000E+01
+Vibration Order
+wild      
+Force Field Name
+SquareWell
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+type_b     type_b    
+Number of Angle Terms
+           1
+Angle Type Number
+           1
+Angle Style
+           6
+Angle Coefficients
+Angle Order
+wild           
+Force Field Name
+SquareWell
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       wild       wild      
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+           8
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Torsion Coefficients
+Torsion Order
+wild           
+Force Field Name
+SquareWell
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       wild       wild       wild      
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

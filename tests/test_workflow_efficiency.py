@@ -293,3 +293,110 @@ def test_path_normalization_only_is_an_operational_patch(tmp_path):
     assert operational_patch([before], [{"operation": "upsert", "step_id": "stage", "node": after}], tmp_path)
     weakened = {**after, "expected_outputs": [{"kind": "directory", "path": str(tmp_path / "runs/u/c/subset"), "pattern": "*.cif", "min_count": 1}]}
     assert not operational_patch([before], [{"operation": "upsert", "step_id": "stage", "node": weakened}], tmp_path)
+
+
+def _revision_report(root):
+    return [{'operation': 'upsert', 'step_id': 'final', 'node': node(
+        'final', 'generate_scientific_report', {
+            'source_steps': ['simulation', 'analysis'],
+            'output_path': str(root / 'report.md'), 'title': 'Results',
+        }, depends_on=['simulation', 'analysis'], outputs=[str(root / 'report.md')])}]
+
+
+def test_fragment_revision_new_plan_and_source_get_distinct_immutable_paths(tmp_path):
+    root = tmp_path / 'session'
+    original = expand_parallel_report_nodes(_revision_report(root), root, target_plan_version=1,
+        source_evidence={'simulation': {'result_ref': {'call_id': 'old'}}})
+    existing = [change['node'] for change in original]
+    revised = expand_parallel_report_nodes(_revision_report(root), root, existing,
+        target_plan_version=2, source_evidence={'simulation': {'result_ref': {'call_id': 'new'}}})
+    assert original[0]['node']['arguments']['output_path'] != revised[0]['node']['arguments']['output_path']
+    changed_same_version = expand_parallel_report_nodes(_revision_report(root), root, existing,
+        target_plan_version=1, source_evidence={'simulation': {'result_ref': {'call_id': 'new'}}})
+    assert original[0]['node']['arguments']['output_path'] != changed_same_version[0]['node']['arguments']['output_path']
+    assert expand_parallel_report_nodes(_revision_report(root), root, existing,
+        target_plan_version=2, source_evidence={'simulation': {'result_ref': {'call_id': 'new'}}}) == revised
+
+
+def test_fragment_revision_reuses_verified_unchanged_source_only(tmp_path):
+    root = tmp_path / 'session'
+    existing = [c['node'] for c in expand_parallel_report_nodes(_revision_report(root), root)]
+    runtime = {
+        'simulation': {'status': 'succeeded', 'execution_fingerprint': 'attempt',
+                       'result_ref': {'call_id': 'source-call'}},
+        'final__fragment__simulation': {'status': 'succeeded', 'contract': existing[0],
+            'phase': 'finish', 'artifacts': {existing[0]['arguments']['output_path']: {'size': 123}},
+            'result': {'source_step': 'simulation', 'source_attempt_fingerprint': 'attempt',
+                       'source_evidence_call_id': 'source-call', 'fragment_fingerprint': 'a' * 64,
+                       'report_file': existing[0]['arguments']['output_path']}},
+    }
+    updated = expand_parallel_report_nodes(_revision_report(root), root, existing,
+        target_plan_version=2, source_evidence=runtime)
+    assert updated[0]['node'] == existing[0]
+    runtime['simulation']['result_ref']['call_id'] = 'different-call'
+    changed = expand_parallel_report_nodes(_revision_report(root), root, existing,
+        target_plan_version=2, source_evidence=runtime)
+    assert changed[0]['node']['arguments']['output_path'] != existing[0]['arguments']['output_path']
+
+
+def test_fragment_revision_keeps_formally_proposed_recovery_path(tmp_path):
+    root = tmp_path / 'session'
+    initial = expand_parallel_report_nodes(_revision_report(root), root)
+    existing = [c['node'] for c in initial]
+    import copy
+    repaired = copy.deepcopy(initial[0])
+    replacement = str(root / 'reports' / 'new-approved-fragment.md')
+    repaired['node']['arguments']['output_path'] = replacement
+    repaired['node']['expected_outputs'] = [replacement]
+    patch = expand_parallel_report_nodes([repaired] + _revision_report(root), root, existing,
+        target_plan_version=2)
+    matches = [c for c in patch if c.get('step_id') == repaired['step_id']]
+    assert len(matches) == 1
+    assert matches[0] == repaired
+
+
+def test_fragment_revision_ignores_unrelated_runtime_text_and_preserves_old_file(tmp_path):
+    root = tmp_path / 'session'
+    first = expand_parallel_report_nodes(_revision_report(root), root, target_plan_version=1,
+        source_evidence={'simulation': {'result_ref': {'call_id': 'same'}, 'result': 'old text'}})
+    from pathlib import Path
+    old = Path(first[0]['node']['arguments']['output_path'])
+    old.parent.mkdir(parents=True)
+    old.write_text('immutable earlier report')
+    second = expand_parallel_report_nodes(_revision_report(root), root, target_plan_version=1,
+        source_evidence={'simulation': {'result_ref': {'call_id': 'same'}, 'result': 'new unrelated text'}})
+    assert second == first
+    newer = expand_parallel_report_nodes(_revision_report(root), root, target_plan_version=2)
+    assert newer[0]['node']['arguments']['output_path'] != str(old)
+    assert old.read_text() == 'immutable earlier report'
+
+
+def test_fragment_revision_does_not_reuse_legacy_receipt_without_exact_source_call(tmp_path):
+    root = tmp_path / 'session'
+    initial = [c['node'] for c in expand_parallel_report_nodes(_revision_report(root), root)]
+    runtime = {'simulation': {'status': 'succeeded', 'execution_fingerprint': 'a',
+                              'result_ref': {'call_id': 'source'}},
+        'final__fragment__simulation': {'status': 'succeeded', 'node_verification': {'verified': True},
+            'result': {'source_step': 'simulation', 'source_attempt_fingerprint': 'a',
+                       'report_file': initial[0]['arguments']['output_path']}}}
+    changed = expand_parallel_report_nodes(_revision_report(root), root, initial,
+        target_plan_version=2, source_evidence=runtime)
+    assert changed[0]['node']['arguments']['output_path'] != initial[0]['arguments']['output_path']
+
+
+def test_fragment_revision_rejects_receipt_from_different_runtime_contract(tmp_path):
+    import copy
+    root = tmp_path / 'session'
+    existing = [c['node'] for c in expand_parallel_report_nodes(_revision_report(root), root)]
+    old_contract = copy.deepcopy(existing[0])
+    old_contract['arguments']['title'] = 'Different prior title'
+    runtime = {'simulation': {'status': 'succeeded', 'execution_fingerprint': 'attempt',
+                              'result_ref': {'call_id': 'source-call'}},
+        'final__fragment__simulation': {'status': 'succeeded', 'contract': old_contract,
+            'node_verification': {'verified': True},
+            'result': {'source_step': 'simulation', 'source_attempt_fingerprint': 'attempt',
+                       'source_evidence_call_id': 'source-call',
+                       'report_file': existing[0]['arguments']['output_path']}}}
+    changed = expand_parallel_report_nodes(_revision_report(root), root, existing,
+        target_plan_version=2, source_evidence=runtime)
+    assert changed[0]['node']['arguments']['output_path'] != existing[0]['arguments']['output_path']

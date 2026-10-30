@@ -1,0 +1,238 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           9
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+LB or Geometric               
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3816610207E+01
+    0.2369969391E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1373300000E+03
+Element
+Ba
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Aqvist    
+Atom Names
+Ba+2      
+Ba+2      
+Ba+2      
+Ba+2      
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.2412031298E+01
+    0.2262749999E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.4008000000E+02
+Element
+Ca
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Aqvist    
+Atom Names
+Ca+2      
+Ca+2      
+Ca+2      
+Ca+2      
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.6715999823E+01
+    0.4057221434E-01
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1329000000E+03
+Element
+Cs
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Aqvist    
+Atom Names
+Cs+       
+Cs+       
+Cs+       
+Cs+       
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.4934628186E+01
+    0.1648719868E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3909800000E+02
+Element
+ K
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Aqvist    
+Atom Names
+K+        
+K+        
+K+        
+K+        
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.2126451899E+01
+    0.9198315119E+01
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.6941000000E+01
+Element
+Li
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Aqvist    
+Atom Names
+Li+       
+Li+       
+Li+       
+Li+       
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.1644470697E+01
+    0.4403366014E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.2430500000E+02
+Element
+Mg
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Aqvist    
+Atom Names
+Mg+2      
+Mg+2      
+Mg+2      
+Mg+2      
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.3330446062E+01
+    0.1395017782E+01
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.2299000000E+02
+Element
+Na
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Aqvist    
+Atom Names
+Na+       
+Na+       
+Na+       
+Na+       
+Atom Type Number
+           8
+Nonbond Coefficients
+    0.5621773662E+01
+    0.8580069183E-01
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.8547000000E+02
+Element
+Rb
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Aqvist    
+Atom Names
+Rb+       
+Rb+       
+Rb+       
+Rb+       
+Atom Type Number
+           9
+Nonbond Coefficients
+    0.3102687652E+01
+    0.5949322377E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.8762000000E+02
+Element
+Sr
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Aqvist    
+Atom Names
+Sr+2      
+Sr+2      
+Sr+2      
+Sr+2      
+Number of Bonded Terms
+           0
+Number of Angle Terms
+           0
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

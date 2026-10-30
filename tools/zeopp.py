@@ -22,6 +22,7 @@ zeo++0.3 选项约束（防回归，勿改动）：
 
 import os
 import sys
+import shlex
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
@@ -29,26 +30,77 @@ from typing import List, Optional
 _SDK_ROOT = Path(__file__).resolve().parents[1]
 
 
+def resolve_zeopp() -> dict:
+    """Resolve the operator installation deterministically, never run a solver.
+
+    Canonical runtime software settings win. Legacy zeopp.network_bin is read
+    directly from the SDK config or at most three ancestor legacy layouts
+    (identified by utils/config.py); Python's import search path is irrelevant.
+    Explicit broken settings are errors, never a reason to pick another binary.
+    """
+    import hashlib
+    import json
+    import stat
+    from bimem_agent import paths
+    paths.load_runtime_config.cache_clear()
+    runtime = paths.load_runtime_config()
+    software = runtime.get('software', {})
+    if not isinstance(software, dict): raise ValueError('runtime software must be an object')
+    checked = []
+    def read_configuration(path):
+        path = Path(path).absolute()
+        if not path.is_file(): return None
+        with path.open('rb') as stream:
+            before = os.fstat(stream.fileno())
+            if not stat.S_ISREG(before.st_mode) or before.st_size > 1024*1024:
+                raise ValueError('Zeo configuration must be a bounded regular JSON file')
+            raw = stream.read(1024*1024+1)
+            after = os.fstat(stream.fileno())
+        key = lambda value:(value.st_dev,value.st_ino,value.st_size,value.st_mtime_ns,value.st_ctime_ns)
+        if len(raw)!=before.st_size or key(before)!=key(after) or key(after)!=key(path.stat()):
+            raise ValueError('Zeo configuration changed during resolution')
+        checked.append({'path':str(path.resolve()),'sha256':hashlib.sha256(raw).hexdigest(),'size':len(raw)})
+        data=json.loads(raw)
+        if not isinstance(data,dict):raise ValueError('Zeo configuration must contain a JSON object')
+        return data
+    def selected(value, source, base):
+        if not isinstance(value,str) or not value.strip() or any(c in value for c in ('\n','\r','\0')):
+            raise ValueError('configured Zeo executable must be a nonempty safe path')
+        path=Path(value).expanduser()
+        if not path.is_absolute():path=Path(base)/path
+        path=path.resolve()
+        if not path.is_file() or not os.access(path,os.X_OK):
+            raise ValueError('configured Zeo network executable is missing or not executable; correct its configuration')
+        return {'executable':str(path),'source':source,'configuration_files':checked}
+    runtime_path=Path(paths.RUNTIME_CONFIG_PATH)
+    if runtime_path.is_file():read_configuration(runtime_path)
+    if 'zeopp_executable' in software:
+        return selected(str(paths.get_config_path('software','zeopp_executable')),'runtime:software.zeopp_executable',paths.PROJECT_ROOT)
+    embedded=runtime.get('zeopp')
+    if embedded is not None and not isinstance(embedded,dict):raise ValueError('runtime zeopp must be an object')
+    if isinstance(embedded,dict) and 'network_bin' in embedded:
+        return selected(embedded['network_bin'],'runtime:zeopp.network_bin',paths.PROJECT_ROOT)
+    candidates=[_SDK_ROOT/'config.json']
+    for ancestor in list(_SDK_ROOT.parents)[:3]:
+        if (ancestor/'utils/config.py').is_file():candidates.append(ancestor/'config.json')
+    for cfg_path in dict.fromkeys(candidates):
+        data=read_configuration(cfg_path)
+        if data is None:continue
+        section=data.get('zeopp')
+        if section is not None and not isinstance(section,dict):raise ValueError('legacy zeopp configuration must be an object')
+        if isinstance(section,dict)and'network_bin'in section:
+            return selected(section['network_bin'],'legacy:zeopp.network_bin',cfg_path.parent)
+    for candidate in (Path.home()/'zeo++-0.3/network',Path('/opt/zeoplusplus/network'),
+                      Path('/usr/local/bin/network'),Path.home()/'zeoplusplus/network'):
+        if candidate.is_file()and os.access(candidate,os.X_OK):
+            return selected(str(candidate),'standard-installation-location',candidate.parent)
+    return {'executable':None,'source':'unconfigured','configuration_files':checked}
+
+
 def find_zeopp() -> Optional[str]:
-    """查找 Zeo++ network 可执行文件，优先读 config.json"""
-    try:
-        sys.path.insert(0, str(_SDK_ROOT))
-        from utils.config import get as _cfg
-        cfg_bin = _cfg("zeopp", "network_bin")
-        if cfg_bin and os.path.isfile(cfg_bin) and os.access(cfg_bin, os.X_OK):
-            return cfg_bin
-    except Exception:
-        pass
-    candidates = [
-        os.path.expanduser("~/zeo++-0.3/network"),
-        "/opt/zeoplusplus/network",
-        "/usr/local/bin/network",
-        os.path.expanduser("~/zeoplusplus/network"),
-    ]
-    for c in candidates:
-        if os.path.isfile(c) and os.access(c, os.X_OK):
-            return c
-    return None
+    """Return the same resolved binary used by native installation inspection."""
+    return resolve_zeopp()['executable']
+
 
 
 @dataclass
@@ -111,10 +163,18 @@ def submit_pore_analysis(
         return {"submitted": False, "failed": True,
                 "error": "必须且只能提供 cif_path 与 cif_dir 中的一个"}
 
-    bin_path = find_zeopp()
+    if isinstance(n_threads, bool) or not isinstance(n_threads, int) or n_threads < 1:
+        raise ValueError('n_threads must be a positive integer')
+
+    try:
+        bin_path = find_zeopp()
+    except (OSError,ValueError,KeyError,TypeError) as error:
+        return {'submitted':False,'failed':True,'error_kind':'zeopp_configuration',
+                'error':str(error),'next_action':'Correct the existing Zeo executable configuration; no installation or scientific execution was attempted.'}
     if not bin_path:
         return {"submitted": False, "failed": True,
-                "error": "Zeo++ network 可执行文件未找到（需在 config.json 配置 zeopp.network_bin 或安装到 ~/zeo++-0.3/network）"}
+                "error_kind": "zeopp_configuration",
+                "error": "未解析到 Zeo++ network 可执行路径；请检查 software.zeopp_executable 或已有 zeopp.network_bin 配置，当前未尝试安装或执行计算。"}
 
     if cif_dir:
         cifs = sorted(str(p) for p in Path(cif_dir).glob("*.cif"))
@@ -128,6 +188,17 @@ def submit_pore_analysis(
                     "error": f"cif_path 不存在: {cif_path}"}
         cifs = [cif_path]
         n_mofs = 1
+
+    # Batch parallelism is a process budget, not solver-internal threads.
+    sys.path.insert(0, str(_SDK_ROOT))
+    from agents.watch_context import get_context
+    allocation = get_context().get('resource_allocation') or {}
+    cpus = min(n_threads, n_mofs)
+    if allocation.get('resource_review_id'):
+        cpus = allocation.get('cpus')
+        if isinstance(cpus, bool) or not isinstance(cpus, int) or cpus < 1:
+            raise ValueError('resource_allocation.cpus must be a positive integer')
+    workers = min(n_threads, n_mofs, cpus)
 
     # 工作目录：优先显式指定，否则落在会话 runs/{user}/{conv}/pore
     if work_dir is None:
@@ -150,13 +221,18 @@ def submit_pore_analysis(
         ""
         if cif_path else
         f'find "{cif_dir}" -maxdepth 1 -name "*.cif" -print0 | '
-        f'xargs -0 -P {n_threads} -I{{}} bash -c \'run_one "$@"\' _ {{}}'
+        f'xargs -0 -P "$WORKERS" -I{{}} bash -c \'run_one "$@"\' _ {{}}'
     )
 
     command = "\n".join([
         "#!/bin/bash",
         "set -euo pipefail",
-        f'ZEO="{bin_path}"',
+        "export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1",
+        f'WORKERS={workers}',
+        f'ALLOCATED_CPUS="${{SLURM_CPUS_PER_TASK:-{cpus}}}"',
+        '[[ "$ALLOCATED_CPUS" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid SLURM CPU allocation" >&2; exit 2; }',
+        'if (( WORKERS > ALLOCATED_CPUS )); then WORKERS="$ALLOCATED_CPUS"; fi',
+        f'ZEO={shlex.quote(bin_path)}',
         f'PROBE="{probe_radius}"',
         f'NSAMP="{n_samples}"',
         f'OUT="{out_dir}"',
@@ -205,7 +281,7 @@ def submit_pore_analysis(
         command=command,
         work_dir=work_dir,
         partition=partition,
-        cpus_per_task=1,
+        cpus_per_task=cpus,
         walltime=walltime,
     )
     if result.get("submitted"):

@@ -18,10 +18,13 @@ import re
 import sys
 import shutil
 import subprocess
+import json
+import shlex
 from datetime import datetime
 
 _INIT_DIR = os.path.dirname(os.path.abspath(__file__))
 _COLLECT_SCRIPT = os.path.join(_INIT_DIR, 'collect_cdft_results.py')
+if _INIT_DIR not in sys.path:sys.path.insert(0,_INIT_DIR)
 
 # ── PBS script template ──────────────────────────────────────────────────────
 _PBS_TEMPLATE = r"""#!/bin/bash
@@ -31,74 +34,16 @@ _PBS_TEMPLATE = r"""#!/bin/bash
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task={num_processes}
 #SBATCH -t {walltime}
-{nodelist_line}{memory_line}#SBATCH -o {work_dir}/slurm_%j.log
+{nodelist_line}{memory_line}{dependency_line}#SBATCH -o {work_dir}/slurm_%j.log
 #SBATCH -e {work_dir}/slurm_%j.err
 
-export CDFT_EXE="{executable}"
-export CDFT_WORK_DIR="{work_dir}"
-export CDFT_TIMEOUT={timeout}
-NUM_PROCESSES={num_processes}
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
-
-process_input() {{
-    local src="$1"
-    local mof_name
-    mof_name=$(basename "${{src%.dat}}")
-    echo "[$(date '+%H:%M:%S')] Processing ${{mof_name}}..."
-
-    if [ ! -f "$src" ]; then
-        echo "  ERROR: $src not found, skipping."
-        return 1
-    fi
-
-    local run_dir="${{CDFT_WORK_DIR}}/input_dir/${{mof_name}}"
-    mkdir -p "$run_dir"
-    cp "$src" "$run_dir/input.dat"
-
-    pushd "$run_dir" > /dev/null || return 1
-    "${{CDFT_EXE}}" &
-    local pid=$!
-
-    local start elapsed
-    start=$(date +%s)
-    while kill -0 "$pid" 2>/dev/null; do
-        elapsed=$(( $(date +%s) - start ))
-        if [ "$elapsed" -gt "${{CDFT_TIMEOUT}}" ]; then
-            echo "  TIMEOUT: ${{mof_name}} exceeded ${{CDFT_TIMEOUT}}s, killing."
-            kill "$pid" 2>/dev/null
-            wait "$pid" 2>/dev/null
-            popd > /dev/null
-            return 1
-        fi
-        sleep 5
-    done
-    wait "$pid" 2>/dev/null
-    popd > /dev/null
-
-    if grep -q "Molecule" "${{run_dir}}/output.dat" 2>/dev/null; then
-        echo "  SUCCESS: ${{mof_name}}"
-        return 0
-    else
-        echo "  FAILED: ${{mof_name}} (no valid output)"
-        return 1
-    fi
-}}
-
-export -f process_input
-export CDFT_EXE CDFT_WORK_DIR CDFT_TIMEOUT
-
-find "{work_dir}/input" -maxdepth 1 -type f -name '*.dat' -print0 | \
-    xargs -0 -P "$NUM_PROCESSES" -I{{}} bash -c 'process_input "$@"' _ {{}}
-
-echo "[$(date '+%H:%M:%S')] All cDFT calculations complete."
-
-# Collect results into CSV
-python3 "{collect_script}" \
-    --work_dir "{work_dir}" \
-    --gases {gases_str} \
-    --output "{work_dir}/results.csv"
-
-echo "Results saved to {work_dir}/results.csv"
+NUM_PROCESSES="${{SLURM_CPUS_PER_TASK-{num_processes}}}"
+if ! [[ "$NUM_PROCESSES" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Invalid CPU allocation for cDFT worker count" >&2
+    exit 2
+fi
+{execution_command}
 """
 
 
@@ -120,6 +65,7 @@ def _load_cdft_config():
                 'data_dir':      cfg.get('data_dir') or os.path.join(_INIT_DIR, 'cdft_data'),
                 'walltime':      cfg.get('walltime', '72:00:00'),
                 'nodelist':      cfg.get('nodelist', ''),
+                'scratch_policy':cfg.get('scratch_policy'),
             }
         except Exception:
             pass
@@ -134,6 +80,7 @@ def _load_cdft_config():
             'data_dir':      get('cdft', 'data_dir'),
             'walltime':      get('cdft', 'walltime', '72:00:00'),
             'nodelist':      get('cdft', 'nodelist', ''),
+            'scratch_policy':get('cdft', 'scratch_policy', None),
         }
     except Exception:
         return {
@@ -196,6 +143,8 @@ def submit_cdft_batch(
     nodelist=None,
     partition=None,
     memory_mb=None,
+    scratch_policy=None,
+    wait_job_ids=None,
 ):
     """
     Set up job directory, generate PBS script, and submit via qsub.
@@ -232,35 +181,67 @@ def submit_cdft_batch(
     """
     cfg = _load_cdft_config()
     executable    = executable    or cfg['executable']
-    timeout       = timeout       or cfg['timeout']
+    timeout = cfg['timeout'] if timeout is None else timeout
     if not dry_run and (not isinstance(memory_mb,int) or isinstance(memory_mb,bool) or memory_mb<64):
         raise ValueError('finite memory_mb >=64 MiB is required before real cDFT submission; implicit whole-node RAM is forbidden')
     num_processes = num_processes or cfg['num_processes']
     data_dir      = data_dir      or cfg['data_dir']
     walltime      = walltime      or cfg['walltime']
+    if type(timeout) is not int or timeout<1:
+        raise ValueError('timeout must be a positive integer number of seconds')
+    match=re.fullmatch(r'(?:(\d+)-)?(\d+):(\d{2}):(\d{2})',str(walltime))
+    if not match or int(match[3])>=60 or int(match[4])>=60:
+        raise ValueError('walltime must use [D-]HH:MM:SS')
+    wall_seconds=int(match[1] or 0)*86400+int(match[2])*3600+int(match[3])*60+int(match[4])
+    if timeout>wall_seconds:raise ValueError('per-case timeout cannot exceed allocated walltime')
+    if wait_job_ids is None:wait_job_ids=[]
+    if not isinstance(wait_job_ids,list) or len(wait_job_ids)>64:
+        raise ValueError('wait_job_ids must be a bounded list of native-authorized job IDs')
+    dependencies=[]
+    for job in wait_job_ids:
+        if isinstance(job,bool) or not isinstance(job,(str,int)) or not re.fullmatch(r'[1-9][0-9]*',str(job)):
+            raise ValueError('wait_job_ids contains an invalid scheduler job ID')
+        if str(job) not in dependencies:dependencies.append(str(job))
+    from cdft_scratch import normalized_policy, file_fact
+    # Only the operator's private installation configuration or a trusted host
+    # caller supplies this policy; it is deliberately absent from model schema.
+    policy=normalized_policy(cfg.get('scratch_policy') if scratch_policy is None else scratch_policy)
+
     # DM_cdft needs glibc 2.28. Restrict the batch to high-glibc compute nodes
     # unless the caller explicitly passes a nodelist ('' disables the filter).
     if nodelist is None:
         nodelist = cfg.get('nodelist') or _default_nodelist()
+
+    if not dry_run:
+        from agents.placement_budget import project_policy, validate_memory_budget
+        from pathlib import Path
+        validate_memory_budget(project_policy(Path(__file__).resolve().parents[3]),
+            cpus=num_processes,memory_mb=memory_mb,nodelist=nodelist or '',partition=partition or 'compute')
 
     if not os.path.isfile(executable):
         raise FileNotFoundError(f"DM_cdft executable not found: {executable}")
     if not os.path.isdir(input_dat_dir):
         raise NotADirectoryError(f"input_dat_dir not found: {input_dat_dir}")
 
-    dat_files = [f for f in os.listdir(input_dat_dir) if f.endswith('.dat')]
-    if not dat_files:
-        raise ValueError(f"No .dat files found in {input_dat_dir}")
+    import importlib.util
+    from pathlib import Path
+    guard_path = Path(__file__).resolve().parents[3] / 'agents/cdft_grid_guard.py'
+    guard_spec = importlib.util.spec_from_file_location('_cdft_submit_grid_guard', guard_path)
+    grid_guard = importlib.util.module_from_spec(guard_spec); guard_spec.loader.exec_module(grid_guard)
+    grid_proof = grid_guard.inspect_grid_directory(input_dat_dir)
+    dat_files = [item['path'] for item in grid_proof['items']]
 
     # Create job work directory
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
     work_dir  = os.path.join(data_dir, timestamp)
     input_dir = os.path.join(work_dir, 'input')
-    os.makedirs(input_dir, exist_ok=True)
+    os.makedirs(input_dir, exist_ok=False)
 
     # Copy input .dat files
     for fname in dat_files:
         shutil.copy2(os.path.join(input_dat_dir, fname), os.path.join(input_dir, fname))
+    if grid_guard.inspect_grid_directory(input_dir) != grid_proof:
+        raise ValueError('native staged inputs changed after grid verification; submission refused')
 
     # Build SLURM node spec (all computations go through sbatch)
     ppn = ppn or num_processes
@@ -269,20 +250,36 @@ def submit_cdft_batch(
     job_name  = f"batch_{timestamp}"
     gases_str = ' '.join(gases)
 
+    runner=os.path.join(work_dir,'cdft_scratch.py')
+    collector=os.path.join(work_dir,'collect_cdft_results.py')
+    shutil.copy2(os.path.join(_INIT_DIR,'cdft_scratch.py'),runner)
+    shutil.copy2(_COLLECT_SCRIPT,collector)
+    common=['--work-dir',work_dir,'--input-dat-dir',input_dir,'--executable',executable,
+        '--collect-script',collector,'--gases',json.dumps(gases),'--timeout',str(timeout)]
+    def command(action,extra=()):
+        # Only Slurm's numeric job/CPU variables expand; every configured string is shell-quoted.
+        args=[sys.executable,runner,action,*common,*extra]
+        return shlex.join(args)+' --job-id "${SLURM_JOB_ID:?}" --workers "$NUM_PROCESSES"'
+    shared=command('shared')
+    execution_command=shared+'\nexit $?'
+    if policy:
+        expected_inputs={name:file_fact(os.path.join(input_dir,name),16*1024*1024) for name in sorted(dat_files)}
+        extra=['--policy',json.dumps(policy,sort_keys=True),'--memory-mb',str(memory_mb or 0),
+            '--expected-inputs',json.dumps(expected_inputs,sort_keys=True),
+            '--expected-executable-sha256',file_fact(executable,256*1024*1024)['sha256']]
+        execution_command=command('dispatch',extra)+'\nstatus=$?\nif [ "$status" -ne 78 ]; then exit "$status"; fi\n'+shared+'\nexit $?'
     script_content = _PBS_TEMPLATE.format(
-        job_name=job_name,
-        partition=partition,
-        walltime=walltime,
+        job_name=job_name,partition=partition,walltime=walltime,
         nodelist_line=f"#SBATCH -w {nodelist}\n" if nodelist else "",
         memory_line=f"#SBATCH --mem={int(memory_mb)}M\n" if memory_mb else "",
-        work_dir=work_dir,
-        executable=executable,
-        timeout=timeout,
-        num_processes=num_processes,
-        collect_script=_COLLECT_SCRIPT,
-        gases_str=gases_str,
+        dependency_line='#SBATCH --dependency=afterany:'+':'.join(dependencies)+'\n' if dependencies else '',
+        work_dir=work_dir,num_processes=num_processes,execution_command=execution_command,
     )
 
+    from agents.placement_budget import submission_flags, clean_submission_environment
+    from pathlib import Path
+    flags = submission_flags(script_content, project_root=Path(__file__).resolve().parents[3]) if not dry_run else []
+    scoped = any(flag.startswith(('--mem=', '--mem-per-cpu=')) for flag in flags)
     script_path = os.path.join(work_dir, 'cdft_job.sh')
     with open(script_path, 'w') as f:
         f.write(script_content)
@@ -294,6 +291,10 @@ def submit_cdft_batch(
         'script_path': script_path,
         'n_mofs':      len(dat_files),
         'status':      'ready',
+        'timeout_seconds':timeout,
+        'wait_job_ids':dependencies,
+        'storage_mode':'operator_opt_in_scratch' if policy else 'shared',
+        'execution_runner_sha256':file_fact(runner,4*1024*1024)['sha256'],
     }
 
     if dry_run:
@@ -302,8 +303,9 @@ def submit_cdft_batch(
 
     try:
         proc = subprocess.run(
-            ['sbatch', script_path],
-            capture_output=True, text=True, check=True
+            ['sbatch', *flags, script_path],
+            capture_output=True, text=True, check=True,
+            **({'env': clean_submission_environment()} if scoped else {})
         )
         # ⚠️ 必须提取**纯数字** job_id，不能把整行 "Submitted batch job 3697"
         # 当 job_id —— 否则 JobWatch 拿带前缀的字符串去 squeue 查不到，

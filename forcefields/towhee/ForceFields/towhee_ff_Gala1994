@@ -1,0 +1,166 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           3
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3310000000E+01
+    0.3730000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1400700000E+02
+Element
+ N
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Gala1994  
+Atom Names
+N         
+N         
+none      
+none      
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.2825000000E+01
+    0.5280000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Gala1994  
+Atom Names
+F         
+F         
+none      
+none      
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3332000000E+01
+    0.1783000000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3545300000E+02
+Element
+Cl
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Gala1994  
+Atom Names
+Cl        
+Cl        
+none      
+none      
+Number of Bonded Terms
+           3
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.1088990000E+01
+Vibration Order
+wild      
+Force Field Name
+Gala1994  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+N          N         
+Bond Type Number
+           2
+Bond Style
+           1
+Bond Coefficients
+    0.1426625000E+01
+Vibration Order
+wild      
+Force Field Name
+Gala1994  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F          F         
+Bond Type Number
+           3
+Bond Style
+           1
+Bond Coefficients
+    0.2099160000E+01
+Vibration Order
+wild      
+Force Field Name
+Gala1994  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cl         Cl        
+Number of Angle Terms
+           0
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           3
+Bond Increment Type Number
+           1
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Gala1994  
+Atom Names
+N          N         
+Bond Increment Type Number
+           2
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Gala1994  
+Atom Names
+F          F         
+Bond Increment Type Number
+           3
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Gala1994  
+Atom Names
+Cl         Cl        

@@ -1,0 +1,30 @@
+# critical constants: Temperature [T], Pressure [Pa], and Acentric factor [-]#10.1021/acs.jpcb.3c06886#tbl1
+553.58
+ 4073001.555
+0.209609
+# Number Of Atoms
+6
+# Number Of Groups
+1
+# Alkane-group
+rigid
+# number of atoms
+6
+# atomic positions  CH2_cyclohex
+0	CH2_cyclohex        9.792   8.702   8.944 
+1	CH2_cyclohex         11.081   9.395   9.416
+2	CH2_cyclohex       8.548   9.470   9.417
+3	CH2_cyclohex         11.124  10.857   8.944
+4	CH2_cyclohex          8.592  10.933   8.945
+5	CH2_cyclohex         9.880  11.626   9.416 
+# Chiral centers Bond  BondDipoles Bend  UrayBradley InvBend  Torsion Imp. Torsion Bond/Bond Stretch/Bend Bend/Bend Stretch/Torsion Bend/Torsion IntraVDW IntraCoulomb
+               0    6            0    0            0       0        0            0         0            0         0               0            0        0            0
+# Bond stretch: atom n1-n2, type, parameters
+0 1 RIGID_BOND
+0 2 RIGID_BOND
+1 3 RIGID_BOND
+2 4 RIGID_BOND
+3 5 RIGID_BOND
+4 5 RIGID_BOND
+# Number of config moves
+0

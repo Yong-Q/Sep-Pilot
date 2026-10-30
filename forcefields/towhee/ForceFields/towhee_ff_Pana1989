@@ -1,0 +1,118 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           4
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+wild                          
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.2810000000E+01
+    0.3430000000E+02
+    0.2810000000E+01
+    0.3430000000E+02
+Mass
+    0.2018000000E+02
+Element
+Ne
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.3960000000E+00
+Force Field Name
+Pana1989  
+Atom Names
+Ne        
+null      
+null      
+null      
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3390000000E+01
+    0.1175000000E+03
+    0.3390000000E+01
+    0.1175000000E+03
+Mass
+    0.3994800000E+02
+Element
+Ar
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1642000000E+01
+Force Field Name
+Pana1989  
+Atom Names
+Ar        
+null      
+null      
+null      
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3607000000E+01
+    0.1610000000E+03
+    0.3607000000E+01
+    0.1610000000E+03
+Mass
+    0.8380000000E+02
+Element
+Kr
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.2484000000E+01
+Force Field Name
+Pana1989  
+Atom Names
+Kr        
+null      
+null      
+null      
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.3910000000E+01
+    0.2270000000E+03
+    0.3910000000E+01
+    0.2270000000E+03
+Mass
+    0.1312900000E+03
+Element
+Xe
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.4020000000E+01
+Force Field Name
+Pana1989  
+Atom Names
+Xe        
+null      
+null      
+null      
+Number of Bonded Terms
+           0
+Number of Angle Terms
+           0
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

@@ -1,0 +1,270 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           6
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Geometric                     
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.2785000000E+01
+    0.2899900000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+EPM       
+Atom Names
+C_EPM-R   
+C_EPM-R   
+C_EPM-R   
+none      
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3064000000E+01
+    0.8299700000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+EPM       
+Atom Names
+O_EPM-R   
+O_EPM-R   
+O_EPM-R   
+none      
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.2785000000E+01
+    0.2899900000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+EPM       
+Atom Names
+C_EPM-F   
+C_EPM-F   
+C_EPM-F   
+none      
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.3064000000E+01
+    0.8299700000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+EPM       
+Atom Names
+O_EPM-F   
+O_EPM-F   
+O_EPM-F   
+none      
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.2757000000E+01
+    0.2812900000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+EPM       
+Atom Names
+C_EPM2    
+C_EPM2    
+C_EPM2    
+none      
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.3033000000E+01
+    0.8050700000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+EPM       
+Atom Names
+O_EPM2    
+O_EPM2    
+O_EPM2    
+none      
+Number of Bonded Terms
+           2
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.1161000000E+01
+Vibration Order
+wild      
+Force Field Name
+EPM       
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C_EPM-R    O_EPM-R   
+C_EPM-F    O_EPM-F   
+Bond Type Number
+           2
+Bond Style
+           1
+Bond Coefficients
+    0.1149000000E+01
+Vibration Order
+wild      
+Force Field Name
+EPM       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C_EPM2     O_EPM2    
+Number of Angle Terms
+           3
+Angle Type Number
+           1
+Angle Style
+           0
+Angle Coefficients
+    0.1800000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+EPM       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+O_EPM-R    C_EPM-R    O_EPM-R   
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1800000000E+03
+    0.7667320875E+05
+Angle Order
+wild           
+Force Field Name
+EPM       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+O_EPM-F    C_EPM-F    O_EPM-F   
+Angle Type Number
+           3
+Angle Style
+           1
+Angle Coefficients
+    0.1800000000E+03
+    0.7432791060E+05
+Angle Order
+wild           
+Force Field Name
+EPM       
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+O_EPM2     C_EPM2     O_EPM2    
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           3
+Bond Increment Type Number
+           1
+Bond Increment Value
+    0.3322500000E+00
+Bond Increment Order
+wild      
+Force Field Name
+EPM       
+Atom Names
+C_EPM-R    O_EPM-R   
+Bond Increment Type Number
+           2
+Bond Increment Value
+    0.3322500000E+00
+Bond Increment Order
+wild      
+Force Field Name
+EPM       
+Atom Names
+C_EPM-F    O_EPM-F   
+Bond Increment Type Number
+           3
+Bond Increment Value
+    0.3256000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+EPM       
+Atom Names
+C_EPM2     O_EPM2    

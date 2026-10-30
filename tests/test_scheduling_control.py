@@ -41,10 +41,10 @@ def test_queued_retarget_preserves_job_cpu_memory_and_uses_control_not_shell(tmp
     from agents.job_watch import JobWatch
     watch=JobWatch(str(tmp_path/'watch.json'));watch.register('123',username='a',conv_id='c',tool='generate_structure')
     monkeypatch.setattr('agents.job_watch.get_watch',lambda:watch)
-    constraints={'JobState':'PENDING','ReqNodeList':'(null)','Partition':'compute','NumCPUs':'4','ReqTRES':'cpu=4,mem=1024M,node=1'}
+    constraints={'JobState':'PENDING','ReqNodeList':'(null)','Partition':'compute','NumCPUs':'4','ReqTRES':'cpu=4,mem=1024M,node=1','TimeLimit':'3-00:00:00'}
     inventory={'verified':True,'stale':False,'policy':{'excluded_nodes':[],'preferred_nodes':[],'allowed_states':['idle'],'tool_profiles':{}},
         'nodes':{'node07':{'name':'node07','states':['idle'],'partitions':['bigcpu'],'cpus':{'idle':8,'total':8},'memory':{'verified':True,'available_for_scheduling_mib':4096}}}}
-    monkeypatch.setattr('agents.resource_review.assess_job_resources',lambda job_id:{'effective_constraints':copy.deepcopy(constraints),'node_inventory':inventory})
+    monkeypatch.setattr('agents.resource_review.assess_job_resources',lambda job_id:{'effective_constraints':copy.deepcopy(constraints),'node_inventory':inventory,'partition_limits':{'bigcpu':{'verified':True,'state':'UP','max_time':'5-00:00:00'}}})
     commands=[]
     def run(argv,**kwargs):
         commands.append(argv);constraints.update(ReqNodeList='node07',Partition='bigcpu')

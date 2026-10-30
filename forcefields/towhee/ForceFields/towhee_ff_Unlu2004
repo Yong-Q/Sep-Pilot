@@ -1,0 +1,6390 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+         241
+Potential Type
+Hard 2580 Multistep           
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.1000000000E+02
+   -0.1560000000E+03
+   -0.1040000000E+03
+   -0.5200000000E+02
+    0.0000000000E+00
+    0.1000000000E+01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+Tang      
+    0    0
+    0    0
+    0    0
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3674000025E+01
+   -0.1520000000E+03
+   -0.1015000000E+03
+   -0.5109999847E+02
+   -0.6000000238E+00
+    0.0000000000E+00
+Mass
+    0.1604280090E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH4       
+    0    1
+    0    1
+    0    1
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3369999886E+01
+   -0.1185000000E+03
+   -0.7940000153E+02
+   -0.4040000153E+02
+   -0.1299999952E+01
+    0.0000000000E+00
+Mass
+    0.3994800186E+02
+Element
+Ar
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+Ar        
+    0    2
+    0    2
+    0    2
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.3349999905E+01
+   -0.3130000000E+03
+   -0.2091999969E+03
+   -0.1053000031E+03
+   -0.1500000000E+01
+    0.0000000000E+00
+Mass
+    0.1703059959E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+NH3       
+    0    3
+    0    3
+    0    3
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.3740000010E+01
+   -0.2850000000E+03
+   -0.1773000031E+03
+   -0.9109999847E+02
+   -0.7400000095E+01
+    0.0000000000E+00
+Mass
+    0.3407580185E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+H2S       
+    0    4
+    0    4
+    0    4
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.3500000000E+02
+   -0.2850000000E+02
+   -0.2210000038E+02
+   -0.1560000038E+02
+    0.6040000170E-01
+Mass
+    0.1599940014E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O=        
+    0    5
+    0    5
+    0    5
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.2200000048E+01
+    0.2220000000E+03
+    0.1478000031E+03
+    0.7359999847E+02
+   -0.6000000238E+00
+    0.3709999844E-01
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+H=        
+    0    6
+    0    6
+    0    6
+Atom Type Number
+           8
+Nonbond Coefficients
+    0.2829999924E+01
+   -0.1520000000E+03
+   -0.1015000000E+03
+   -0.5109999847E+02
+   -0.6000000238E+00
+    0.5640000105E-01
+Mass
+    0.1400529957E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CO        
+    0    7
+    0    7
+    0    7
+Atom Type Number
+           9
+Nonbond Coefficients
+    0.2819999933E+01
+   -0.1675000000E+03
+   -0.1139000015E+03
+   -0.6029999924E+02
+   -0.6699999809E+01
+    0.1159999967E+00
+Mass
+    0.3807180023E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+c(=O)     
+    0    8
+    0    8
+    0    8
+Atom Type Number
+          10
+Nonbond Coefficients
+    0.2640000105E+01
+   -0.2979999924E+02
+   -0.2689999962E+02
+   -0.2410000038E+02
+   -0.2120000076E+02
+    0.7090000063E-01
+Mass
+    0.1899839973E+02
+Element
+ F
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+F=?       
+    0    9
+    0    9
+    0    9
+Atom Type Number
+          11
+Nonbond Coefficients
+    0.3256000042E+01
+   -0.1281000061E+03
+   -0.9900000000E+02
+   -0.6980000305E+02
+   -0.4070000076E+02
+    0.9939999878E-01
+Mass
+    0.3545270157E+02
+Element
+Cl
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+Cl=?      
+    0   10
+    0   10
+    0   10
+Atom Type Number
+          12
+Nonbond Coefficients
+    0.2700000107E+00
+   -0.2500000000E+04
+   -0.2500000000E+04
+   -0.2500000000E+04
+   -0.2500000000E+04
+    0.2700000070E-01
+Mass
+    0.1000000000E+01
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+2BD-      
+    0   11
+    0   11
+    0   11
+Atom Type Number
+          13
+Nonbond Coefficients
+    0.2700000107E+00
+   -0.2500000000E+04
+   -0.2500000000E+04
+   -0.2500000000E+04
+   -0.2500000000E+04
+    0.2700000070E-01
+Mass
+    0.1000000000E+01
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+4BD-      
+    0   12
+    0   12
+    0   12
+Atom Type Number
+          14
+Nonbond Coefficients
+    0.2700000107E+00
+   -0.2500000000E+04
+   -0.2500000000E+04
+   -0.2500000000E+04
+   -0.2500000000E+04
+    0.2700000070E-01
+Mass
+    0.1000000000E+01
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+2BA-      
+    0   13
+    0   13
+    0   13
+Atom Type Number
+          15
+Nonbond Coefficients
+    0.2700000107E+00
+   -0.2500000000E+04
+   -0.2500000000E+04
+   -0.2500000000E+04
+   -0.2500000000E+04
+    0.2700000070E-01
+Mass
+    0.1000000000E+01
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+4BA-      
+    0   14
+    0   14
+    0   14
+Atom Type Number
+          16
+Nonbond Coefficients
+    0.2700000107E+00
+   -0.2500000000E+04
+   -0.2500000000E+04
+   -0.2500000000E+04
+   -0.2500000000E+04
+    0.2700000070E-01
+Mass
+    0.1000000000E+01
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+D-        
+    0   15
+    0   15
+    0   15
+Atom Type Number
+          17
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.9090000153E+02
+   -0.6600000000E+02
+   -0.4109999847E+02
+   -0.1620000076E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3a-     
+    1    1
+    1    1
+    1    1
+Atom Type Number
+          18
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.5009999847E+02
+   -0.4270000076E+02
+   -0.3540000153E+02
+   -0.2800000000E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3b-     
+    1    2
+    1    2
+    1    2
+Atom Type Number
+          19
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.3790000153E+02
+   -0.3759999847E+02
+   -0.3720000076E+02
+   -0.3690000153E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3c-     
+    1    3
+    1    3
+    1    3
+Atom Type Number
+          20
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.4300000000E+02
+   -0.4229999924E+02
+   -0.4170000076E+02
+   -0.4100000000E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3d-     
+    1    4
+    1    4
+    1    4
+Atom Type Number
+          21
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.6950000000E+02
+   -0.5500000000E+02
+   -0.4050000000E+02
+   -0.2600000000E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3e-     
+    1    5
+    1    5
+    1    5
+Atom Type Number
+          22
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.1080000000E+03
+   -0.7569999695E+02
+   -0.4329999924E+02
+   -0.1100000000E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3f-     
+    1    6
+    1    6
+    1    6
+Atom Type Number
+          23
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.9090000153E+02
+   -0.6600000000E+02
+   -0.4109999847E+02
+   -0.1620000076E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3g-     
+    1    7
+    1    7
+    1    7
+Atom Type Number
+          24
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.9090000153E+02
+   -0.6600000000E+02
+   -0.4109999847E+02
+   -0.1620000076E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3h-     
+    1    8
+    1    8
+    1    8
+Atom Type Number
+          25
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.1220999985E+03
+   -0.8319999695E+02
+   -0.4420000076E+02
+   -0.5300000191E+01
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3i-     
+    1    9
+    1    9
+    1    9
+Atom Type Number
+          26
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.1280000000E+03
+   -0.8909999847E+02
+   -0.5029999924E+02
+   -0.1139999962E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3j-     
+    1   10
+    1   10
+    1   10
+Atom Type Number
+          27
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.9090000153E+02
+   -0.6600000000E+02
+   -0.4109999847E+02
+   -0.1620000076E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3k-     
+    1   11
+    1   11
+    1   11
+Atom Type Number
+          28
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.4700000000E+02
+   -0.4379999924E+02
+   -0.4050000000E+02
+   -0.3729999924E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3l-     
+    1   12
+    1   12
+    1   12
+Atom Type Number
+          29
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.9100000000E+02
+   -0.6600000000E+02
+   -0.4100000000E+02
+   -0.1600000000E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3m-     
+    1   13
+    1   13
+    1   13
+Atom Type Number
+          30
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.3500000000E+02
+   -0.3470000076E+02
+   -0.3429999924E+02
+   -0.3400000000E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3n-     
+    1   14
+    1   14
+    1   14
+Atom Type Number
+          31
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.3800000000E+02
+   -0.3509999847E+02
+   -0.3209999847E+02
+   -0.2920000076E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3o-     
+    1   15
+    1   15
+    1   15
+Atom Type Number
+          32
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.4700000000E+02
+   -0.4700000000E+02
+   -0.4700000000E+02
+   -0.4700000000E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3p-     
+    1   16
+    1   16
+    1   16
+Atom Type Number
+          33
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.7000000000E+02
+   -0.5800000000E+02
+   -0.4600000000E+02
+   -0.3400000000E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3q-     
+    1   17
+    1   17
+    1   17
+Atom Type Number
+          34
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.6950000000E+02
+   -0.5870000076E+02
+   -0.4779999924E+02
+   -0.3700000000E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3r-     
+    1   18
+    1   18
+    1   18
+Atom Type Number
+          35
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.9090000153E+02
+   -0.6600000000E+02
+   -0.4109999847E+02
+   -0.1620000076E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3s-     
+    1   19
+    1   19
+    1   19
+Atom Type Number
+          36
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.9090000153E+02
+   -0.6600000000E+02
+   -0.4109999847E+02
+   -0.1620000076E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3t-     
+    1   20
+    1   20
+    1   20
+Atom Type Number
+          37
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.9090000153E+02
+   -0.6600000000E+02
+   -0.4109999847E+02
+   -0.1620000076E+02
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3u-     
+    1   21
+    1   21
+    1   21
+Atom Type Number
+          38
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.1140000000E+03
+   -0.7819999695E+02
+   -0.4240000153E+02
+   -0.6550000191E+01
+    0.7699999958E-01
+Mass
+    0.1503489971E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH3v-     
+    1   22
+    1   22
+    1   22
+Atom Type Number
+          39
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.2560000038E+02
+   -0.2489999962E+02
+   -0.2420000076E+02
+   -0.2350000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2    1
+    2    1
+    2    1
+Atom Type Number
+          40
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.3290000153E+02
+   -0.2850000000E+02
+   -0.2400000000E+02
+   -0.1960000038E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2    2
+    2    2
+    2    2
+Atom Type Number
+          41
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.2560000038E+02
+   -0.2489999962E+02
+   -0.2420000076E+02
+   -0.2350000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2    3
+    2    3
+    2    3
+Atom Type Number
+          42
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.2560000038E+02
+   -0.2489999962E+02
+   -0.2420000076E+02
+   -0.2350000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2    4
+    2    4
+    2    4
+Atom Type Number
+          43
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.3309999847E+02
+   -0.3029999924E+02
+   -0.2739999962E+02
+   -0.2460000038E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2    5
+    2    5
+    2    5
+Atom Type Number
+          44
+Nonbond Coefficients
+    0.3619999886E+01
+   -0.2200000000E+02
+   -0.2100000000E+02
+   -0.2000000000E+02
+   -0.1900000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2    6
+    2    6
+    2    6
+Atom Type Number
+          45
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.2560000038E+02
+   -0.2489999962E+02
+   -0.2420000076E+02
+   -0.2350000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2    7
+    2    7
+    2    7
+Atom Type Number
+          46
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.2500000000E+02
+   -0.2300000000E+02
+   -0.2100000000E+02
+   -0.1900000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2    8
+    2    8
+    2    8
+Atom Type Number
+          47
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.3000000000E+02
+   -0.2700000000E+02
+   -0.2400000000E+02
+   -0.2100000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2    9
+    2    9
+    2    9
+Atom Type Number
+          48
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.4679999924E+02
+   -0.4209999847E+02
+   -0.3750000000E+02
+   -0.3279999924E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   10
+    2   10
+    2   10
+Atom Type Number
+          49
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.3600000000E+02
+   -0.2870000076E+02
+   -0.2129999924E+02
+   -0.1400000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   11
+    2   11
+    2   11
+Atom Type Number
+          50
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.3309999847E+02
+   -0.3029999924E+02
+   -0.2739999962E+02
+   -0.2460000038E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   12
+    2   12
+    2   12
+Atom Type Number
+          51
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.2500000000E+02
+   -0.2470000076E+02
+   -0.2429999924E+02
+   -0.2400000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   13
+    2   13
+    2   13
+Atom Type Number
+          52
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.3309999847E+02
+   -0.3029999924E+02
+   -0.2739999962E+02
+   -0.2460000038E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   14
+    2   14
+    2   14
+Atom Type Number
+          53
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.2100000000E+02
+   -0.2100000000E+02
+   -0.2100000000E+02
+   -0.2100000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   15
+    2   15
+    2   15
+Atom Type Number
+          54
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.3200000000E+02
+   -0.3200000000E+02
+   -0.3200000000E+02
+   -0.3200000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   16
+    2   16
+    2   16
+Atom Type Number
+          55
+Nonbond Coefficients
+    0.3619999886E+01
+   -0.5500000000E+02
+   -0.3270000076E+02
+   -0.3229999924E+02
+   -0.3500000000E+01
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   17
+    2   17
+    2   17
+Atom Type Number
+          56
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.2560000038E+02
+   -0.2489999962E+02
+   -0.2420000076E+02
+   -0.2350000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   18
+    2   18
+    2   18
+Atom Type Number
+          57
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.3000000000E+02
+   -0.2700000000E+02
+   -0.2400000000E+02
+   -0.2100000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   19
+    2   19
+    2   19
+Atom Type Number
+          58
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.2560000038E+02
+   -0.2489999962E+02
+   -0.2420000076E+02
+   -0.2350000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   20
+    2   20
+    2   20
+Atom Type Number
+          59
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.2560000038E+02
+   -0.2489999962E+02
+   -0.2420000076E+02
+   -0.2350000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   21
+    2   21
+    2   21
+Atom Type Number
+          60
+Nonbond Coefficients
+    0.3569999933E+01
+   -0.2560000038E+02
+   -0.2489999962E+02
+   -0.2420000076E+02
+   -0.2350000000E+02
+    0.7699999958E-01
+Mass
+    0.1402690029E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH2      
+    2   22
+    2   22
+    2   22
+Atom Type Number
+          61
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.6800000191E+01
+   -0.6400000095E+01
+   -0.6099999905E+01
+   -0.5699999809E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3    1
+    3    1
+    3    1
+Atom Type Number
+          62
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.1330000019E+02
+   -0.1189999962E+02
+   -0.1050000000E+02
+   -0.9100000381E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3    2
+    3    2
+    3    2
+Atom Type Number
+          63
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3    3
+    3    3
+    3    3
+Atom Type Number
+          64
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3    4
+    3    4
+    3    4
+Atom Type Number
+          65
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.4029999924E+02
+   -0.3620000076E+02
+   -0.3209999847E+02
+   -0.2800000000E+02
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3    5
+    3    5
+    3    5
+Atom Type Number
+          66
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.1800000000E+02
+   -0.1419999981E+02
+   -0.1030000019E+02
+   -0.6500000000E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3    6
+    3    6
+    3    6
+Atom Type Number
+          67
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3    7
+    3    7
+    3    7
+Atom Type Number
+          68
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.2200000000E+02
+   -0.1870000076E+02
+   -0.1530000019E+02
+   -0.1200000000E+02
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3    8
+    3    8
+    3    8
+Atom Type Number
+          69
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3    9
+    3    9
+    3    9
+Atom Type Number
+          70
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3   10
+    3   10
+    3   10
+Atom Type Number
+          71
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3   11
+    3   11
+    3   11
+Atom Type Number
+          72
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3   12
+    3   12
+    3   12
+Atom Type Number
+          73
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3   13
+    3   13
+    3   13
+Atom Type Number
+          74
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3   14
+    3   14
+    3   14
+Atom Type Number
+          75
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3   15
+    3   15
+    3   15
+Atom Type Number
+          76
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3   16
+    3   16
+    3   16
+Atom Type Number
+          77
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3   17
+    3   17
+    3   17
+Atom Type Number
+          78
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3   18
+    3   18
+    3   18
+Atom Type Number
+          79
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3   19
+    3   19
+    3   19
+Atom Type Number
+          80
+Nonbond Coefficients
+    0.3900000095E+01
+   -0.3150000000E+02
+   -0.2250000000E+02
+   -0.1339999962E+02
+   -0.4400000095E+01
+    0.7699999958E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>CH-      
+    3   20
+    3   20
+    3   20
+Atom Type Number
+          81
+Nonbond Coefficients
+    0.3424999952E+01
+   -0.8500000000E+01
+   -0.8000000000E+01
+   -0.7599999905E+01
+   -0.7099999905E+01
+    0.7699999958E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>C<       
+    4    1
+    4    1
+    4    1
+Atom Type Number
+          82
+Nonbond Coefficients
+    0.3424999952E+01
+   -0.8500000000E+01
+   -0.8000000000E+01
+   -0.7599999905E+01
+   -0.7099999905E+01
+    0.7699999958E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>C<       
+    4    2
+    4    2
+    4    2
+Atom Type Number
+          83
+Nonbond Coefficients
+    0.3424999952E+01
+   -0.8500000000E+01
+   -0.8000000000E+01
+   -0.7599999905E+01
+   -0.7099999905E+01
+    0.7699999958E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>C<       
+    4    3
+    4    3
+    4    3
+Atom Type Number
+          84
+Nonbond Coefficients
+    0.3424999952E+01
+   -0.8500000000E+01
+   -0.8000000000E+01
+   -0.7599999905E+01
+   -0.7099999905E+01
+    0.7699999958E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>C<       
+    4    4
+    4    4
+    4    4
+Atom Type Number
+          85
+Nonbond Coefficients
+    0.3424999952E+01
+   -0.8500000000E+01
+   -0.8000000000E+01
+   -0.7599999905E+01
+   -0.7099999905E+01
+    0.7699999958E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>C<       
+    4    5
+    4    5
+    4    5
+Atom Type Number
+          86
+Nonbond Coefficients
+    0.3424999952E+01
+   -0.8000000000E+01
+   -0.7699999809E+01
+   -0.7300000191E+01
+   -0.7000000000E+01
+    0.7699999958E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>C<       
+    4    6
+    4    6
+    4    6
+Atom Type Number
+          87
+Nonbond Coefficients
+    0.3424999952E+01
+   -0.3100000000E+02
+   -0.2789999962E+02
+   -0.2479999924E+02
+   -0.2170000076E+02
+    0.7000000030E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+ACH       
+    5    1
+    5    1
+    5    1
+Atom Type Number
+          88
+Nonbond Coefficients
+    0.3424999952E+01
+   -0.5500000000E+02
+   -0.4270000076E+02
+   -0.3029999924E+02
+   -0.1800000000E+02
+    0.7000000030E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+ACH       
+    5    2
+    5    2
+    5    2
+Atom Type Number
+          89
+Nonbond Coefficients
+    0.3424999952E+01
+   -0.3100000000E+02
+   -0.2729999924E+02
+   -0.2370000076E+02
+   -0.1100000000E+02
+    0.7000000030E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+ACH       
+    5    3
+    5    3
+    5    3
+Atom Type Number
+          90
+Nonbond Coefficients
+    0.3424999952E+01
+   -0.3100000000E+02
+   -0.3209999847E+02
+   -0.2460000038E+02
+   -0.2300000000E+02
+    0.7000000030E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+ACH       
+    5    4
+    5    4
+    5    4
+Atom Type Number
+          91
+Nonbond Coefficients
+    0.3424999952E+01
+   -0.3100000000E+02
+   -0.3209999847E+02
+   -0.2460000038E+02
+   -0.2170000076E+02
+    0.7000000030E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+ACH       
+    5    5
+    5    5
+    5    5
+Atom Type Number
+          92
+Nonbond Coefficients
+    0.3299999952E+01
+   -0.1700000000E+02
+   -0.1670000076E+02
+   -0.1629999924E+02
+   -0.1600000000E+02
+    0.7000000030E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+AC-       
+    6    1
+    6    1
+    6    1
+Atom Type Number
+          93
+Nonbond Coefficients
+    0.3299999952E+01
+   -0.1500000000E+02
+   -0.1500000000E+02
+   -0.1500000000E+02
+   -0.1500000000E+02
+    0.7000000030E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+AC-       
+    6    2
+    6    2
+    6    2
+Atom Type Number
+          94
+Nonbond Coefficients
+    0.3299999952E+01
+   -0.3500000000E+02
+   -0.2770000076E+02
+   -0.2029999924E+02
+   -0.1300000000E+02
+    0.7000000030E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+AC-       
+    6    3
+    6    3
+    6    3
+Atom Type Number
+          95
+Nonbond Coefficients
+    0.3299999952E+01
+   -0.3500000000E+02
+   -0.2770000076E+02
+   -0.2029999924E+02
+   -0.1300000000E+02
+    0.7000000030E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+AC-       
+    6    4
+    6    4
+    6    4
+Atom Type Number
+          96
+Nonbond Coefficients
+    0.3299999952E+01
+   -0.2500000000E+02
+   -0.2129999924E+02
+   -0.1770000076E+02
+   -0.1400000000E+02
+    0.7000000030E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+AC-       
+    6    5
+    6    5
+    6    5
+Atom Type Number
+          97
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.7569999695E+02
+   -0.5479000092E+02
+   -0.3388999939E+02
+   -0.1300000000E+02
+    0.6700000167E-01
+Mass
+    0.1402700043E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH2=a     
+    7    1
+    7    1
+    7    1
+Atom Type Number
+          98
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.9090000153E+02
+   -0.6300000000E+02
+   -0.3500000000E+02
+   -0.7099999905E+01
+    0.6700000167E-01
+Mass
+    0.1402700043E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH2=b     
+    7    2
+    7    2
+    7    2
+Atom Type Number
+          99
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.6500000000E+02
+   -0.5100000000E+02
+   -0.3700000000E+02
+   -0.2300000000E+02
+    0.6700000167E-01
+Mass
+    0.1402700043E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH2=c     
+    7    3
+    7    3
+    7    3
+Atom Type Number
+         100
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.6500000000E+02
+   -0.5100000000E+02
+   -0.3700000000E+02
+   -0.2300000000E+02
+    0.6700000167E-01
+Mass
+    0.1402700043E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH2=b     
+    7    4
+    7    4
+    7    4
+Atom Type Number
+         101
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.6500000000E+02
+   -0.5100000000E+02
+   -0.3700000000E+02
+   -0.2300000000E+02
+    0.6700000167E-01
+Mass
+    0.1402700043E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+CH2=b     
+    7    5
+    7    5
+    7    5
+Atom Type Number
+         102
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.2560000038E+02
+   -0.2429999924E+02
+   -0.2289999962E+02
+   -0.2160000038E+02
+    0.7050000131E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=CH-      
+    8    1
+    8    1
+    8    1
+Atom Type Number
+         103
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.4000000000E+02
+   -0.3320000076E+02
+   -0.2629999924E+02
+   -0.1950000000E+02
+    0.7050000131E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=CH-      
+    8    2
+    8    2
+    8    2
+Atom Type Number
+         104
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.2560000038E+02
+   -0.2389999962E+02
+   -0.2220000076E+02
+   -0.2050000000E+02
+    0.7000000030E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=CH-      
+    8    3
+    8    3
+    8    3
+Atom Type Number
+         105
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.2560000038E+02
+   -0.2389999962E+02
+   -0.2220000076E+02
+   -0.2050000000E+02
+    0.7000000030E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=CH-      
+    8    4
+    8    4
+    8    4
+Atom Type Number
+         106
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.2560000038E+02
+   -0.2389999962E+02
+   -0.2220000076E+02
+   -0.2250000000E+02
+    0.7000000030E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=CH-      
+    8    5
+    8    5
+    8    5
+Atom Type Number
+         107
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.2560000038E+02
+   -0.2389999962E+02
+   -0.2220000076E+02
+   -0.2250000000E+02
+    0.7000000030E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=CH-      
+    8    6
+    8    6
+    8    6
+Atom Type Number
+         108
+Nonbond Coefficients
+    0.3450000048E+01
+   -0.7319999695E+02
+   -0.5659999847E+02
+   -0.3990000153E+02
+   -0.2329999924E+02
+    0.6700000167E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=C<       
+    9    1
+    9    1
+    9    1
+Atom Type Number
+         109
+Nonbond Coefficients
+    0.3450000048E+01
+   -0.6099999905E+01
+   -0.5199999809E+01
+   -0.4199999809E+01
+   -0.3299999952E+01
+    0.6700000167E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=C<       
+    9    2
+    9    2
+    9    2
+Atom Type Number
+         110
+Nonbond Coefficients
+    0.3450000048E+01
+   -0.1400000000E+02
+   -0.1200000000E+02
+   -0.1000000000E+02
+   -0.8000000000E+01
+    0.6700000167E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=C<       
+    9    3
+    9    3
+    9    3
+Atom Type Number
+         111
+Nonbond Coefficients
+    0.3450000048E+01
+   -0.1080000019E+02
+   -0.7400000095E+01
+   -0.4000000000E+01
+   -0.6000000238E+00
+    0.6700000167E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=C<       
+    9    4
+    9    4
+    9    4
+Atom Type Number
+         112
+Nonbond Coefficients
+    0.3450000048E+01
+   -0.1080000019E+02
+   -0.7400000095E+01
+   -0.4000000000E+01
+   -0.6000000238E+00
+    0.6700000167E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=C<       
+    9    5
+    9    5
+    9    5
+Atom Type Number
+         113
+Nonbond Coefficients
+    0.3450000048E+01
+   -0.3300000000E+02
+   -0.2439999962E+02
+   -0.1580000019E+02
+   -0.7199999809E+01
+    0.6700000167E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=C=       
+   10    1
+   10    1
+   10    1
+Atom Type Number
+         114
+Nonbond Coefficients
+    0.3450000048E+01
+   -0.3300000000E+02
+   -0.2439999962E+02
+   -0.1580000019E+02
+   -0.7199999809E+01
+    0.6700000167E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=C=       
+   10    2
+   10    2
+   10    2
+Atom Type Number
+         115
+Nonbond Coefficients
+    0.3450000048E+01
+   -0.3300000000E+02
+   -0.2439999962E+02
+   -0.1580000019E+02
+   -0.7199999809E+01
+    0.6700000167E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=C=       
+   10    3
+   10    3
+   10    3
+Atom Type Number
+         116
+Nonbond Coefficients
+    0.3450000048E+01
+   -0.3300000000E+02
+   -0.2439999962E+02
+   -0.1580000019E+02
+   -0.7199999809E+01
+    0.6700000167E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=C=       
+   10    4
+   10    4
+   10    4
+Atom Type Number
+         117
+Nonbond Coefficients
+    0.3450000048E+01
+   -0.3300000000E+02
+   -0.2439999962E+02
+   -0.1580000019E+02
+   -0.7199999809E+01
+    0.6700000167E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=C=       
+   10    5
+   10    5
+   10    5
+Atom Type Number
+         118
+Nonbond Coefficients
+    0.3299999952E+01
+   -0.9991000366E+02
+   -0.6780000305E+02
+   -0.3559999847E+02
+   -0.3500000000E+01
+    0.5999999866E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<CH       
+   11    1
+   11    1
+   11    1
+Atom Type Number
+         119
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.1155999985E+03
+   -0.8219999695E+02
+   -0.4879999924E+02
+   -0.1539999962E+02
+    0.5999999866E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<CH       
+   11    2
+   11    2
+   11    2
+Atom Type Number
+         120
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.1155999985E+03
+   -0.8219999695E+02
+   -0.4879999924E+02
+   -0.1539999962E+02
+    0.5999999866E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<CH       
+   11    3
+   11    3
+   11    3
+Atom Type Number
+         121
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.1155999985E+03
+   -0.8219999695E+02
+   -0.4879999924E+02
+   -0.1539999962E+02
+    0.5999999866E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<CH       
+   11    4
+   11    4
+   11    4
+Atom Type Number
+         122
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.1155999985E+03
+   -0.8219999695E+02
+   -0.4879999924E+02
+   -0.1539999962E+02
+    0.5999999866E-01
+Mass
+    0.1301910019E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<CH       
+   11    5
+   11    5
+   11    5
+Atom Type Number
+         123
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.5145000076E+02
+   -0.3940000153E+02
+   -0.2739999962E+02
+   -0.1530000019E+02
+    0.5999999866E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<C-       
+   12    1
+   12    1
+   12    1
+Atom Type Number
+         124
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.1050000000E+03
+   -0.8700000000E+02
+   -0.6900000000E+02
+   -0.5100000000E+02
+    0.5999999866E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<C-       
+   12    2
+   12    2
+   12    2
+Atom Type Number
+         125
+Nonbond Coefficients
+    0.3500000000E+01
+   -0.8150000000E+02
+   -0.5629999924E+02
+   -0.3100000000E+02
+   -0.5800000191E+01
+    0.5999999866E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<C-       
+   12    3
+   12    3
+   12    3
+Atom Type Number
+         126
+Nonbond Coefficients
+    0.3200000048E+01
+   -0.7200000000E+02
+   -0.5470000076E+02
+   -0.3729999924E+02
+   -0.2000000000E+02
+    0.5999999866E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<C-       
+   12    4
+   12    4
+   12    4
+Atom Type Number
+         127
+Nonbond Coefficients
+    0.3200000048E+01
+   -0.7200000000E+02
+   -0.5470000076E+02
+   -0.3729999924E+02
+   -0.2000000000E+02
+    0.5999999866E-01
+Mass
+    0.1201119995E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<C-       
+   12    5
+   12    5
+   12    5
+Atom Type Number
+         128
+Nonbond Coefficients
+    0.3000000000E+01
+   -0.2610000000E+03
+   -0.1755000000E+03
+   -0.8990000153E+02
+   -0.4400000095E+01
+    0.6300000101E-01
+Mass
+    0.1801519966E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+H2O       
+   13    1
+   13    1
+   13    1
+Atom Type Number
+         129
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.1725000000E+03
+   -0.1238000031E+03
+   -0.7509999847E+02
+   -0.2639999962E+02
+    0.6300000101E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+(Me)O     
+   14    1
+   14    1
+   14    1
+Atom Type Number
+         130
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.1381999969E+03
+   -0.9690000153E+02
+   -0.5550000000E+02
+   -0.1419999981E+02
+    0.6599999964E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+OH        
+   14    2
+   14    2
+   14    2
+Atom Type Number
+         131
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.1715000000E+03
+   -0.1180000000E+03
+   -0.6440000153E+02
+   -0.1089999962E+02
+    0.6599999964E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+OH        
+   14    3
+   14    3
+   14    3
+Atom Type Number
+         132
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.1248000031E+03
+   -0.1150999985E+03
+   -0.1053000031E+03
+   -0.9559999847E+02
+    0.6599999964E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+OH        
+   14    4
+   14    4
+   14    4
+Atom Type Number
+         133
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.1110000000E+03
+   -0.7569999695E+02
+   -0.4040000153E+02
+   -0.5099999905E+01
+    0.6599999964E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+OH        
+   14    5
+   14    5
+   14    5
+Atom Type Number
+         134
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.9800000000E+02
+   -0.9730000305E+02
+   -0.9669999695E+02
+   -0.9600000000E+02
+    0.6599999964E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+OH        
+   14    6
+   14    6
+   14    6
+Atom Type Number
+         135
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.1110000000E+03
+   -0.7569999695E+02
+   -0.4040000153E+02
+   -0.5099999905E+01
+    0.6599999964E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+OH        
+   14    7
+   14    7
+   14    7
+Atom Type Number
+         136
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.1110000000E+03
+   -0.7569999695E+02
+   -0.4040000153E+02
+   -0.5099999905E+01
+    0.6599999964E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+OH        
+   14    8
+   14    8
+   14    8
+Atom Type Number
+         137
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.1110000000E+03
+   -0.7569999695E+02
+   -0.4040000153E+02
+   -0.5099999905E+01
+    0.6599999964E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+OH        
+   14    9
+   14    9
+   14    9
+Atom Type Number
+         138
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.1850000000E+03
+   -0.1261999969E+03
+   -0.6740000153E+02
+   -0.8600000381E+01
+    0.6599999964E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+OH        
+   14   10
+   14   10
+   14   10
+Atom Type Number
+         139
+Nonbond Coefficients
+    0.2849999905E+01
+   -0.1850000000E+03
+   -0.1261999969E+03
+   -0.6740000153E+02
+   -0.8600000381E+01
+    0.6599999964E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+OH        
+   14   11
+   14   11
+   14   11
+Atom Type Number
+         140
+Nonbond Coefficients
+    0.2599999905E+01
+   -0.6100000000E+02
+   -0.1261999969E+03
+   -0.6740000153E+02
+   -0.5500000000E+02
+    0.6599999964E-01
+Mass
+    0.1700729942E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+OH        
+   14   12
+   14   12
+   14   12
+Atom Type Number
+         141
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.5200000000E+02
+   -0.4770000076E+02
+   -0.4329999924E+02
+   -0.3900000000E+02
+    0.6800000370E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O<        
+   15    1
+   15    1
+   15    1
+Atom Type Number
+         142
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.9119999695E+02
+   -0.6190000153E+02
+   -0.3250000000E+02
+   -0.3200000048E+01
+    0.6599999964E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O<        
+   15    2
+   15    2
+   15    2
+Atom Type Number
+         143
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6599999964E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O<        
+   15    3
+   15    3
+   15    3
+Atom Type Number
+         144
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.2873999939E+03
+   -0.2005000000E+03
+   -0.1135999985E+03
+   -0.2670000076E+02
+    0.6599999964E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O<        
+   15    4
+   15    4
+   15    4
+Atom Type Number
+         145
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6599999964E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O<        
+   15    5
+   15    5
+   15    5
+Atom Type Number
+         146
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6599999964E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O<        
+   15    6
+   15    6
+   15    6
+Atom Type Number
+         147
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.2873999939E+03
+   -0.2005000000E+03
+   -0.1135999985E+03
+   -0.2670000076E+02
+    0.6599999964E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O<        
+   15    7
+   15    7
+   15    7
+Atom Type Number
+         148
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.7800000000E+02
+   -0.6270000076E+02
+   -0.4729999924E+02
+   -0.3200000000E+02
+    0.6499999762E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O<        
+   15    8
+   15    8
+   15    8
+Atom Type Number
+         149
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6499999762E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O<        
+   15    9
+   15    9
+   15    9
+Atom Type Number
+         150
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6499999762E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O<        
+   15   10
+   15   10
+   15   10
+Atom Type Number
+         151
+Nonbond Coefficients
+    0.3119999886E+01
+   -0.6900000000E+02
+   -0.6630000305E+02
+   -0.6370000076E+02
+   -0.6100000000E+02
+    0.6199999899E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O=        
+   16    1
+   16    1
+   16    1
+Atom Type Number
+         152
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.1490000000E+03
+   -0.1218000031E+03
+   -0.9459999847E+02
+   -0.6740000153E+02
+    0.6199999899E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O=        
+   16    2
+   16    2
+   16    2
+Atom Type Number
+         153
+Nonbond Coefficients
+    0.2599999905E+01
+   -0.6500000000E+02
+   -0.1218000031E+03
+   -0.9459999847E+02
+   -0.5840000153E+02
+    0.6199999899E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O=        
+   16    3
+   16    3
+   16    3
+Atom Type Number
+         154
+Nonbond Coefficients
+    0.2900000095E+01
+   -0.4200000000E+02
+   -0.3829999924E+02
+   -0.3470000076E+02
+   -0.3100000000E+02
+    0.6199999899E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O=        
+   16    4
+   16    4
+   16    4
+Atom Type Number
+         155
+Nonbond Coefficients
+    0.2900000095E+01
+   -0.1410000000E+03
+   -0.1310000000E+03
+   -0.1210000000E+03
+   -0.1110000000E+03
+    0.6199999899E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O=        
+   16    5
+   16    5
+   16    5
+Atom Type Number
+         156
+Nonbond Coefficients
+    0.3119999886E+01
+   -0.9700000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.5800000000E+02
+    0.6199999899E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O=        
+   16    6
+   16    6
+   16    6
+Atom Type Number
+         157
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6199999899E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O=        
+   16    7
+   16    7
+   16    7
+Atom Type Number
+         158
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6199999899E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O=        
+   16    8
+   16    8
+   16    8
+Atom Type Number
+         159
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6199999899E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O=        
+   16    9
+   16    9
+   16    9
+Atom Type Number
+         160
+Nonbond Coefficients
+    0.2700000048E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6199999899E-01
+Mass
+    0.1599940014E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+O=        
+   16   10
+   16   10
+   16   10
+Atom Type Number
+         161
+Nonbond Coefficients
+    0.3259999990E+01
+   -0.1110000000E+03
+   -0.1036999969E+03
+   -0.9630000305E+02
+   -0.8900000000E+02
+    0.1040000021E+00
+Mass
+    0.3206620026E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+S<        
+   17    1
+   17    1
+   17    1
+Atom Type Number
+         162
+Nonbond Coefficients
+    0.3259999990E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1040000021E+00
+Mass
+    0.3206620026E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+S<        
+   17    2
+   17    2
+   17    2
+Atom Type Number
+         163
+Nonbond Coefficients
+    0.3259999990E+01
+   -0.1110000000E+03
+   -0.9769999695E+02
+   -0.8430000305E+02
+   -0.7000000000E+02
+    0.1040000021E+00
+Mass
+    0.3206620026E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+S<        
+   17    3
+   17    3
+   17    3
+Atom Type Number
+         164
+Nonbond Coefficients
+    0.3849999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1040000021E+00
+Mass
+    0.3206620026E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+S<        
+   17    4
+   17    4
+   17    4
+Atom Type Number
+         165
+Nonbond Coefficients
+    0.3630000114E+01
+   -0.1900000000E+03
+   -0.1680000000E+03
+   -0.9500000000E+02
+   -0.4440000153E+02
+    0.1159999967E+00
+Mass
+    0.3807180023E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+S<        
+   17    5
+   17    5
+   17    5
+Atom Type Number
+         166
+Nonbond Coefficients
+    0.3599999905E+01
+   -0.1088000031E+03
+   -0.1063000031E+03
+   -0.1038000031E+03
+   -0.1013000031E+03
+    0.1040000021E+00
+Mass
+    0.3307479858E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-SH       
+   18    1
+   18    1
+   18    1
+Atom Type Number
+         167
+Nonbond Coefficients
+    0.4000000000E+01
+   -0.1110000000E+03
+   -0.9300000000E+02
+   -0.7500000000E+02
+   -0.5700000000E+02
+    0.1040000021E+00
+Mass
+    0.3307479858E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-SH       
+   18    2
+   18    2
+   18    2
+Atom Type Number
+         168
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1040000021E+00
+Mass
+    0.3307479858E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-SH       
+   18    3
+   18    3
+   18    3
+Atom Type Number
+         169
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1040000021E+00
+Mass
+    0.3307479858E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-SH       
+   18    4
+   18    4
+   18    4
+Atom Type Number
+         170
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1040000021E+00
+Mass
+    0.3307479858E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-S        
+   18    5
+   18    5
+   18    5
+Atom Type Number
+         171
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.8500000000E+02
+   -0.8130000305E+02
+   -0.7769999695E+02
+   -0.7400000000E+02
+    0.7000000030E-01
+Mass
+    0.1602269936E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-NH2      
+   19    1
+   19    1
+   19    1
+Atom Type Number
+         172
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.7000000030E-01
+Mass
+    0.1602269936E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-NH2      
+   19    2
+   19    2
+   19    2
+Atom Type Number
+         173
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.1410000000E+03
+   -0.1310000000E+03
+   -0.1210000000E+03
+   -0.1110000000E+03
+    0.7000000030E-01
+Mass
+    0.1602269936E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-NH2      
+   19    3
+   19    3
+   19    3
+Atom Type Number
+         174
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.7000000030E-01
+Mass
+    0.1602269936E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-NH2      
+   19    4
+   19    4
+   19    4
+Atom Type Number
+         175
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.7000000030E-01
+Mass
+    0.1602269936E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-NH2      
+   19    5
+   19    5
+   19    5
+Atom Type Number
+         176
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.8500000000E+02
+   -0.6600000000E+02
+   -0.4700000000E+02
+   -0.2800000000E+02
+    0.7000000030E-01
+Mass
+    0.1501469994E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-NH-      
+   20    1
+   20    1
+   20    1
+Atom Type Number
+         177
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.7000000030E-01
+Mass
+    0.1501469994E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-NH-      
+   20    2
+   20    2
+   20    2
+Atom Type Number
+         178
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.8500000000E+02
+   -0.6600000000E+02
+   -0.4700000000E+02
+   -0.2800000000E+02
+    0.7000000030E-01
+Mass
+    0.1501469994E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-NH-      
+   20    3
+   20    3
+   20    3
+Atom Type Number
+         179
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.7000000030E-01
+Mass
+    0.1501469994E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-NH-      
+   20    4
+   20    4
+   20    4
+Atom Type Number
+         180
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.7000000030E-01
+Mass
+    0.1501469994E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-NH-      
+   20    5
+   20    5
+   20    5
+Atom Type Number
+         181
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.4820000076E+02
+   -0.2629999924E+02
+   -0.4500000000E+01
+    0.7000000030E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-N<       
+   21    1
+   21    1
+   21    1
+Atom Type Number
+         182
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.7000000030E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-N<       
+   21    2
+   21    2
+   21    2
+Atom Type Number
+         183
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.1080000019E+02
+   -0.1080000019E+02
+   -0.1080000019E+02
+   -0.1080000019E+02
+    0.7000000030E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-N<       
+   21    3
+   21    3
+   21    3
+Atom Type Number
+         184
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.7000000030E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-N<       
+   21    4
+   21    4
+   21    4
+Atom Type Number
+         185
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.7000000030E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-N<       
+   21    5
+   21    5
+   21    5
+Atom Type Number
+         186
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6499999762E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=AN-      
+   22    1
+   22    1
+   22    1
+Atom Type Number
+         187
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6499999762E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=AN-      
+   22    2
+   22    2
+   22    2
+Atom Type Number
+         188
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6499999762E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=AN-      
+   22    3
+   22    3
+   22    3
+Atom Type Number
+         189
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6499999762E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=AN-      
+   22    4
+   22    4
+   22    4
+Atom Type Number
+         190
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.6499999762E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+=AN-      
+   22    5
+   22    5
+   22    5
+Atom Type Number
+         191
+Nonbond Coefficients
+    0.3079999924E+01
+   -0.3300000000E+02
+   -0.2450000000E+02
+   -0.1610000038E+02
+   -0.7599999905E+01
+    0.5499999970E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<N        
+   23    1
+   23    1
+   23    1
+Atom Type Number
+         192
+Nonbond Coefficients
+    0.3079999924E+01
+   -0.1340000000E+03
+   -0.9119999695E+02
+   -0.4840000153E+02
+   -0.5599999905E+01
+    0.5499999970E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+<N        
+   23    2
+   23    2
+   23    2
+Atom Type Number
+         193
+Nonbond Coefficients
+    0.3079999924E+01
+   -0.3300000000E+02
+   -0.2450000000E+02
+   -0.1610000038E+02
+   -0.7599999905E+01
+    0.5499999970E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+#N        
+   23    3
+   23    3
+   23    3
+Atom Type Number
+         194
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.5499999970E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+#N        
+   23    4
+   23    4
+   23    4
+Atom Type Number
+         195
+Nonbond Coefficients
+    0.3099999905E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.5499999970E-01
+Mass
+    0.1400669956E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+#N        
+   23    5
+   23    5
+   23    5
+Atom Type Number
+         196
+Nonbond Coefficients
+    0.3329999924E+01
+   -0.1638000031E+03
+   -0.1146999969E+03
+   -0.6550000000E+02
+   -0.1639999962E+02
+    0.9939999878E-01
+Mass
+    0.3545270157E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-Cl       
+   24    1
+   24    1
+   24    1
+Atom Type Number
+         197
+Nonbond Coefficients
+    0.3329999924E+01
+   -0.1740000000E+03
+   -0.9769999695E+02
+   -0.5229999924E+02
+   -0.3800000000E+02
+    0.9939999878E-01
+Mass
+    0.3545270157E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-Cl       
+   24    2
+   24    2
+   24    2
+Atom Type Number
+         198
+Nonbond Coefficients
+    0.3200000048E+01
+   -0.1963999939E+03
+   -0.1375000000E+03
+   -0.7850000000E+02
+   -0.1960000038E+02
+    0.9939999878E-01
+Mass
+    0.3545270157E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-Cl       
+   24    3
+   24    3
+   24    3
+Atom Type Number
+         199
+Nonbond Coefficients
+    0.3200000048E+01
+   -0.1638000031E+03
+   -0.1146999969E+03
+   -0.6550000000E+02
+   -0.1639999962E+02
+    0.9939999878E-01
+Mass
+    0.3545270157E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-Cl       
+   24    4
+   24    4
+   24    4
+Atom Type Number
+         200
+Nonbond Coefficients
+    0.3329999924E+01
+   -0.8430000305E+02
+   -0.5900000000E+02
+   -0.3370000076E+02
+   -0.8399999619E+01
+    0.9939999878E-01
+Mass
+    0.3545270157E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-Cl       
+   24    5
+   24    5
+   24    5
+Atom Type Number
+         201
+Nonbond Coefficients
+    0.2640000105E+01
+   -0.2979999924E+02
+   -0.2689999962E+02
+   -0.2410000038E+02
+   -0.2120000076E+02
+    0.6400000304E-01
+Mass
+    0.1899839973E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-F        
+   25    1
+   25    1
+   25    1
+Atom Type Number
+         202
+Nonbond Coefficients
+    0.2640000105E+01
+   -0.3179999924E+02
+   -0.2700000000E+02
+   -0.2220000076E+02
+   -0.1739999962E+02
+    0.6400000304E-01
+Mass
+    0.1899839973E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-F        
+   25    2
+   25    2
+   25    2
+Atom Type Number
+         203
+Nonbond Coefficients
+    0.2640000105E+01
+   -0.2400000000E+02
+   -0.2700000000E+02
+   -0.2220000076E+02
+   -0.1739999962E+02
+    0.6400000304E-01
+Mass
+    0.1899839973E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-F        
+   25    3
+   25    3
+   25    3
+Atom Type Number
+         204
+Nonbond Coefficients
+    0.2640000105E+01
+   -0.2400000000E+02
+   -0.2700000000E+02
+   -0.2220000076E+02
+   -0.1419999981E+02
+    0.6400000304E-01
+Mass
+    0.1899839973E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-F        
+   25    4
+   25    4
+   25    4
+Atom Type Number
+         205
+Nonbond Coefficients
+    0.2640000105E+01
+   -0.3179999924E+02
+   -0.2700000000E+02
+   -0.2220000076E+02
+   -0.1739999962E+02
+    0.6400000304E-01
+Mass
+    0.1899839973E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-F        
+   25    5
+   25    5
+   25    5
+Atom Type Number
+         206
+Nonbond Coefficients
+    0.2640000105E+01
+   -0.3179999924E+02
+   -0.2700000000E+02
+   -0.2220000076E+02
+   -0.1739999962E+02
+    0.6400000304E-01
+Mass
+    0.1899839973E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-F        
+   25    6
+   25    6
+   25    6
+Atom Type Number
+         207
+Nonbond Coefficients
+    0.4000000000E+01
+   -0.2200000000E+02
+   -0.2170000076E+02
+   -0.2129999924E+02
+   -0.2100000000E+02
+    0.1099999994E+00
+Mass
+    0.3097380066E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>P        
+   26    0
+   26    0
+   26    0
+Atom Type Number
+         208
+Nonbond Coefficients
+    0.4000000000E+01
+   -0.2200000000E+02
+   -0.2170000076E+02
+   -0.2129999924E+02
+   -0.2100000000E+02
+    0.1099999994E+00
+Mass
+    0.3097380066E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>P<       
+   26    1
+   26    1
+   26    1
+Atom Type Number
+         209
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1099999994E+00
+Mass
+    0.3097380066E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-P<       
+   26    2
+   26    2
+   26    2
+Atom Type Number
+         210
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1099999994E+00
+Mass
+    0.3097380066E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-P<       
+   26    3
+   26    3
+   26    3
+Atom Type Number
+         211
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1099999994E+00
+Mass
+    0.3097380066E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-P<       
+   26    4
+   26    4
+   26    4
+Atom Type Number
+         212
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1099999994E+00
+Mass
+    0.3097380066E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-P<       
+   26    5
+   26    5
+   26    5
+Atom Type Number
+         213
+Nonbond Coefficients
+    0.3460000038E+01
+   -0.2271999969E+03
+   -0.1598000031E+03
+   -0.9250000000E+02
+   -0.2510000038E+02
+    0.1140000001E+00
+Mass
+    0.7990399933E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-Br       
+   27    1
+   27    1
+   27    1
+Atom Type Number
+         214
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1099999994E+00
+Mass
+    0.7990399933E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-Br       
+   27    2
+   27    2
+   27    2
+Atom Type Number
+         215
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1099999994E+00
+Mass
+    0.7990399933E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-Br       
+   27    3
+   27    3
+   27    3
+Atom Type Number
+         216
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1099999994E+00
+Mass
+    0.7990399933E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-Br       
+   27    4
+   27    4
+   27    4
+Atom Type Number
+         217
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1099999994E+00
+Mass
+    0.7990399933E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-Br       
+   27    5
+   27    5
+   27    5
+Atom Type Number
+         218
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1333000064E+00
+Mass
+    0.1269039993E+03
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-I        
+   28    1
+   28    1
+   28    1
+Atom Type Number
+         219
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1800000072E+00
+Mass
+    0.1269039993E+03
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-I        
+   28    2
+   28    2
+   28    2
+Atom Type Number
+         220
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1800000072E+00
+Mass
+    0.1269039993E+03
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-I        
+   28    3
+   28    3
+   28    3
+Atom Type Number
+         221
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1800000072E+00
+Mass
+    0.1269039993E+03
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-I        
+   28    4
+   28    4
+   28    4
+Atom Type Number
+         222
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1800000072E+00
+Mass
+    0.1269039993E+03
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-I        
+   28    5
+   28    5
+   28    5
+Atom Type Number
+         223
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.3110989952E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-SiH3     
+   29    1
+   29    1
+   29    1
+Atom Type Number
+         224
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.3110989952E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-SiH3     
+   29    2
+   29    2
+   29    2
+Atom Type Number
+         225
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.3110989952E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-SiH3     
+   29    3
+   29    3
+   29    3
+Atom Type Number
+         226
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.3110989952E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-SiH3     
+   29    4
+   29    4
+   29    4
+Atom Type Number
+         227
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.3110989952E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+-SiH3     
+   29    5
+   29    5
+   29    5
+Atom Type Number
+         228
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.3000609970E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>SiH2     
+   30    1
+   30    1
+   30    1
+Atom Type Number
+         229
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.3000609970E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>SiH2     
+   30    2
+   30    2
+   30    2
+Atom Type Number
+         230
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.3000609970E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>SiH2     
+   30    3
+   30    3
+   30    3
+Atom Type Number
+         231
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.3000609970E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>SiH2     
+   30    4
+   30    4
+   30    4
+Atom Type Number
+         232
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.3000609970E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>SiH2     
+   30    5
+   30    5
+   30    5
+Atom Type Number
+         233
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.2909399986E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>SiH-     
+   31    1
+   31    1
+   31    1
+Atom Type Number
+         234
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.2909399986E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>SiH-     
+   31    2
+   31    2
+   31    2
+Atom Type Number
+         235
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.2909399986E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>SiH-     
+   31    3
+   31    3
+   31    3
+Atom Type Number
+         236
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.2909399986E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>SiH-     
+   31    4
+   31    4
+   31    4
+Atom Type Number
+         237
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.2909399986E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>SiH-     
+   31    5
+   31    5
+   31    5
+Atom Type Number
+         238
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.2808600044E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>Si<      
+   32    1
+   32    1
+   32    1
+Atom Type Number
+         239
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.2808600044E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>Si<      
+   32    2
+   32    2
+   32    2
+Atom Type Number
+         240
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.2808600044E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>Si<      
+   32    3
+   32    3
+   32    3
+Atom Type Number
+         241
+Nonbond Coefficients
+    0.3750000000E+01
+   -0.7000000000E+02
+   -0.5479999924E+02
+   -0.3970000076E+02
+   -0.2450000000E+02
+    0.1000000015E+00
+Mass
+    0.2808600044E+02
+Element
+  
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Unlu2004  
+Atom Names
+>Si<      
+   32    4
+   32    4
+   32    4
+Number of Bonded Terms
+           2
+Bond Type Number
+           1
+Bond Style
+          10
+Bond Coefficients
+    0.1360000000E+01
+    0.1720000000E+01
+    0.0000000000E+00
+Vibration Order
+wild      
+Force Field Name
+Unlu2004  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+alkane     alkane    
+Bond Type Number
+           2
+Bond Style
+          10
+Bond Coefficients
+    0.1290000000E+01
+    0.1650000000E+01
+    0.0000000000E+00
+Vibration Order
+wild      
+Force Field Name
+Unlu2004  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+benzene    benzene   
+Number of Angle Terms
+           2
+Angle Type Number
+           1
+Angle Style
+          13
+Angle Coefficients
+    0.1101695875E+03
+    0.2335600000E+01
+    0.2715600000E+01
+    0.0000000000E+00
+Angle Order
+wild           
+Force Field Name
+Unlu2004  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+alkane     alkane     alkane    
+Angle Type Number
+           2
+Angle Style
+          13
+Angle Coefficients
+    0.1203035703E+03
+    0.2360000000E+01
+    0.2740000000E+01
+    0.0000000000E+00
+Angle Order
+wild           
+Force Field Name
+Unlu2004  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+benzene    benzene    benzene   
+Number of Torsion Terms
+           2
+Torsion Type Number
+           1
+Torsion Style
+          18
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.3420000000E+01
+    0.3720000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Unlu2004  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+alkane     alkane     alkane     alkane    
+Torsion Type Number
+           2
+Torsion Style
+          18
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.3140000105E+01
+    0.3424999952E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Unlu2004  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+benzene    benzene    benzene    benzene   
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

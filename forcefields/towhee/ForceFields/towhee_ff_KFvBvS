@@ -1,0 +1,220 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           6
+Potential Type
+Exponential-6                 
+Classical Mixrule
+Explicit                      
+Atom Type Number
+           1
+Nonbond Coefficients
+   -0.2030778575E+07
+    0.1611594545E+08
+   -0.2760000000E+01
+Nonbond Coefficients
+   -0.1549636071E+07
+    0.2089236822E+09
+   -0.4873180000E+01
+Nonbond Coefficients
+   -0.1515145328E+07
+    0.1857702222E+09
+   -0.4796670000E+01
+Nonbond Coefficients
+   -0.2306883230E+06
+    0.1048370060E+09
+   -0.5190980000E+01
+Nonbond Coefficients
+    0.0000000000E+00
+    0.4110536280E+08
+   -0.4134550000E+01
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+KFvBvS    
+Atom Names
+O         
+O         
+O         
+O         
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.2808600000E+02
+Element
+Si
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+KFvBvS    
+Atom Names
+Si        
+Si        
+Si        
+Si        
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.2698200000E+02
+Element
+Al
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+KFvBvS    
+Atom Names
+Al        
+Al        
+Al        
+Al        
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3097400000E+02
+Element
+ P
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+KFvBvS    
+Atom Names
+P         
+P         
+P         
+P         
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+   -0.6049803099E+07
+    0.6710983291E+08
+   -0.3115930000E+01
+Mass
+    0.2299000000E+02
+Element
+Na
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+KFvBvS    
+Atom Names
+Na        
+Na        
+Na        
+Na        
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3545300000E+02
+Element
+Cl
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+KFvBvS    
+Atom Names
+Cl        
+Cl        
+Cl        
+Cl        
+Number of Bonded Terms
+           0
+Number of Angle Terms
+           0
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

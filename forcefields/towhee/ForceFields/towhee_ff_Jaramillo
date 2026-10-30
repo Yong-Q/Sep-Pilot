@@ -1,0 +1,264 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           3
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Explicit                      
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.4350000000E+01
+    0.1962312326E+02
+    0.4350000000E+01
+    0.1962312326E+02
+Nonbond Coefficients
+    0.3458000000E+01
+    0.1936782538E+02
+    0.3458000000E+01
+    0.1936782538E+02
+Nonbond Coefficients
+    0.3878000000E+01
+    0.2606359245E+02
+    0.3878000000E+01
+    0.2606359245E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Jaramillo 
+Atom Names
+C         
+C         
+C         
+C         
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.2750000000E+01
+    0.1912413195E+02
+    0.2750000000E+01
+    0.1912413195E+02
+Nonbond Coefficients
+    0.3083000000E+01
+    0.2572706343E+02
+    0.3083000000E+01
+    0.2572706343E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Jaramillo 
+Atom Names
+H         
+H         
+H         
+H         
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3457000000E+01
+    0.3460446692E+02
+    0.3457000000E+01
+    0.3460446692E+02
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Jaramillo 
+Atom Names
+F         
+F         
+F         
+F         
+Number of Bonded Terms
+           3
+Bond Type Number
+           1
+Bond Style
+           2
+Bond Coefficients
+    0.1526000000E+01
+    0.1623926593E+06
+Vibration Order
+wild      
+Force Field Name
+Jaramillo 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C         
+Bond Type Number
+           2
+Bond Style
+           2
+Bond Coefficients
+    0.1105000000E+01
+    0.1713977117E+06
+Vibration Order
+wild      
+Force Field Name
+Jaramillo 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          H         
+Bond Type Number
+           3
+Bond Style
+           2
+Bond Coefficients
+    0.1363000000E+01
+    0.2495884891E+06
+Vibration Order
+wild      
+Force Field Name
+Jaramillo 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          F         
+Number of Angle Terms
+           6
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1078000000E+03
+    0.4981789956E+05
+Angle Order
+wild           
+Force Field Name
+Jaramillo 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F          C          C         
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1071000000E+03
+    0.3120436336E+05
+Angle Order
+wild           
+Force Field Name
+Jaramillo 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F          C          H         
+Angle Type Number
+           3
+Angle Style
+           1
+Angle Coefficients
+    0.1064000000E+03
+    0.1987842114E+05
+Angle Order
+wild           
+Force Field Name
+Jaramillo 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          C          H         
+Angle Type Number
+           4
+Angle Style
+           1
+Angle Coefficients
+    0.1100000000E+03
+    0.2214128869E+05
+Angle Order
+wild           
+Force Field Name
+Jaramillo 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          C          C         
+Angle Type Number
+           5
+Angle Style
+           1
+Angle Coefficients
+    0.1095000000E+03
+    0.2345259143E+05
+Angle Order
+wild           
+Force Field Name
+Jaramillo 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F          C          F         
+Angle Type Number
+           6
+Angle Style
+           1
+Angle Coefficients
+    0.1127000000E+03
+    0.2936268861E+05
+Angle Order
+wild           
+Force Field Name
+Jaramillo 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C          C         
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+           2
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Torsion Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.3579972517E+03
+Torsion Order
+wild           
+Force Field Name
+Jaramillo 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       C          C          wild      
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

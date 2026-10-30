@@ -1,0 +1,51 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           1
+Potential Type
+Stillinger-Weber              
+Classical Mixrule
+Explicit                      
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.2516083000E+05
+    0.7049556277E+01
+    0.6022245584E+00
+    0.2095100000E+01
+    0.4000000000E+01
+    0.1800000000E+01
+    0.2100000000E+02
+    0.1200000000E+01
+   -0.3333333333E+00
+Mass
+    0.2808600000E+02
+Element
+Si
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Stil1985  
+Atom Names
+Si        
+Si        
+Si        
+Si        
+Number of Bonded Terms
+           0
+Number of Angle Terms
+           0
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

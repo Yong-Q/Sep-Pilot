@@ -1,0 +1,211 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           0
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Lorentz-Berthelot             
+Number of Bonded Terms
+           1
+Bond Type Number
+           1
+Bond Style
+           2
+Bond Coefficients
+    0.1360000000E+01
+    0.1519714132E+06
+Vibration Order
+wild      
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN1        CN5       
+Number of Angle Terms
+          10
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1255000000E+03
+    0.7045032400E+05
+Angle Order
+wild           
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NN2        CN5        NN2       
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1290000000E+03
+    0.6290207500E+05
+Angle Order
+wild           
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN1        CN5        NN4       
+Angle Type Number
+           3
+Angle Style
+           1
+Angle Coefficients
+    0.1078000000E+03
+    0.3522516200E+05
+Angle Order
+wild           
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN5        CN1        NN2       
+Angle Type Number
+           4
+Angle Style
+           1
+Angle Coefficients
+    0.1247000000E+03
+    0.2516083000E+05
+Angle Order
+wild           
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN5        CN1        ON1       
+Angle Type Number
+           5
+Angle Style
+           1
+Angle Coefficients
+    0.1196000000E+03
+    0.3522516200E+05
+Angle Order
+wild           
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN1        CN5        CN5       
+Angle Type Number
+           6
+Angle Style
+           1
+Angle Coefficients
+    0.1302000000E+03
+    0.2516083000E+05
+Angle Order
+wild           
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN1        NN2        CN1       
+Angle Type Number
+           7
+Angle Style
+           1
+Angle Coefficients
+    0.1275000000E+03
+    0.2516083000E+05
+Angle Order
+wild           
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NN2        CN1        ON1       
+Angle Type Number
+           8
+Angle Style
+           1
+Angle Coefficients
+    0.1140000000E+03
+    0.2516083000E+05
+Angle Order
+wild           
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NN2        CN1        NN2       
+Angle Type Number
+           9
+Angle Style
+           1
+Angle Coefficients
+    0.1302000000E+03
+    0.2516083000E+05
+Angle Order
+wild           
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN1        NN2        CN5       
+Angle Type Number
+          10
+Angle Style
+           5
+Angle Coefficients
+    0.1150000000E+03
+    0.2918656280E+05
+    0.2561000000E+01
+    0.4025732800E+04
+Angle Order
+wild           
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT3        CC         CT3       
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.5032166000E+03
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+Charmm27  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       CN1        CN5        wild      
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

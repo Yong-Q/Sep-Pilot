@@ -82,7 +82,15 @@ def test_real_dispatcher_resumes_main_while_supervisor_model_is_still_waiting(tm
             await api._dispatch_lifecycle_once()
             await asyncio.sleep(0)
             assert len(continued) == 1
-            event = store.snapshot()["events"][event_id]
+            # The durable receipt is an awaited worker I/O operation. Wait
+            # for that commit, still within the original sub-second bound,
+            # while the supervisor provider remains deliberately blocked.
+            deadline = time.monotonic() + .5
+            while True:
+                event = (await asyncio.to_thread(store.snapshot))["events"][event_id]
+                if event["main_chat"] == "delivered" or time.monotonic() >= deadline:
+                    break
+                await asyncio.sleep(.001)
             assert event["main_chat"] == "delivered"
             assert event["supervisor"] == "processing"
             assert event["supervisor_claimed_at"] >= event["time"]

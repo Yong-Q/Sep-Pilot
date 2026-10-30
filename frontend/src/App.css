@@ -430,3 +430,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC'
 }
 .task-explain-loading { color: var(--text-muted); animation: taskPulse 1.6s ease-in-out infinite; }
 .task-explain-text { color: var(--text); white-space: pre-wrap; }
+
+.report-retry p { font-size: 0.85rem; line-height: 1.5; color: #b9c4d3; }
+.report-retry-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin: .6rem 0; }
+.report-retry-row span { overflow-wrap: anywhere; }
+.report-retry button { border: 1px solid #64748b; border-radius: 6px; background: var(--bg-card); color: var(--text); padding: .45rem .7rem; cursor: pointer; }
+.report-retry button:disabled { opacity: .5; cursor: not-allowed; }
+.report-retry-confirm { padding: .55rem .7rem; border: 1px solid #d5dfeb; border-radius: 8px; }
+.report-retry-confirm button + button { margin-left: .5rem; }

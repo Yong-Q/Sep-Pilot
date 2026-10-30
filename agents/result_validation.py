@@ -12,11 +12,12 @@ import math
 import os
 from pathlib import Path
 import re
+import stat as stat_module
 import time
 from typing import Any
 
 
-VALIDATION_SCHEMA_VERSION = 2
+VALIDATION_SCHEMA_VERSION = 9
 
 
 @dataclass(frozen=True)
@@ -59,7 +60,52 @@ def _result_root(node: dict[str, Any]) -> Path:
     return Path(value).expanduser().resolve()
 
 
-def _inventory(root: Path, limits: ValidationLimits) -> dict[str, Any]:
+def _internal_projection_temporary(candidate: Path, owned_root: Path | None, expected_outputs) -> bool:
+    """Only native owner-local publication names, never arbitrary dot files.
+
+    A broad conversation-root output declaration does not make internal display
+    publication bytes scientific results. An explicit file or internal-directory
+    contract targeting this reserved namespace is rejected explicitly.
+    """
+    if owned_root is None:
+        return False
+    owner = Path(owned_root).absolute()
+    parent = candidate.parent
+    native_name = ((parent == owner / "chain_evidence" and re.fullmatch(r"\.publish-[a-f0-9]{32}", candidate.name))
+                   or (parent == owner and (re.fullmatch(r"\.display-sync-[a-f0-9]{32}", candidate.name)
+                       or re.fullmatch(r"(?:orchestration_(?:chain|current)|task_manifest)\.json\.[a-z0-9_]{8}", candidate.name))))
+    if not native_name:
+        return False
+    for value in expected_outputs or []:
+        spec = value if isinstance(value, dict) else {"path": value}
+        name = spec.get("path")
+        if not isinstance(name, str):
+            continue
+        target = Path(name)
+        target = target if target.is_absolute() else owner / target
+        if target == candidate:
+            raise ValueError("declared scientific output targets an internal projection temporary")
+        pattern = spec.get("pattern", "*")
+        if (target == parent and isinstance(pattern, str) and fnmatch.fnmatch(candidate.name, pattern)
+                and (target != owner or pattern != "*")):
+            raise ValueError("declared scientific output targets an internal projection temporary")
+    try:
+        for directory in {owner, parent}:
+            info = directory.lstat()
+            if not stat_module.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
+                return False
+    except FileNotFoundError:
+        return False
+    try:
+        info = candidate.lstat()
+    except FileNotFoundError:
+        # The native publisher may already have unlinked its exact temporary.
+        return True
+    return stat_module.S_ISREG(info.st_mode) and info.st_uid == os.getuid()
+
+
+def _inventory(root: Path, limits: ValidationLimits, *, owned_root: Path | None = None,
+               expected_outputs=()) -> dict[str, Any]:
     started = time.monotonic()
     files: list[dict[str, Any]] = []
     escaped: list[str] = []
@@ -92,6 +138,8 @@ def _inventory(root: Path, limits: ValidationLimits) -> dict[str, Any]:
             if len(files) >= limits.max_entries:
                 truncated = True; reasons.append("maximum entry count reached"); break
             candidate = current_path / name
+            if _internal_projection_temporary(candidate, owned_root, expected_outputs):
+                continue
             resolved = candidate.resolve()
             if not _inside(resolved, root):
                 escaped.append(str(candidate.relative_to(root))); continue
@@ -260,14 +308,138 @@ def _diagnostic_excerpts(node: dict[str, Any], root: Path, inventory: dict[str, 
     return excerpts
 
 
+def cdft_completion_assessment(node, quality, collected_rows=None):
+    """Coverage counts materials once; table integrity is a separate hard gate.
+
+    Only an explicit approved best_effort policy accepts a partial subset.
+    A successful file, owner assertion, or generic fraction cannot imply all
+    materials or scientific convergence.
+    """
+    contract=node.get('contract') or {};args=contract.get('arguments') or {}
+    policies=[value for value in (contract.get('completion_policy'),args.get('completion_policy')) if value is not None]
+    best_effort=bool(policies) and all(value=='best_effort' for value in policies)
+    mode='best_effort' if best_effort else 'strict'
+    integrity=[]
+    if any(value not in {'strict','best_effort'} for value in policies):integrity.append('invalid completion policy')
+    ratios=[value for value in (contract.get('min_success_ratio'),args.get('min_success_ratio')) if value is not None]
+    if any(type(value) not in (int,float) or not math.isfinite(value) or not 0<=value<=1 for value in ratios):
+        integrity.append('invalid minimum success ratio');ratios=[]
+    threshold=max(ratios) if ratios else .60
+    if not best_effort:threshold=1.0
+    names=quality.get('expected_materials') or []
+    verified=(quality.get('expected_materials_verified') is True and isinstance(names,list) and bool(names)
+              and len(names)==len(set(names)) and all(isinstance(name,str) and name for name in names))
+    if not verified:
+        names=[];integrity.append('complete original material identities are not verified')
+    materials=quality.get('materials') or {};faults={}
+    for name in names:
+        item=materials.get(name) or {};errors=list(item.get('errors') or [])
+        if item.get('output_valid') is not True:errors.append('missing or invalid native density output')
+        if item.get('technical_completion') is False:errors.append('native subprocess did not complete successfully')
+        if item.get('native_convergence') is False:errors.append('native optimizer reported failure')
+        if name not in quality.get('input_materials',[]):errors.append('original material is missing from copied batch inputs')
+        if name not in quality.get('run_materials',[]):errors.append('original material is missing from native run directories')
+        if errors:faults[name]=errors
+    for field in ('input_materials','run_materials'):
+        if set(quality.get(field) or [])-set(names):integrity.append(field+' contains undeclared material identities')
+    if not quality.get('collected_csv_sha256'):integrity.append('collected CSV was not observed')
+    row_map = {}
+    if isinstance(collected_rows,list):
+        for row in collected_rows:
+            if isinstance(row,dict) and isinstance(row.get('MOF'),str):
+                row_map.setdefault(row['MOF'],[]).append(row)
+    for error in quality.get('collection_errors') or []:
+        material,separator,detail=error.partition('/')
+        field=detail.split(':',1)[0] if separator else ''
+        item=materials.get(material) or {};expected=None;known_field=False
+        if field.endswith('_density_mol_L'):
+            gas=field[:-len('_density_mol_L')];known_field=True
+            expected=item.get('output_facts',{}).get('components',{}).get(gas,{}).get('density_mol_L')
+        elif field.endswith('_henry_mol_L_atm'):
+            gas=field[:-len('_henry_mol_L_atm')];known_field=True
+            expected=item.get('henry_mol_L_atm',{}).get(gas)
+        records=row_map.get(material,[])
+        # Only a genuinely absent native value paired with an observed blank
+        # CSV cell is a declared missing-case value. NaN, fabricated numbers,
+        # finite-native disagreement and absent CSV proof remain hard errors.
+        missing_blank=(material in faults and known_field and expected is None and len(records)==1
+                       and field in records[0] and isinstance(records[0][field],str) and not records[0][field].strip())
+        if missing_blank:
+            faults[material].append(error)
+        else:
+            integrity.append(error)
+            if material in names:faults.setdefault(material,[]).append(error)
+    succeeded=[name for name in names if name not in faults]
+    failed=[{'path':name,'reason':'; '.join(dict.fromkeys(faults[name]))} for name in names if name in faults]
+    count=len(names);ratio=len(succeeded)/count if count else 0.0
+    complete=bool(count) and not failed and not integrity
+    status='complete' if complete else 'partial' if succeeded else 'unknown' if not count else 'failed'
+    verdict=('recover' if not verified else 'invalid' if integrity else 'pass' if complete or best_effort and succeeded and ratio>=threshold else 'recover')
+    return {'schema_version':1,'policy_mode':mode,'explicit_best_effort':best_effort,
+            'completion_status':status,'all_materials_valid':complete,
+            'counts':{'attempted':count,'succeeded':len(succeeded),'failed':len(failed)},
+            'success_ratio':ratio,'required_success_ratio':threshold,'verdict':verdict,
+            'successful_materials':succeeded,'failed_items':failed,'integrity_errors':integrity,
+            'scientific_convergence':quality.get('scientific_convergence'),
+            'note':'Coverage describes observed valid material outputs, not authenticated per-case exit, optimizer/grid convergence, or identical Hamiltonians.'}
+
+
+def cdft_collected_rows(work_dir, expected_sha):
+    """Read the exact bounded CSV tied to native quality, or retain unknown."""
+    if not expected_sha:return None
+    from .workload_context import _read_regular
+    try:
+        raw,checksum=_read_regular(Path(work_dir)/'results.csv',limit=8*1024*1024)
+        if checksum != expected_sha:return None
+        return list(csv.DictReader(io.StringIO(raw.decode('utf-8'))))
+    except (OSError,ValueError,UnicodeError):return None
+
+
 def _profile_results(node: dict[str, Any], root: Path, inventory: dict[str, Any],
-                     samples: list[dict[str, Any]], limits: ValidationLimits) -> dict[str, Any]:
+                     samples: list[dict[str, Any]], limits: ValidationLimits,
+                     owned_root: Path | None = None) -> dict[str, Any]:
     tool = (node.get("contract") or {}).get("tool", "")
     arguments = (node.get("contract") or {}).get("arguments") or {}
     sample_by_path = {sample["path"]: sample for sample in samples}
+    if tool in {'run_gcmc_isotherm', 'run_gcmc_batch'}:
+        from .gcmc_results import inspect_gcmc_results
+        native = inspect_gcmc_results(root, tool, arguments, native_receipt=node.get("result"))
+        counts = native['counts']
+        ratio = counts['succeeded'] / counts['attempted'] if counts['attempted'] else 0.0
+        threshold = float(arguments.get('min_success_ratio', (node.get('contract') or {}).get('min_success_ratio', 0.60)))
+        for item in native['cases']:
+            data = item.get('data') or {}
+            relative = str(Path(data['path']).relative_to(root)) if data.get('path') else ''
+            if relative in sample_by_path:
+                sample_by_path[relative]['facts'].update(finite_loading_and_completion=item['ok'],
+                    completion_marker=item.get('completion_marker', False), finite_loading=item.get('finite_loading', False))
+        return {'counts': counts, 'success_ratio': ratio, 'required_success_ratio': threshold,
+            'successful_artifacts': native['successful_artifacts'],
+            'failed_items': [{'path': item['case_dir'], 'reason': item.get('reason', 'native result invalid')}
+                             for item in native['cases'] if not item['ok']],
+            'method_facts': {'gcmc_native': native, 'finite_loading_and_completion': bool(counts['succeeded'])},
+            'verdict': ('invalid' if native['errors'] or native.get('integrity_errors') or inventory['truncated'] or inventory['escaped_paths']
+                        else 'pass' if counts['succeeded'] and ratio >= threshold else 'recover')}
     outcomes: list[tuple[str, bool, str]] = []
     aggregate_outcomes: list[tuple[str, bool, str]] | None = None
     method_facts: dict[str, Any] = {}
+    if tool == 'run_md_optimize' or tool.startswith('run_md'):
+        from bimem_agent.result_inspector import inspect_md_run
+        method_facts['md_native'] = inspect_md_run(
+            root, mode=arguments.get('mode', 'single'), max_log_bytes=min(4_000_000, limits.max_bytes))
+    if tool == 'run_string_tst':
+        from bimem_agent.result_inspector import inspect_string_run
+        method_facts['string_native'] = inspect_string_run(root,
+            receipt_path=(node.get('result') or {}).get('result_json_path'), gas=arguments.get('gas'),
+            approved_walltime=arguments.get('walltime'), approved_walltime_source='workflow_contract',
+            max_bytes=min(16_000_000, limits.max_bytes))
+    if tool == 'run_cdft' and arguments.get('action', 'pipeline') in {'submit', 'pipeline', 'collect'}:
+        from .cdft_result_facts import inspect_cdft_batch_quality
+        effective = node.get('effective_arguments') or arguments
+        gases = effective.get('gases') or ([effective['gas']] if effective.get('gas') else [])
+        method_facts['cdft_native'] = inspect_cdft_batch_quality(
+            root, owned_root=owned_root or root, gases=gases,
+            source_input_dir=effective.get('input_dir'))
     bytes_read = 0
     for item in inventory["files"]:
         if bytes_read >= limits.max_bytes:
@@ -310,6 +482,24 @@ def _profile_results(node: dict[str, Any], root: Path, inventory: dict[str, Any]
         if item["path"] in sample_by_path:
             sample_by_path[item["path"]]["facts"].update(facts)
         outcomes.append((item["path"], valid, reason))
+    cdft_quality = method_facts.get('cdft_native')
+    if tool == 'run_cdft' and cdft_quality is not None:
+        collected_rows=cdft_collected_rows(root,cdft_quality.get('collected_csv_sha256'))
+        completion=cdft_completion_assessment(node,cdft_quality,collected_rows)
+        method_facts['cdft_completion']=completion
+        verdict=completion['verdict']
+        if inventory['truncated'] or inventory['escaped_paths']:verdict='invalid'
+        successful_artifacts=[str(root/'input_dir'/name/'output.dat') for name in completion['successful_materials']]
+        # The collected CSV is a native output in its own right. A passing,
+        # nonempty, hash-bound table may repair an old managed output path;
+        # invalid/unknown/empty collections must never acquire that authority.
+        if verdict=='pass' and completion['successful_materials'] and collected_rows:
+            successful_artifacts.insert(0,str(root/'results.csv'))
+        return {'counts':completion['counts'],'success_ratio':completion['success_ratio'],
+                'required_success_ratio':completion['required_success_ratio'],
+                'successful_artifacts':successful_artifacts,
+                'failed_items':completion['failed_items'],'method_facts':method_facts,'verdict':verdict,
+                'completion_status':completion['completion_status'],'all_materials_valid':completion['all_materials_valid']}
     if aggregate_outcomes is not None:
         outcomes = aggregate_outcomes
     if not outcomes:
@@ -359,6 +549,8 @@ def _identity(node: dict[str, Any], attempt_id: str, inventory: dict[str, Any]) 
         "root": inventory["root"], "files": inventory["files"],
         "escaped_paths": inventory["escaped_paths"], "truncated": inventory["truncated"],
     }
+    if (node.get('contract') or {}).get('tool') == 'run_cdft':
+        payload['cdft_completion_policy_version'] = 1
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:32]
 
 
@@ -386,7 +578,8 @@ def build_validation_dossier(node: dict[str, Any], attempt_id: str, evidence_roo
                              limits: ValidationLimits | None = None) -> dict[str, Any]:
     limits = limits or ValidationLimits()
     root = _result_root(node)
-    inventory = _inventory(root, limits)
+    inventory = _inventory(root, limits, owned_root=Path(evidence_root).absolute().parent,
+                           expected_outputs=(node.get("contract") or {}).get("expected_outputs") or [])
     evidence_call_id = _identity(node, attempt_id, inventory)
     evidence_path = Path(evidence_root) / f"{evidence_call_id}.json"
     if evidence_path.exists():
@@ -394,7 +587,7 @@ def build_validation_dossier(node: dict[str, Any], attempt_id: str, evidence_roo
         if isinstance(stored, dict):
             return stored
     samples = _samples(root, inventory, attempt_id, limits.sample_count)
-    profile = _profile_results(node, root, inventory, samples, limits)
+    profile = _profile_results(node, root, inventory, samples, limits, owned_root=Path(evidence_root).parent)
     diagnostic_excerpts = _diagnostic_excerpts(node, root, inventory, samples)
     invalid = inventory["escaped_paths"] or inventory["truncated"] or not inventory["file_count"]
     dossier = {
@@ -423,5 +616,8 @@ def build_validation_dossier(node: dict[str, Any], attempt_id: str, evidence_roo
         "evidence_call_id": evidence_call_id,
         "evidence_path": str(evidence_path),
     }
+    if 'completion_status' in profile:
+        dossier.update(completion_status=profile['completion_status'],all_materials_valid=profile['all_materials_valid'])
+        dossier['reasons'] += profile['method_facts']['cdft_completion']['integrity_errors']
     write_validation_evidence(Path(evidence_root), dossier, evidence_call_id)
     return dossier

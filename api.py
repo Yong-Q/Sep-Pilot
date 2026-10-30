@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Header, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, StrictBool
 from typing import Optional, List, Dict, Any
 import json
 import copy
@@ -17,12 +17,13 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 
 from auth import (
     session_manager, register_user, login_user,
-    load_users, USER_DB, CONVERSATION_LOG, public_model_connection,
+    load_users, registered_user_count, USER_DB, CONVERSATION_LOG, public_model_connection,
     save_model_connection, config_for_user, migrate_auth_storage, load_tokens,
 )
 
@@ -57,10 +58,12 @@ async def _security_headers(request: Request, call_next):
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'"
+        "img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'"
     )
     if request.url.path.startswith("/api/"):
-        response.headers["Cache-Control"] = "no-store"
+        is_event_stream = response.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() == "text/event-stream"
+        response.headers["Cache-Control"] = (
+            "no-cache, no-store, no-transform" if is_event_stream else "no-store")
     return response
 
 # ── Concurrency control ──
@@ -269,9 +272,201 @@ def _legacy_graph_projection(lines: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {"source": "persisted_legacy_chain", "nodes": raw}
 
 
-def _workflow_state(conv) -> Dict[str, Any]:
+_api_durable_writes = set()
+
+
+async def _finish_pending_io(pending):
+    # Repeated cancellation must not cancel the to_thread Task itself: its
+    # underlying writer cannot be interrupted and still owns the file lease.
+    while not pending.done():
+        try:
+            await asyncio.shield(pending)
+        except asyncio.CancelledError:
+            if pending.cancelled():
+                raise
+    return pending.result()
+
+
+async def _durable_io(function, *args, **kwargs):
+    pending = asyncio.create_task(asyncio.to_thread(function, *args, **kwargs))
+    _api_durable_writes.add(pending)
+    pending.add_done_callback(_api_durable_writes.discard)
+    try:
+        return await asyncio.shield(pending)
+    except asyncio.CancelledError as cancellation:
+        try:
+            await _finish_pending_io(pending)
+        except BaseException as write_error:
+            raise cancellation from write_error
+        raise
+
+
+def _owned_conversation_io(conv, function, *args, **kwargs):
+    """Keep scope explicit when a default executor thread is reused."""
+    from agents.watch_context import get_context, set_context, clear_context
+    previous = get_context()
+    try:
+        set_context(conv.username, conv.conv_id, 'api_state',
+                    getattr(conv.session, '_current_line_id', '') if conv.session else '')
+        return function(*args, **kwargs)
+    finally:
+        if previous:
+            set_context(**previous)
+        else:
+            clear_context()
+
+
+from agents.workflow_projection import (ProjectionCache, projection_signature,
+    thin_workflow, thin_runtime, thin_line)
+_workflow_projection_cache = ProjectionCache(
+    on_ready=lambda scope: _workflow_events.publish(scope[0], scope[1]))
+
+
+_api_session_hydrations = {}
+
+
+def _bound_api_session(conv):
+    """An existing native binding is sufficient for an advisory GET, not control."""
+    session=conv.session
+    binding=getattr(conv,'_api_session_binding',None)
+    if (session is not None and isinstance(binding,tuple) and len(binding)==5
+            and binding[0] is session and binding[1:] == (conv.username,conv.conv_id,
+                str(getattr(getattr(session,'config',None),'project_root','')),
+                getattr(session,'_current_line_id',''))):
+        return session
+    return None
+
+
+def _session_admission_source(conv):
+    return (conv.session,getattr(conv,'current_uid',None),conv.username,conv.conv_id,
+        bool(getattr(conv,'interrupt_requested',False)),str(getattr(conv,'interrupt_message','')),
+        getattr(conv,'_workflow_user_control_epoch',0))
+
+
+async def _prepare_api_session(conv, source):
+    # Only a genuinely cold actor is prepared off-loop. Existing unbound
+    # actors retain the complete legacy binding checks on their native path.
+    actor=await _durable_io(_owned_conversation_io,conv,_ensure_session,conv,publish=False,_expected_source=source)
+    if _session_admission_source(conv)!=source:
+        raise ValueError('cold session preparation was superseded; no actor published')
+    if actor is None:return None
+    ready=getattr(actor,'_api_ready_binding',None)
+    if (not isinstance(ready,tuple)or ready!=(actor,source[2],source[3],
+            str(actor.config.project_root),actor._current_line_id)):
+        raise ValueError('prepared session lacks its native scoped binding')
+    # The event loop alone publishes the prepared actor after an identity CAS.
+    conv.session=actor
+    conv._api_session_binding=ready
+    published_source=(actor,*source[1:])
+    def after_bind():
+        if _session_admission_source(conv)!=published_source:
+            raise ValueError('prepared session control changed before after_bind')
+        actor._api_after_bind()
+        if _session_admission_source(conv)!=published_source:
+            raise ValueError('prepared session control changed during after_bind')
+    try:
+        await _durable_io(_owned_conversation_io,conv,after_bind)
+        if conv.session is not actor or _bound_api_session(conv)is not actor:
+            raise ValueError('prepared session binding was replaced during after_bind')
+    except BaseException:
+        # A partially completed after_bind must never qualify for a warm GET.
+        if getattr(conv,'_api_session_binding',None) is ready:
+            conv._api_session_binding=None
+        raise
+    return actor
+
+
+async def _ensure_api_session(conv, *, read_only=False):
+    # Joining precedes the bound fast path: publication happens before native
+    # after_bind I/O finishes, so that actor is not ready for another consumer.
+    scope=(conv.username,conv.conv_id)
+    key=(asyncio.get_running_loop(),id(conv))
+    pending=_api_session_hydrations.get(key)
+    if pending is None:
+        bound=_bound_api_session(conv)
+        if read_only and bound is not None:
+            return bound
+        if conv.session is not None:
+            # Controls retain complete native recovery and approval checks.
+            return _ensure_session(conv)
+    if pending is None:
+        pending=asyncio.create_task(_prepare_api_session(conv,_session_admission_source(conv)))
+        _api_session_hydrations[key]=pending
+        def retired(task):
+            if _api_session_hydrations.get(key)is task:_api_session_hydrations.pop(key,None)
+        pending.add_done_callback(retired)
+    try:
+        actor=await asyncio.shield(pending)
+    except asyncio.CancelledError as cancellation:
+        # Hydration may still own native file operations. A cancelled waiter
+        # cannot release a caller's lease before the shared producer finishes.
+        try:await _finish_pending_io(pending)
+        except BaseException as error:raise cancellation from error
+        raise
+    if (conv.username,conv.conv_id)!=scope or actor is not conv.session:
+        raise ValueError('session owner or actor changed after shared hydration')
+    return actor
+
+
+async def _set_owned_user_pause(conv, actor, paused, control_valid):
+    """Fresh native pause writes use their revision CAS, never a UI snapshot."""
+    if not control_valid():raise ValueError('user control was superseded before native pause')
+    if actor is None or not actor._runtime_snapshot:return
+    snapshot=await _durable_io(_owned_conversation_io,conv,actor._runtime_snapshot)
+    if not control_valid():raise ValueError('user control was superseded during native pause inspection')
+    if not snapshot:return
+    if (snapshot.get('username'),snapshot.get('conv_id'))!=(conv.username,conv.conv_id):
+        raise ValueError('native pause snapshot belongs to another owner')
+    from agents.parallel_workflow import WorkflowStore
+    store=WorkflowStore(actor.config.project_root/'data/state/parallel_workflows.json')
+    identity=store.identity(conv.username,conv.conv_id)
+    def commit():
+        if not control_valid():raise ValueError('user control was superseded before pause commit')
+        if not store.user_pause(identity,paused,expected_revision=snapshot.get('user_pause_revision',0)):
+            raise ValueError('native pause revision changed before commit')
+    await _durable_io(_owned_conversation_io,conv,commit)
+
+
+async def _workflow_state_async(conv):
+    # Warm GETs read an existing scoped actor without replaying control
+    # recovery. Cold preparation is coalesced off-loop and CAS-published here.
+    try:
+        await _ensure_api_session(conv,read_only=True)
+    except ValueError as error:
+        raise HTTPException(status_code=409,detail=str(error)) from error
+    def signature():
+        return projection_signature(conv, _workflow_events.revision(conv.username, conv.conv_id))
+    def build():
+        return thin_workflow(_owned_conversation_io(conv, _workflow_state, conv, ensure_session=False))
+    result = await _workflow_projection_cache.get((conv.username, conv.conv_id), signature, build)
+    # Overlay current stream headers without rebuilding historical state. This
+    # is presentation only; all control endpoints retain their native CAS.
+    pending = getattr(conv.session, '_pending_user_interaction', None) or {}
+    result['current_activity'] = {'agent': getattr(conv, 'current_agent', '') or 'lead-orchestrator',
+        'status': getattr(conv, 'current_status', '') or 'Agents ready', 'is_processing': bool(getattr(conv, 'is_processing', False)),
+        'waiting_for': pending.get('tool', '') if isinstance(pending, dict) else ''}
+    return result
+
+
+def _projection_lifecycle(session):
+    # _lifecycle_state is a model/tool contract and rehydrates runtime+chain.
+    # The UI needs role metadata and eight event headers, never event payloads.
+    store = getattr(session, '_lifecycle_store', None)
+    if store and callable(getattr(store, 'view_summary', None)):
+        return store.view_summary()
+    state = store.snapshot() if store else {}
+    events = state.get('events', {})
+    from collections import deque
+    recent = deque(events.values(), maxlen=8)
+    return {'agents': state.get('agents', {}), 'recent_events': [
+        {key: event.get(key) for key in ('event_id','kind','created_at','main_chat','supervisor')}
+        for event in recent]}
+
+
+def _workflow_state(conv, *, ensure_session=True) -> Dict[str, Any]:
     """Structured, inspectable orchestration state for API/frontend."""
-    _ensure_session(conv)
+    if ensure_session:
+        _ensure_session(conv)
     goal = {}
     errors = []
     awaiting = False
@@ -294,18 +489,21 @@ def _workflow_state(conv) -> Dict[str, Any]:
                 lines = [line]
         if not lines:
             lines = store.get_by_conv(conv.conv_id, username=conv.username)
-    except Exception:
+    except FileNotFoundError:
         pass
     from agents.workflow_view import authoritative_line
     runtime = conv.session._runtime_snapshot() if conv.session and conv.session._runtime_snapshot else {}
-    if runtime:
-        from agents.parallel_workflow import runtime_summary
-        runtime = {**runtime, 'live_reports': runtime_summary(runtime).get('live_reports', [])}
-    lines = [authoritative_line(line, runtime) for line in lines]
+    if runtime and any(runtime.get(key) != value for key, value in
+                       (('username', conv.username), ('conv_id', conv.conv_id))):
+        raise PermissionError('runtime projection belongs to a different owner/session scope')
+    # Strip native result/attempt payloads before authoritative_line's deepcopy.
+    proof_runtime = runtime
+    runtime = thin_runtime(runtime)
+    lines = [authoritative_line(thin_line(line), runtime, goal, proof_runtime,advisory_cache=True) for line in lines]
     from agents.orchestration_chain import read_last_graph
     from agents.workspace import session_root
     graph_projection = read_last_graph(session_root(conv.conv_id, conv.username),
-                                      {'username': conv.username, 'conv_id': conv.conv_id}) or {"source": "none", "nodes": []}
+                                      {'username': conv.username, 'conv_id': conv.conv_id}, strict=True) or {"source": "none", "nodes": []}
     if not runtime.get("nodes") and not goal.get("approved_nodes"):
         if not graph_projection.get('nodes'):
             draft = conv.session.context.get('workflow_draft', {}) if conv.session else {}
@@ -354,7 +552,7 @@ def _workflow_state(conv) -> Dict[str, Any]:
         "error_branches": errors,
         "lines": lines,
         "recovery": conv.session.recovery_gate.snapshot() if conv.session else {},
-        "lifecycle": conv.session._lifecycle_state() if conv.session else {},
+        "lifecycle": _projection_lifecycle(conv.session),
         "pending_workflow_patch": conv.session._pending_workflow_patch if conv.session else None,
         "parallel_runtime": runtime,
         "graph_projection": graph_projection,
@@ -374,78 +572,168 @@ def _workflow_state(conv) -> Dict[str, Any]:
     }
 
 
-def _ensure_session(conv):
-    """Lazily init session on a conversation."""
+def _recover_bound_session_owner_scope(conv, session):
+    """Recheck missed hydration recovery without mutating an unverified actor."""
+    if (getattr(conv,'is_processing',False)
+            or not (session._pending_workflow_patch or session._pending_user_interaction)):
+        return False
+    from copy import copy, deepcopy
+    def source():
+        return (conv.session,getattr(conv,'current_uid',None),conv.username,conv.conv_id,
+            getattr(conv,'interrupt_requested',False),getattr(conv,'interrupt_message',''),
+            getattr(conv,'is_processing',False),str(session.config.project_root),session._current_line_id,
+            deepcopy(session.goal_contract.to_dict()),deepcopy(session.context),
+            deepcopy(session._pending_workflow_patch),deepcopy(session._pending_user_interaction),
+            session._waiting_for_user_input,session._awaiting_plan_approval,
+            deepcopy(session.memory.tool_call_log[-12:]))
+    before=source()
+    shadow=copy(session)
+    shadow.goal_contract=deepcopy(session.goal_contract)
+    shadow.context=deepcopy(session.context)
+    shadow._pending_workflow_patch=deepcopy(session._pending_workflow_patch)
+    shadow._pending_user_interaction=deepcopy(session._pending_user_interaction)
+    shadow.memory=copy(session.memory)
+    shadow.memory.tool_call_log=deepcopy(session.memory.tool_call_log[-12:])
+    receipt=shadow._recover_committed_initial_pending(wake_after_restore=True)
+    if not receipt:
+        from agents.preparation_defaults import pending_default_review
+        receipt=pending_default_review(shadow)
+        if receipt:shadow.context['preflight_recovery_ready']=receipt
+    if not receipt:
+        return False
+    if source()!=before or conv.session is not session:
+        raise ValueError('bound recovery source was superseded; no actor metadata applied')
+    session.context=shadow.context
+    session._pending_workflow_patch=shadow._pending_workflow_patch
+    session._pending_user_interaction=shadow._pending_user_interaction
+    session._waiting_for_user_input=shadow._waiting_for_user_input
+    return True
+
+
+def _ensure_session(conv, *, publish=True, _expected_source=None):
+    """Lazily initialize and bind one scoped Session exactly once."""
+    # Startup/job-notification paths are not necessarily inside an API actor
+    # thread. Hydration invokes owned native recovery before tool execution;
+    # establish its authenticated conversation scope here, then restore the
+    # caller's previous thread-local context in the common native wrapper.
+    if _expected_source is not None and _session_admission_source(conv)!=_expected_source:
+        raise ValueError('session preparation source changed before hydration')
+    from agents.watch_context import get_context
+    current_owner=get_context()
+    if (current_owner.get('username'),current_owner.get('conv_id')) != (conv.username,conv.conv_id):
+        return _owned_conversation_io(conv,_ensure_session,conv,publish=publish,_expected_source=_expected_source)
+    session = conv.session
+    binding = getattr(conv, '_api_session_binding', None)
+    if (session is not None and binding and binding[0] is session
+            and binding[1:] == (conv.username, conv.conv_id,
+                str(getattr(getattr(session, 'config', None), 'project_root', '')),
+                getattr(session, '_current_line_id', ''))):
+        if not _recover_bound_session_owner_scope(conv,session):
+            return session
+        # A proved missed recovery needs the ordinary binding/after_bind path
+        # once; all normal cached reads still return above.
+    from copy import deepcopy
+    initial_session = session
+    initial_uid = getattr(conv, 'current_uid', None)
+    initial_scope = (conv.username, conv.conv_id)
+    initial_interrupt = (getattr(conv, 'interrupt_requested', False),
+                         getattr(conv, 'interrupt_message', ''))
+    def check_hydration_control():
+        if _expected_source is not None and _session_admission_source(conv)!=_expected_source:
+            raise ValueError('session preparation source changed during hydration')
+        if (conv.session is not initial_session
+                or getattr(conv, 'current_uid', None) != initial_uid
+                or (conv.username, conv.conv_id) != initial_scope
+                or (getattr(conv, 'interrupt_requested', False),
+                    getattr(conv, 'interrupt_message', '')) != initial_interrupt):
+            raise ValueError('session hydration was superseded; no actor was published')
+    check_hydration_control()
     from agents.workspace import session_root
     from agents.config import get_config
     root = session_root(conv.conv_id, getattr(conv, 'username', ''))
     if not root.resolve().is_relative_to(get_config().project_root.resolve()):
         raise ValueError('conversation checkpoint must stay in the project workspace')
     checkpoint = root / 'session_checkpoint.json'
-    if conv.session is None:
+    if session is None:
         try:
             from agents.defns import ORCHESTRATOR
             from agents.session import Session
-            conv.session = Session(config=config_for_user(conv.username))
+            session = Session(config=config_for_user(conv.username))
             restored = False
-            saved_state = getattr(conv, 'session_state', None) or {}
+            saved_state = deepcopy(getattr(conv, 'session_state', None) or {})
+            history = deepcopy(conv.messages_history)
             if checkpoint.exists():
                 latest = json.loads(checkpoint.read_text())
                 if latest.get('checkpoint_at', 0) > saved_state.get('checkpoint_at', 0):
                     saved_state = latest
+            check_hydration_control()
             if saved_state:
                 if saved_state.get('owner') and saved_state['owner'] != {'username': conv.username, 'conv_id': conv.conv_id}:
                     raise PermissionError('checkpoint belongs to a different user/session')
-                restored = conv.session.import_state(saved_state)
-            if not restored and conv.messages_history:
-                restored = conv.session.hydrate_from_transcript(conv.messages_history)
-            elif restored and conv.messages_history:
+                restored = session.import_state(saved_state)
+            if not restored and history:
+                restored = session.hydrate_from_transcript(history)
+            elif restored and history:
                 # Session checkpoint and durable display transcript are written
                 # on different boundaries. Merge any user turns that arrived
                 # after the checkpoint (interrupts/redirects/job notices).
-                conv.session.reconcile_transcript(conv.messages_history, after_count=saved_state.get('transcript_message_count'))
-            if not conv.session.current_agent:
-                conv.session.current_agent = ORCHESTRATOR
-            conv.session._on_progress = conv._on_progress
+                session.reconcile_transcript(history, after_count=saved_state.get('transcript_message_count'))
+            check_hydration_control()
+            if not session.current_agent:
+                session.current_agent = ORCHESTRATOR
+            session._on_progress = conv._on_progress
         except PermissionError:
-            conv.session = None
             raise
         except Exception as e:
             print(f"Warning: Could not init session: {e}")
-            conv.session = None
-    if conv.session:
+            check_hydration_control()
+            return None
+    if session:
+        check_hydration_control()
         from agents.state_io import write_checkpoint, compact_checkpoint_evidence, apply_evidence_references
         from agents.lifecycle import LifecycleStore
-        conv.session.recovery_gate.path = root / 'recovery_state.json'
-        if not conv.session._current_line_id:
-            conv.session._current_line_id = conv.conv_id
+        session.recovery_gate.path = root / 'recovery_state.json'
+        if not session._current_line_id:
+            session._current_line_id = conv.conv_id
         from agents.task_line import get_store
-        line = get_store().begin_line(conv.session._current_line_id, username=conv.username, conv_id=conv.conv_id, title=conv.title)
-        conv.session._current_line_id = line['line_id']
-        if conv.session._lifecycle_store is None:
-            conv.session._lifecycle_store = LifecycleStore(root / 'lifecycle.json')
+        line = get_store().begin_line(session._current_line_id, username=conv.username, conv_id=conv.conv_id, title=conv.title)
+        check_hydration_control()
+        session._current_line_id = line['line_id']
+        if session._lifecycle_store is None:
+            session._lifecycle_store = LifecycleStore(root / 'lifecycle.json')
             if (root / 'lifecycle.json').exists():
-                conv.session._lifecycle_store.recover_claims()
-        conv.session._evidence_root = root / 'evidence'
-        conv.session._on_lifecycle_event = lambda kind, payload: conv.session._lifecycle_store.emit(kind, payload)
+                session._lifecycle_store.recover_claims()
+        check_hydration_control()
+        session._evidence_root = root / 'evidence'
+        session._on_lifecycle_event = lambda kind, payload: session._lifecycle_store.emit(kind, payload)
         from agents.parallel_workflow import WorkflowStore, resources_for, conflicts, READ_ONLY
-        runtime_store = WorkflowStore(conv.session.config.project_root / 'data/state/parallel_workflows.json')
+        runtime_store = WorkflowStore(session.config.project_root / 'data/state/parallel_workflows.json')
         runtime_id = runtime_store.identity(conv.username, conv.conv_id)
-        conv.session._runtime_snapshot = lambda: runtime_store.snapshot(runtime_id)
-        conv.session._restore_workflow_approval(runtime_store.snapshot(runtime_id),
+        native_snapshot = lambda: runtime_store.snapshot(runtime_id)
+        session._runtime_snapshot = native_snapshot
+        from agents.workflow_reply_guard import bind_workflow_reply_guard
+        session._workflow_reply_check = bind_workflow_reply_guard(runtime_store,
+            username=conv.username,conv_id=conv.conv_id,
+            is_current=lambda session=session,snapshot=native_snapshot:conv.session is session and session._runtime_snapshot is snapshot)
+        session._restore_workflow_approval(runtime_store.snapshot(runtime_id),
             {'username': conv.username, 'conv_id': conv.conv_id})
-        conv.session._chain_state_is_primary = True
-        conv.session._chain_jobs = lambda: [j for j in _watch.list()
+        check_hydration_control()
+        session._chain_state_is_primary = True
+        session._chain_jobs = lambda: [j for j in _watch.list()
             if (j.get('username'), j.get('conv_id')) == (conv.username, conv.conv_id)]
-        conv.session._on_workflow_start = lambda plan_version: _start_workflow_runtime(conv, plan_version)
-        conv.session._on_resource_review = lambda request: _review_resources(conv, request)
-        conv.session._on_workflow_message = lambda step_id, text, kind='comment', message_id=None: _ensure_workflow_runtime(conv).send(step_id, text, kind, message_id)
-        conv.session._on_workflow_resolve = lambda step_id, decision_id, verification_call_id: _ensure_workflow_runtime(conv).resolve_local_write(step_id, decision_id, verification_call_id)
+        session._on_workflow_start = lambda plan_version, **kw: _start_workflow_runtime(conv, plan_version, **kw)
+        session._on_resource_review = lambda request: _review_resources(conv, request)
+        session._on_workflow_message = lambda step_id, text, kind='comment', message_id=None: _ensure_workflow_runtime(conv).send(step_id, text, kind, message_id)
+        session._on_workflow_resolve = lambda step_id, decision_id, verification_call_id: _ensure_workflow_runtime(conv).resolve_local_write(step_id, decision_id, verification_call_id)
+        session._on_local_preparation_requeue = lambda step_id, expected_token, failed_call_id, verification_call_id, **authority: _ensure_workflow_runtime(conv).requeue_local_preparation(step_id, expected_token, failed_call_id, verification_call_id, **authority)
+        session._on_cdft_partial_prepare = lambda step_id, timeout_seconds, walltime, **authority: _ensure_workflow_runtime(conv).prepare_cdft_partial_recovery(step_id, timeout_seconds, walltime, **authority)
         from agents.workflow_view import bind_result_handoff
-        bind_result_handoff(conv.session, lambda: _ensure_workflow_runtime(conv))
+        bind_result_handoff(session, lambda: _ensure_workflow_runtime(conv))
         def tool_guard(tool, arguments):
+            if conv.session is not session:
+                return 'conversation actor was replaced; no tool control is granted'
             from agents.control_policy import role_denial, bypasses_data_lease
-            role = getattr(conv.session.current_agent, 'name', '')
+            role = getattr(session.current_agent, 'name', '')
             denied = role_denial(role, tool)
             if denied: return denied
             if bypasses_data_lease(role, tool): return ''
@@ -453,88 +741,131 @@ def _ensure_session(conv):
             # Mutating scientific tools remain guarded at their real dispatch.
             if tool.startswith('handoff_to_'): return ''
             if tool in READ_ONLY or tool in {'execute_workflow', 'message_workflow_node', 'propose_workflow_patch', 'apply_workflow_patch', 'discard_workflow_patch', 'revalidate_workflow_node_outputs','finish_workflow_node',
-                    'request_user_decision', 'reconcile_watched_job', 'prepare_retry', 'accept_recovered_result',
-                    'recovery_state', 'lifecycle_state', 'task_line_query', 'resolve_local_workflow_write', 'retarget_queued_job'}:
+                    'request_user_decision', 'resolve_preparation_defaults', 'reconcile_watched_job', 'prepare_retry', 'accept_recovered_result',
+                    'recovery_state', 'lifecycle_state', 'task_line_query', 'resolve_local_workflow_write', 'retarget_queued_job', 'requeue_local_preparation', 'prepare_cdft_partial_recovery'}:
                 return ''
             state = runtime_store.snapshot(runtime_id)
             if state and state['status'] in {'active', 'needs_user'} and (tool.startswith('handoff_to_') or
                     any(n['contract']['tool'] == tool and n['contract']['arguments'] == arguments for n in state['nodes'].values())):
                 if tool != 'handoff_to_patcher':
                     return 'runtime owns this compiled node; do not re-execute it through the main Session'
-            resources = resources_for({'tool': tool, 'arguments': arguments}, conv.session.config.project_root, root)
+            resources = resources_for({'tool': tool, 'arguments': arguments}, session.config.project_root, root)
             if any(conflicts(a, b) for lease in runtime_store.snapshot().get('leases', {}).values()
                    for a in resources for b in lease['resources']):
                 return 'tool mutation conflicts with a live/unknown workflow resource lease'
             return ''
-        conv.session._on_tool_guard = tool_guard
+        session._on_tool_guard = tool_guard
+        def request_primary_projection(reason):
+            if conv.session is not session or (conv.username,conv.conv_id)!=initial_scope:
+                raise ValueError('display request came from a replaced primary Session')
+            runtime=_workflow_runtimes.get((conv.username,conv.conv_id))
+            if runtime is None:runtime=_ensure_workflow_runtime(conv)
+            return runtime.sync_chain(reason)
+        session._on_display_request=request_primary_projection
         def _save_checkpoint(state, reason):
+            defer_projection=callable(getattr(session,'_on_display_request',None))
+            if conv.session is not session or (conv.username,conv.conv_id)!=initial_scope:
+                raise ValueError('primary Session changed before its checkpoint')
+            state['display_projection']={'schema_version':1,'pending':defer_projection,
+                'checkpoint_at':state['checkpoint_at'],'reason':str(reason)[:256]}
             state['owner'] = {'username': conv.username, 'conv_id': conv.conv_id}
             state['transcript_message_count'] = len(conv.messages_history)
             references = compact_checkpoint_evidence(state, root / 'evidence')
             write_checkpoint(checkpoint, state)
-            workflow = {}
-            if conv.session._current_line_id:
-                from agents.task_line import get_store
-                workflow = conv.session._workflow_view()
-            write_checkpoint(root / 'task_manifest.json', {
-                'updated_at': state['checkpoint_at'], 'goal_contract': state['goal_contract'],
-                'workflow': workflow, 'current_agent': state['current_agent'],
-                'chain_file': str(root / 'orchestration_chain.json'),
-                'pending_workflow_patch': state.get('pending_workflow_patch'),
-                'waiting_for_user_input': state.get('waiting_for_user_input'),
-                'pending_user_interaction': state.get('pending_user_interaction'),
-                'recovery_file': str(root / 'recovery_state.json'),
-                'lifecycle_file': str(root / 'lifecycle.json'),
-                'session_checkpoint_file': str(checkpoint),
-                'supervisor_checkpoint_file': str(root / 'supervisor_checkpoint.json'),
-                'tool_evidence_refs': references,
-                'delivery_owner': 'lead-orchestrator', 'negotiation_owner': 'lead-orchestrator',
-            })
-            apply_evidence_references(conv.session.memory, references)
-            conv.session_state = state
-        conv.session._on_checkpoint = _save_checkpoint
-        conv.session._on_chain_committed = lambda: _workflow_events.publish(conv.username, conv.conv_id)
+            if not defer_projection:
+                workflow = {}
+                if session._current_line_id:
+                    from agents.task_line import get_store
+                    workflow = session._workflow_view()
+                write_checkpoint(root / 'task_manifest.json', {
+                    'updated_at': state['checkpoint_at'], 'goal_contract': state['goal_contract'],
+                    'workflow': workflow, 'current_agent': state['current_agent'],
+                    'chain_file': str(root / 'orchestration_chain.json'),
+                    'pending_workflow_patch': state.get('pending_workflow_patch'),
+                    'waiting_for_user_input': state.get('waiting_for_user_input'),
+                    'pending_user_interaction': state.get('pending_user_interaction'),
+                    'recovery_file': str(root / 'recovery_state.json'),
+                    'lifecycle_file': str(root / 'lifecycle.json'),
+                    'session_checkpoint_file': str(checkpoint),
+                    'supervisor_checkpoint_file': str(root / 'supervisor_checkpoint.json'),
+                    'tool_evidence_refs': references,
+                    'delivery_owner': 'lead-orchestrator', 'negotiation_owner': 'lead-orchestrator',
+                })
+            apply_evidence_references(session.memory, references)
+            if conv.session is session:
+                conv.session_state = state
+        session._on_checkpoint = _save_checkpoint
+        session._on_chain_committed = lambda: _workflow_events.publish(conv.username, conv.conv_id)
         def _progress(*args, **kwargs):
+            if getattr(session, '_defer_scientific_delivery', False) and len(args) >= 3 and args[2] == '正在回复':
+                args = (args[0], '', '正在生成答复（待核验）', *args[3:])
             conv._on_progress(*args, **kwargs)
             _workflow_events.publish(conv.username, conv.conv_id)
         def _partial(*args, **kwargs):
             conv._on_partial_result(*args, **kwargs)
             _workflow_events.publish(conv.username, conv.conv_id)
-        conv.session._on_progress = _progress
-        conv.session._on_partial_result = _partial
+        session._on_progress = _progress
+        session._on_partial_result = _partial
         # Wire user-interrupt (Claude-Code-style Esc): session asks the
         # conversation whether the user clicked "中断" while the agent was
         # thinking. Returns True → the loop FREEZES (no further LLM/tool calls).
-        conv.session._on_interrupt_requested = (
-            lambda c=conv: bool(getattr(c, "interrupt_requested", False))
+        from agents.workflow_user_control import bind_api_workflow_control
+        bind_api_workflow_control(conv,session)
+        session._on_interrupt_requested = (
+            lambda c=conv, actor=session: bool(getattr(c, "interrupt_requested", False)
+                or c.session is not actor
+                or getattr(actor, '_api_turn_id', None)
+                   and actor._api_turn_id != c.current_uid)
         )
         # Optional redirect message attached to the interrupt ("中断加话和需求").
-        conv.session._on_interrupt_message = (
+        session._on_interrupt_message = (
             lambda c=conv: str(getattr(c, "interrupt_message", "") or "")
         )
         # After the redirect is consumed, clear it so it applies only once.
-        def _clear_interrupt(c=conv):
+        def _clear_interrupt(c=conv, actor=session):
+            if (c.session is not actor or getattr(actor, '_api_turn_id', None)
+                    and actor._api_turn_id != c.current_uid):
+                return
             c.interrupt_message = ""
             c.interrupt_requested = False
             if c.session and c.session._runtime_snapshot and c.session._runtime_snapshot():
                 from agents.parallel_workflow import WorkflowStore
                 store = WorkflowStore(c.session.config.project_root / 'data/state/parallel_workflows.json')
                 store.user_pause(store.identity(c.username, c.conv_id), False)
-        conv.session._on_interrupt_clear = _clear_interrupt
-        recovered = conv.session.context.pop('preflight_recovery_ready', None)
-        if recovered:
-            conv.session._emit_lifecycle_event('preflight_recovered', {
-                **recovered,
-                'requires_user': False,
-                'main_already_handling': False,
-                'instruction': (
-                    'The validated complete workflow draft was restored automatically. '
-                    'Continue with propose_workflow_patch and execution; do not ask the user '
-                    'about the repaired internal guard.'
-                ),
-            })
-            conv.session._checkpoint('preflight_recovery_scheduled')
-    return conv.session
+        session._on_interrupt_clear = _clear_interrupt
+        check_hydration_control()
+        ready_binding = (session, conv.username, conv.conv_id,
+                         str(session.config.project_root), session._current_line_id)
+        session._api_ready_binding = ready_binding
+        def after_bind():
+            if (conv.session is not session
+                    or getattr(conv, 'current_uid', None) != initial_uid
+                    or (getattr(conv, 'interrupt_requested', False),
+                        getattr(conv, 'interrupt_message', '')) != initial_interrupt):
+                raise ValueError('prepared session was not bound to its unchanged owner')
+            recovered = session.context.pop('preflight_recovery_ready', None)
+            if recovered:
+                session._emit_lifecycle_event('preflight_recovered', {
+                    **recovered,
+                    'requires_user': False,
+                    'main_already_handling': False,
+                    'instruction': (
+                        recovered['instruction'] if isinstance(recovered.get('instruction'), str) and recovered['instruction'] else
+                        'The current approved graph was already committed. Continue with execute_workflow for that approved version; do not propose the same graph or ask for the same permission again.'
+                        if recovered.get('next_action') == 'execute_workflow' else
+                        'The validated complete workflow draft was restored automatically. Continue with propose_workflow_patch and execution; do not ask the user about the repaired internal guard.'
+                    ),
+                })
+                session._checkpoint('preflight_recovery_scheduled')
+        session._api_after_bind = after_bind
+        check_hydration_control()
+        if publish:
+            # Legacy synchronous callers remain supported. Async controls that
+            # prepare in a worker must use publish=False and CAS on their loop.
+            conv.session = session
+            conv._api_session_binding = ready_binding
+            after_bind()
+    return session
 
 
 # ── Models ──
@@ -556,8 +887,11 @@ class ModelConnectionRequest(BaseModel):
 class QueryRequest(BaseModel):
     query: str
     conv_id: str = ""
+    client_turn_id: Optional[str] = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
 
 class QueryResponse(BaseModel):
+    # Correlation only: never a permission token or a retry-idempotency key.
+    client_turn_id: Optional[str] = None
     answer: str
     reasoning: Optional[str] = None
     agent_name: Optional[str] = None
@@ -652,7 +986,7 @@ async def create_conversation(username: str = Depends(_get_user)):
     """Create a new conversation."""
     user = session_manager.get_user(username)
     conv = user.new_conversation()
-    session_manager.persist_conversations(username, conv_id=conv.conv_id)
+    (await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id))
     return {"conv_id": conv.conv_id, "title": conv.title, "created_at": conv.created_at}
 
 
@@ -670,6 +1004,8 @@ async def get_conversation(conv_id: str, username: str = Depends(_get_user)):
     conv = user.get_conversation(conv_id)
     if not conv:
         raise HTTPException(status_code=404, detail="会话不存在")
+    # Read live controls/history only after asynchronous hydration finishes.
+    workflow = await _workflow_state_async(conv)
     # 返回完整对话历史（本地记录不设条数上限，压缩只针对 LLM 上下文）
     _messages = [m for m in conv.messages_history if m.get("role") != "context"]
     return {
@@ -684,7 +1020,7 @@ async def get_conversation(conv_id: str, username: str = Depends(_get_user)):
         "current_uid": conv.current_uid or "",
         "partial_results": conv.partial_results[-10:],
         "execution_logs": conv.execution_logs[-15:],
-        "workflow": _workflow_state(conv),
+        "workflow": workflow,
     }
 
 
@@ -694,7 +1030,66 @@ async def get_workflow(conv_id: str, username: str = Depends(_get_user)):
     conv = user.get_conversation(conv_id)
     if not conv:
         raise HTTPException(status_code=404, detail="会话不存在")
-    return _workflow_state(conv)
+    return await _workflow_state_async(conv)
+
+
+# Immutable native deliverables: authentication selects the conversation;
+# requests never provide a filesystem path or a publication hash.
+def _deliverable_context(username, conv_id):
+    from agents.config import get_config
+    from agents.parallel_workflow import WorkflowStore
+    from agents.workspace import validate_scope_component
+    user = session_manager.get_user(username)
+    conv = user.get_conversation(conv_id)
+    if conv is None:
+        raise HTTPException(404, 'conversation not found')
+    if (conv.username, conv.conv_id) != (username, conv_id):
+        raise HTTPException(403, 'conversation owner mismatch')
+    root = get_config().project_root
+    session_dir = root / 'runs' / validate_scope_component(username) / validate_scope_component(conv_id)
+    store = WorkflowStore(root / 'data/state/parallel_workflows.json')
+    workflow_id = store.identity(username, conv_id)
+    def snapshot():
+        if user.get_conversation(conv_id) is not conv or (conv.username, conv.conv_id) != (username, conv_id):
+            raise PermissionError('deliverable conversation ownership changed')
+        return store.snapshot(workflow_id)
+    return session_dir, {'username': username, 'conv_id': conv_id}, snapshot
+
+
+@app.get('/api/conversations/{conv_id}/artifacts')
+def conversation_deliverables(conv_id: str, username: str = Depends(_get_user)):
+    from agents.result_delivery import list_deliverables
+    root, owner, snapshot = _deliverable_context(username, conv_id)
+    try:
+        state = snapshot()
+        if not state:
+            return {'artifacts': []}
+        return {'artifacts': list_deliverables(root, state, owner)}
+    except PermissionError:
+        raise HTTPException(403, 'deliverable owner scope is unavailable')
+    except (OSError, ValueError, KeyError, TypeError):
+        raise HTTPException(409, 'accepted deliverable inventory requires verification')
+
+
+@app.get('/api/conversations/{conv_id}/artifacts/{artifact_id}')
+def download_conversation_deliverable(conv_id: str, artifact_id: str,
+                                     username: str = Depends(_get_user)):
+    from fastapi.responses import Response
+    from urllib.parse import quote
+    from agents.result_delivery import read_deliverable
+    root, owner, snapshot = _deliverable_context(username, conv_id)
+    try:
+        raw, media_type, name = read_deliverable(root, snapshot(), owner, artifact_id,
+                                                current_state=snapshot)
+        return Response(raw, media_type=media_type, headers={
+            'Content-Disposition': "attachment; filename*=UTF-8''" + quote(name, safe=''),
+            'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
+    except KeyError:
+        raise HTTPException(404, 'deliverable not found')
+    except PermissionError:
+        raise HTTPException(403, 'deliverable owner scope is unavailable')
+    except (OSError, ValueError, TypeError):
+        raise HTTPException(409, 'deliverable differs from its accepted native publication')
 
 
 @app.delete("/api/conversations/{conv_id}")
@@ -717,11 +1112,11 @@ async def delete_conversation(conv_id: str, username: str = Depends(_get_user)):
         if user.current_conv_id == conv_id:
             user.current_conv_id = ""
             user.new_conversation()
-        session_manager.persist_conversations(
+        (await _durable_io(session_manager.persist_conversations,
             username,
             conv_id=user.current_conv_id,
             delete_conv_id=conv_id,
-        )
+        ))
         return {"status": "deleted"}
     raise HTTPException(status_code=404, detail="会话不存在")
 
@@ -733,7 +1128,7 @@ async def rename_conversation(conv_id: str, req: dict, username: str = Depends(_
     if not conv:
         raise HTTPException(status_code=404, detail="会话不存在")
     conv.title = req.get("title", conv.title)[:50]
-    session_manager.persist_conversations(username, conv_id=conv_id)
+    (await _durable_io(session_manager.persist_conversations, username, conv_id=conv_id))
     return {"status": "renamed", "title": conv.title}
 
 
@@ -743,7 +1138,7 @@ async def switch_conversation(conv_id: str, username: str = Depends(_get_user)):
     if conv_id not in user.conversations:
         raise HTTPException(status_code=404, detail="会话不存在")
     user.current_conv_id = conv_id
-    session_manager.persist_conversations(username, conv_id=conv_id)
+    (await _durable_io(session_manager.persist_conversations, username, conv_id=conv_id))
     return {"status": "switched", "conv_id": conv_id}
 
 
@@ -751,8 +1146,11 @@ async def switch_conversation(conv_id: str, username: str = Depends(_get_user)):
 @app.get("/api/latest_answer")
 async def get_latest_answer(username: str = Depends(_get_user), conv_id: str = ""):
     conv = _get_conv(username, conv_id)
+    workflow = await _workflow_state_async(conv)
     return {
         "answer": conv.current_answer,
+        "answer_phase": getattr(conv.session, "context", {}).get("answer_delivery", {}).get("phase", "published"),
+        "review_status": getattr(conv.session, "context", {}).get("answer_delivery", {}).get("review_status", "not_required"),
         "reasoning": conv.current_reasoning,
         "agent_name": conv.current_agent,
         "status": conv.current_status,
@@ -764,7 +1162,7 @@ async def get_latest_answer(username: str = Depends(_get_user), conv_id: str = "
         "interrupt_requested": bool(getattr(conv, "interrupt_requested", False)),
         "interrupt_message": str(getattr(conv, "interrupt_message", "")),
         "queued_redirect": bool(getattr(conv, "queued_redirect", "")),
-        "workflow": _workflow_state(conv),
+        "workflow": workflow,
     }
 
 
@@ -780,14 +1178,17 @@ async def conversation_events(request: Request, conv_id: str, username: str = De
         while not await request.is_disconnected():
             current = _workflow_events.revision(username, conv_id)
             if revision != current:
-                revision = current
+                workflow = await _workflow_state_async(conv)
+                revision = _workflow_events.revision(username, conv_id)
                 payload = {
                     'revision': revision,
                     'conv_id': conv_id,
-                    'workflow': _workflow_state(conv),
+                    'workflow': workflow,
                     'done': not conv.is_processing,
                     'agent_name': conv.current_agent,
                     'status': conv.current_status,
+                    'answer_phase': getattr(conv.session, 'context', {}).get('answer_delivery', {}).get('phase', 'published'),
+                    'review_status': getattr(conv.session, 'context', {}).get('answer_delivery', {}).get('review_status', 'not_required'),
                     'reply_preview': conv.current_reasoning if conv.current_status == '正在回复' else '',
                     'uid': conv.current_uid or '',
                     'interrupt_requested': bool(conv.interrupt_requested),
@@ -801,7 +1202,7 @@ async def conversation_events(request: Request, conv_id: str, username: str = De
                 yield ': keepalive\n\n'
 
     return StreamingResponse(stream(), media_type='text/event-stream', headers={
-        'Cache-Control': 'no-cache, no-store',
+        'Cache-Control': 'no-cache, no-store, no-transform',
         'X-Accel-Buffering': 'no',
     })
 
@@ -810,6 +1211,7 @@ async def conversation_events(request: Request, conv_id: str, username: str = De
 async def process_query(request: QueryRequest, username: str = Depends(_get_user)):
     conv = _get_conv(username, request.conv_id)
     new_uid = str(datetime.now().timestamp())
+    from agents.workflow_user_control import advance_user_control
 
     if conv.is_processing:
         # 用户中断（freeze）后发的新消息 = Claude-Code 的 Esc+typing 重定向。
@@ -820,16 +1222,19 @@ async def process_query(request: QueryRequest, username: str = Depends(_get_user
         if getattr(conv, "interrupt_requested", False):
             conv.interrupt_requested = False
             conv.interrupt_message = ""
+            advance_user_control(conv)
             conv.current_uid = new_uid  # 新消息接管本轮所有权
             conv.queued_redirect = request.query  # 前端可显示"已排队"
             conv.current_status = "⛔ 已中断；收到新消息，当前轮停止后立即继续"
-            asyncio.create_task(_run_after_current_turn(username, conv.conv_id, request.query, new_uid))
+            asyncio.create_task(_run_after_current_turn(username, conv.conv_id, request.query, new_uid,
+                **({"client_turn_id": request.client_turn_id} if request.client_turn_id is not None else {})))
             return QueryResponse(
                 answer="⛔ 已中断当前轮，收到你的新消息；当前工具调用结束后立即继续执行（无需再发消息）。",
                 reasoning=f"已收到新需求（中断重定向）: {request.query}\n\n当前轮停止后立即执行...",
                 agent_name="orchestrator",
                 status="⛔ 已中断（新消息排队中）",
                 uid=new_uid,
+                client_turn_id=request.client_turn_id,
                 done=False,
                 conv_id=conv.conv_id,
             )
@@ -841,10 +1246,12 @@ async def process_query(request: QueryRequest, username: str = Depends(_get_user
     if getattr(conv, "interrupt_requested", False):
         conv.interrupt_requested = False
         conv.interrupt_message = ""
+    advance_user_control(conv)
     conv.current_uid = new_uid
     conv.is_processing = True  # reserve before create_task yields to another request
     _workflow_events.publish(username, conv.conv_id)
-    asyncio.create_task(run_agent_background(username, request.query, conv.conv_id))
+    asyncio.create_task(run_agent_background(username, request.query, conv.conv_id,
+        **({"client_turn_id": request.client_turn_id} if request.client_turn_id is not None else {})))
 
     return QueryResponse(
         answer="正在处理您的请求...",
@@ -852,12 +1259,13 @@ async def process_query(request: QueryRequest, username: str = Depends(_get_user
         agent_name="orchestrator",
         status="Processing",
         uid=new_uid,
+        client_turn_id=request.client_turn_id,
         done=False,
         conv_id=conv.conv_id,
     )
 
 
-async def _run_after_current_turn(username: str, conv_id: str, query: str, uid: str):
+async def _run_after_current_turn(username: str, conv_id: str, query: str, uid: str, *, client_turn_id=None):
     """Wait for the currently-frozen/stuck turn's thread to actually EXIT, then
     run the user's redirect message.
 
@@ -894,14 +1302,15 @@ async def _run_after_current_turn(username: str, conv_id: str, query: str, uid: 
             "message": "⚠️ 中断重定向排队超时（120s），当前工具调用仍未结束；消息已保留，轮次结束后自动继续。",
         })
         try:
-            session_manager.persist_conversations(username, conv_id=conv.conv_id)
+            (await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id))
         except Exception:
             pass
         return
     # Old thread exited — run the redirect as a normal turn (is_processing is
     # already held True by the queue path; run_agent_background keeps it True).
     conv.queued_redirect = ""
-    await run_agent_background(username, query, conv_id)
+    await run_agent_background(username, query, conv_id,
+        **({"client_turn_id": client_turn_id} if client_turn_id is not None else {}))
 
 
 @app.post("/api/conversations/{conv_id}/interrupt")
@@ -924,11 +1333,9 @@ async def interrupt_conversation(conv_id: str, request: Request, username: str =
     conv = user.get_conversation(conv_id)
     if not conv:
         raise HTTPException(status_code=404, detail="会话不存在")
+    from agents.workflow_user_control import advance_user_control
+    advance_user_control(conv)
     conv.interrupt_requested = True
-    if conv.session and conv.session._runtime_snapshot and conv.session._runtime_snapshot():
-        from agents.parallel_workflow import WorkflowStore
-        store = WorkflowStore(conv.session.config.project_root / 'data/state/parallel_workflows.json')
-        store.user_pause(store.identity(username, conv_id))
     conv.interrupt_message = ""  # default: plain freeze
     _redirect = ""
     # Accept optional redirect requirement: {"message": "...新需求..."}
@@ -943,12 +1350,28 @@ async def interrupt_conversation(conv_id: str, request: Request, username: str =
     # conversation frozen waiting for a second message (anti-human). Freeze the
     # current turn, then automatically resume with the redirect once the frozen
     # turn has stopped — typing once feels like "continue thinking".
-    _ensure_session(conv)
-    conv.session._emit_lifecycle_event('user_paused', {'redirect': _redirect, 'user_requested_freeze': True})
+    control_source=_session_admission_source(conv)
+    expected_epoch=control_source[-1]
+    actor=None
+    def current_control():
+        return ((conv.username,conv.conv_id)==(username,conv_id)
+            and conv.current_uid==control_source[1]
+            and getattr(conv,'_workflow_user_control_epoch',0)==expected_epoch
+            and conv.interrupt_requested is True and conv.interrupt_message==_redirect
+            and (actor is None or conv.session is actor))
+    try:
+        actor=await _ensure_api_session(conv)
+        await _set_owned_user_pause(conv,actor,True,current_control)
+        if not current_control():raise ValueError('pause control was superseded during session preparation')
+        if actor is not None:
+            await _durable_io(_owned_conversation_io,conv,actor._emit_lifecycle_event,
+                'user_paused',{'redirect':_redirect,'user_requested_freeze':True})
+    except ValueError as error:
+        raise HTTPException(status_code=409,detail=str(error)) from error
     if _redirect and conv.is_processing:
         conv.current_status = "⛔ 用户中断：冻结本轮，稍后自动用你的需求继续"
         try:
-            session_manager.persist_conversations(username, conv_id=conv.conv_id)
+            (await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id))
         except Exception:
             pass
         asyncio.create_task(_resume_after_freeze(username, conv_id, _redirect))
@@ -963,7 +1386,7 @@ async def interrupt_conversation(conv_id: str, request: Request, username: str =
         }
     conv.current_status = "⛔ 用户中断（冻结本轮，等待后续委派）"
     try:
-        session_manager.persist_conversations(username, conv_id=conv.conv_id)
+        (await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id))
     except Exception:
         pass
     return {
@@ -982,22 +1405,291 @@ async def clear_interrupt(conv_id: str, username: str = Depends(_get_user)):
     conv = user.get_conversation(conv_id)
     if not conv:
         raise HTTPException(status_code=404, detail="会话不存在")
+    from agents.workflow_user_control import advance_user_control
+    advance_user_control(conv)
     conv.interrupt_requested = False
     conv.interrupt_message = ""
-    _ensure_session(conv)
-    if conv.session and conv.session._runtime_snapshot and conv.session._runtime_snapshot():
-        from agents.parallel_workflow import WorkflowStore
-        store = WorkflowStore(conv.session.config.project_root / 'data/state/parallel_workflows.json')
-        store.user_pause(store.identity(username, conv_id), False)
+    control_source=_session_admission_source(conv)
+    expected_epoch=control_source[-1]
+    actor=None
+    def current_control():
+        return ((conv.username,conv.conv_id)==(username,conv_id)
+            and conv.current_uid==control_source[1]
+            and getattr(conv,'_workflow_user_control_epoch',0)==expected_epoch
+            and conv.interrupt_requested is False and not conv.interrupt_message
+            and (actor is None or conv.session is actor))
     try:
-        session_manager.persist_conversations(username, conv_id=conv.conv_id)
+        actor=await _ensure_api_session(conv)
+        await _set_owned_user_pause(conv,actor,False,current_control)
+        if not current_control():raise ValueError('clear control was superseded during session preparation')
+    except ValueError as error:
+        raise HTTPException(status_code=409,detail=str(error)) from error
+    try:
+        (await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id))
     except Exception:
         pass
-    return {"ok": True, "interrupt_requested": False}
+    return {"ok": True, "interrupt_requested": bool(conv.interrupt_requested)}
 
 
 # ── Background agent execution ──
-async def run_agent_background(username: str, query: str, conv_id: str, lifecycle_event=None):
+def _api_turn_is_current(conv, turn_uid):
+    return (conv.current_uid == turn_uid and not conv.interrupt_requested
+            and not conv.interrupt_message)
+
+
+async def _acquire_conversation_lease(lock, timeout=60):
+    pending = asyncio.create_task(asyncio.to_thread(lock.acquire, timeout=timeout))
+    _api_durable_writes.add(pending)
+    pending.add_done_callback(_api_durable_writes.discard)
+    try:
+        return await asyncio.shield(pending)
+    except asyncio.CancelledError:
+        acquired = await _finish_pending_io(pending)
+        if acquired:
+            lock.release()
+        raise
+
+
+async def _review_answer_delivery(conv, event):
+    """Bounded independent read-only review, completed before final publication."""
+    actor, uid = conv.session, conv.current_uid
+    def observe():
+        from agents.watch_context import set_context, clear_context
+        from agents.session import Session
+        from agents.goal_contract import GoalContract
+        from agents.state_io import compact_checkpoint_evidence, write_checkpoint, apply_evidence_references
+        from agents.answer_delivery import digest
+        set_context(conv.username, conv.conv_id, 'answer_reviewer', actor._current_line_id)
+        try:
+            # Never share the lifecycle observer's mutable messages/checkpoint.
+            reviewer = Session(config=actor.config, registry=actor.registry)
+            reviewer.client = reviewer.client.with_options(timeout=60, max_retries=0)
+            reviewer.goal_contract = GoalContract.from_dict(actor.goal_contract.to_dict())
+            reviewer._current_line_id = actor._current_line_id
+            reviewer._evidence_root = actor._evidence_root
+            reviewer._chain_state_is_primary = False
+            reviewer._on_interrupt_requested = lambda: (conv.session is not actor
+                or conv.current_uid != uid or conv.interrupt_requested)
+            identity = digest([uid, event.get('event_id'), event.get('payload',{}).get('answer')])
+            path = Path(actor._evidence_root) / ('answer-review-' + identity + '.checkpoint.json')
+            def checkpoint(state, reason):
+                state['owner'] = {'username':conv.username,'conv_id':conv.conv_id,'role':'answer_reviewer'}
+                refs = compact_checkpoint_evidence(state,actor._evidence_root)
+                write_checkpoint(path,state)
+                apply_evidence_references(reviewer.memory,refs)
+            reviewer._on_checkpoint = checkpoint
+            return reviewer.observe_lifecycle_event(event)
+        finally:
+            clear_context()
+    pending = asyncio.create_task(asyncio.to_thread(observe))
+    try:
+        return await asyncio.shield(pending)
+    except asyncio.CancelledError:
+        await _finish_pending_io(pending)
+        raise
+
+
+async def _gate_answer_delivery(conv, turn_uid, query, result):
+    from agents.answer_delivery import draft_identity, digest, sources_unchanged, persist_draft, limited_answer
+    actor = conv.session
+    make_event = getattr(actor, 'scientific_review_event', None)
+    if not make_event or not isinstance(result, str):
+        return result
+    goal = actor.goal_contract.to_dict()
+    goal_sha = digest(goal)
+    def control_current():
+        return (conv.session is actor and _api_turn_is_current(conv, turn_uid)
+                and digest(actor.goal_contract.to_dict()) == goal_sha)
+    if not control_current(): return None
+    collecting = asyncio.create_task(asyncio.to_thread(make_event, query, result))
+    try:
+        event = await asyncio.shield(collecting)
+    except asyncio.CancelledError:
+        await _finish_pending_io(collecting)
+        raise
+    if not control_current(): return None
+    if not event:
+        if getattr(actor, '_answer_completion_candidate', False): actor.task_complete = True
+        if hasattr(actor,'context'):
+            actor.context['answer_delivery'] = {'turn_uid':turn_uid,'phase':'published','review_status':'not_required'}
+        return result
+    draft = draft_identity(conv.username, conv.conv_id, turn_uid, goal, result, event)
+    original_complete = bool(getattr(actor, '_answer_completion_candidate', False) or actor.task_complete)
+    context = actor.context
+    def current():
+        return (conv.session is actor and _api_turn_is_current(conv, turn_uid)
+                and digest(actor.goal_contract.to_dict()) == draft['goal_sha256'])
+    if not current(): return None
+    previous = context.get('answer_delivery') or {}
+    if previous.get('draft_id') == draft['draft_id']:
+        if previous.get('phase') == 'verifying' and getattr(actor,'_active_answer_delivery_id',None) == draft['draft_id']:
+            return None
+        if previous.get('phase') in {'published','limited'} and await asyncio.to_thread(sources_unchanged, draft['sources']):
+            if not current(): return None
+            actor.task_complete = original_complete
+            return result if previous['phase'] == 'published' else limited_answer(event, previous.get('limited_reason','证据核验不完整。'))
+    actor.task_complete = False
+    conv.current_status = '正在核验证据'
+    conv.current_reasoning = '计算结果已保留，正在核对答复中的事实与限制。'
+    record = {**draft, 'phase':'verifying', 'review_status':'pending', 'owner_pid':os.getpid()}
+    actor._active_answer_delivery_id = draft['draft_id']
+    context['answer_delivery'] = record
+    _workflow_events.publish(conv.username, conv.conv_id)
+    checkpoint = getattr(actor, '_checkpoint', None)
+    async def save():
+        if checkpoint and current():
+            await _durable_io(_owned_conversation_io, conv, checkpoint, 'answer_delivery')
+    try:
+        record['evidence_path'] = await _durable_io(persist_draft, getattr(actor,'_evidence_root',None), draft, result, event)
+        await save()
+        if not current(): return None
+        before = await asyncio.to_thread(sources_unchanged, draft['sources'])
+        if event.get('payload',{}).get('source_gaps'):
+            receipt = {'review_status':'insufficient_evidence','reason':'答复引用了已有结果，但当前原生证据无法验证；未发布未经核验的分析。'}
+        elif not before:
+            receipt = {'review_status':'insufficient_evidence', 'reason':'引用的原生证据已变化或超过核验边界。'}
+        else:
+            try: receipt = await _review_answer_delivery(conv, event)
+            except asyncio.CancelledError: raise
+            except Exception as error:
+                receipt = {'review_status':'insufficient_evidence','reason':'独立核验暂不可用：'+type(error).__name__}
+        if not current(): return None
+        record['review_receipt_sha256'] = digest(receipt)
+        record['review_evidence_call_ids'] = [c['call_id'] for c in receipt.get('evidence_calls',[])[:144] if c.get('call_id')]
+        unchanged = await asyncio.to_thread(sources_unchanged, draft['sources'])
+        if not current(): return None
+        verified = (unchanged and receipt.get('review_status') == 'verified'
+                    and receipt.get('scientific_review',{}).get('passed') is True)
+        text = result if verified else limited_answer(event, receipt.get('reason') or '; '.join(
+            receipt.get('scientific_review',{}).get('issues',[])) or '证据不完整或引用来源已变化。')
+        # No await between final ownership/source recheck and selecting publication.
+        record.update(phase='published' if verified else 'limited',
+            review_status='verified' if verified else 'insufficient_evidence',
+            publication_id=draft['draft_id'], published_text_sha256=hashlib.sha256(text.encode()).hexdigest())
+        if not verified: record['limited_reason'] = receipt.get('reason') or '; '.join(receipt.get('scientific_review',{}).get('issues',[])) or '证据不完整或引用来源已变化。'
+        actor.task_complete = original_complete
+        await save()
+        # Final source check follows all checkpoint I/O; publication runs on the
+        # same loop continuation after this check and its ownership guard.
+        final_sources = await asyncio.to_thread(sources_unchanged, draft['sources'])
+        if not current(): return None
+        if not final_sources:
+            text = limited_answer(event, '引用来源在答复发布前发生变化，旧分析不能发布。')
+            record.update(phase='limited',review_status='insufficient_evidence',limited_reason='引用来源已变化。',
+                          published_text_sha256=hashlib.sha256(text.encode()).hexdigest())
+        return text
+    except asyncio.CancelledError:
+        if conv.session is actor and context.get('answer_delivery') is record:
+            record.update(phase='obsolete', review_status='cancelled')
+        raise
+    except Exception as error:
+        if not current(): return None
+        record.update(phase='limited',review_status='insufficient_evidence',limited_reason='证据交付暂不可用：'+type(error).__name__)
+        actor.task_complete = original_complete
+        text = limited_answer(event,record['limited_reason'])
+        record.update(publication_id=draft['draft_id'],published_text_sha256=hashlib.sha256(text.encode()).hexdigest())
+        return text
+    finally:
+        if getattr(actor,'_active_answer_delivery_id',None) == draft['draft_id']:
+            actor._active_answer_delivery_id = None
+        if not current() and context.get('answer_delivery') is record:
+            record.update(phase='obsolete', review_status='superseded')
+
+
+async def _attach_workflow_reply_status(conv, turn_uid, text):
+    """Publish current failure/incompleteness even when the scientific draft is limited."""
+    from agents.answer_delivery import digest, sources_unchanged
+    from agents.workflow_reply_facts import attach_task_status
+    actor=conv.session
+    getter=getattr(actor,'workflow_reply_facts',None)
+    if not callable(getter) or not isinstance(text,str):return text
+    goal=actor.goal_contract.to_dict();goal_sha=digest(goal)
+    def current():
+        return (conv.session is actor and _api_turn_is_current(conv,turn_uid)
+                and digest(actor.goal_contract.to_dict())==goal_sha)
+    if not current():return None
+    delivery=getattr(actor,'context',{}).get('answer_delivery')or {}
+    scientific=(delivery.get('turn_uid')==turn_uid and delivery.get('review_status')not in {None,'not_required'})
+    context_probe=getattr(actor,'_workflow_reply_context_required',None)
+    if not scientific and callable(context_probe) and not context_probe():return text
+    def gather():
+        try:
+            facts=getter(username=conv.username,conv_id=conv.conv_id,task_related_only=not scientific)
+            error=False
+        except Exception:
+            facts,error=None,True
+        # Status collection is additional I/O after the scientific gate. Do
+        # not publish its old prose if a native source changed in that window.
+        status_changed=False;guard_available=True;guard_receipt=None
+        try:
+            references=delivery.get('sources',[])
+            source_valid=True
+            has_task=bool(facts or goal.get('execution_authorized')is True and goal.get('approved_nodes'))
+            if scientific and has_task and not error:
+                checker=getattr(actor,'_workflow_reply_check',None)
+                receipt=checker(goal=goal,evidence_root=getattr(actor,'_evidence_root',None),
+                    references=references) if callable(checker) else {}
+                guard_available=receipt.get('guarded')is True
+                if guard_available:
+                    latest=receipt['facts']
+                    status_changed=digest(latest)!=digest(facts)
+                    facts=latest;source_valid=receipt.get('sources_valid')is True
+                    guard_receipt={k:receipt.get(k)for k in ('workflow_id','linearized_at')}
+                else:
+                    # Unknown bindings may report a fresh observation only;
+                    # no scientific prose is released on a stat-only check.
+                    source_valid=sources_unchanged(references)
+                    facts=getter(username=conv.username,conv_id=conv.conv_id,task_related_only=False)
+            elif scientific:
+                # No approved workflow: retain the existing ordinary science
+                # path, with the actual source SHA as its last file I/O.
+                source_valid=sources_unchanged(references)
+        except Exception:
+            source_valid=False;error=True;facts=None
+        return facts,error,source_valid,status_changed,guard_available,guard_receipt
+    pending=asyncio.create_task(asyncio.to_thread(gather))
+    try:
+        facts,error,source_valid,status_changed,guard_available,guard_receipt=await asyncio.shield(pending)
+    except asyncio.CancelledError:
+        await _finish_pending_io(pending)
+        raise
+    if not current():return None
+    if not guard_available:
+        text='当前任务状态与原生来源尚未完成同源核验，此前科学草稿暂不发布。已有结果及回执已保留。'
+        actor.task_complete=False
+        delivery.update(phase='limited',review_status='insufficient_evidence',limited_reason='同源执行状态读取保护不可用。')
+    elif not source_valid:
+        text='原生来源未通过发布前的内容核验，暂不能发布此前的科学分析。已有计算及回执已保留。'
+        actor.task_complete=False
+        delivery.update(phase='limited',review_status='insufficient_evidence',limited_reason='原生来源在状态核对期间发生变化。')
+    elif status_changed:
+        text='任务执行状态在答复核验期间发生变化，此前草稿不能作为当前尝试的结论。已有结果与回执已保留。'
+        actor.task_complete=False
+        delivery.update(phase='limited',review_status='insufficient_evidence',limited_reason='当前尝试或任务状态在来源核对期间发生变化。')
+    if error:
+        actor.task_complete=False
+        text='当前任务执行状态暂无法核对，不能确认整体完成。\n\n'+text
+    elif facts and (facts.get('scope')!={'username':conv.username,'conv_id':conv.conv_id}
+            or facts.get('goal_version')!=goal.get('version')
+            or facts.get('plan_version')!=goal.get('approved_plan_version')):
+        actor.task_complete=False
+        facts=None
+        text='当前任务状态的归属或版本无法核对，不能确认整体完成。\n\n'+text
+    elif facts and facts.get('available')is False:
+        actor.task_complete=False
+        facts=None
+        text='当前任务执行状态暂无法核对，不能确认整体完成。\n\n'+text
+    if facts:
+        if facts.get('complete')is not True:actor.task_complete=False
+        text=attach_task_status(text,facts)
+    if delivery.get('turn_uid')==turn_uid:
+        delivery.update(workflow_status=facts,workflow_status_sha256=digest(facts),
+                        published_text_sha256=hashlib.sha256(text.encode()).hexdigest())
+        if guard_receipt:delivery['workflow_status_read_guard']=guard_receipt
+    return text
+
+
+async def run_agent_background(username: str, query: str, conv_id: str, lifecycle_event=None, *, client_turn_id=None):
     user = session_manager.get_user(username)
     conv = user.get_conversation(conv_id) or user.get_current_conversation()
     _ensure_session(conv)
@@ -1018,16 +1710,38 @@ async def run_agent_background(username: str, query: str, conv_id: str, lifecycl
     # 一旦后端中途重启/崩溃/超时，用户刚发的问题就从未进过历史，
     # 前端 reload 后问题和回复一起消失。现在 turn 一开始就把 user 消息
     # 写入并持久化，后续任何 exit path 都会补上 assistant 回复。
-    conv.messages_history.append({"role": "system" if lifecycle_event else "user", "content": query})
+    archived_message = {"role": "system" if lifecycle_event else "user", "content": query}
+    if not lifecycle_event:
+        archived_message.update(turn_uid=turn_uid, timestamp=datetime.now().isoformat())
+        if client_turn_id is not None:
+            archived_message["client_turn_id"] = client_turn_id
+    conv.messages_history.append(archived_message)
     # 仅清理遗留的旧 "已执行的计算" context 占位块（一次性脏数据）
     conv.messages_history = [m for m in conv.messages_history if m.get("role") != "context"]
     try:
-        session_manager.persist_conversations(username, conv_id=conv.conv_id)
+        await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id)
+    except asyncio.CancelledError:
+        # The initial writer has stopped, but no conversation/model lease was
+        # reached yet. Release only this reservation and persist that release.
+        if conv.current_uid == turn_uid:
+            conv.is_processing = False
+            await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id)
+        raise
     except Exception:
         pass
 
+    if not _api_turn_is_current(conv, turn_uid):
+        if conv.current_uid == turn_uid:
+            conv.is_processing = False
+            await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id)
+        return
+
     # Build context from conversation history (already in session.messages, but keep for display)
     def _run_in_thread():
+        # A redirect can also arrive after submit-to-pool but before this
+        # worker starts. Do not let stale control enter the model or tools.
+        if not _api_turn_is_current(conv, turn_uid):
+            return None
         # Never replace process-global sys.stdout here. Multiple conversations
         # run in parallel, and swapping stdout in one worker caused logs from one
         # user/session to leak into another. Structured progress callbacks are
@@ -1037,6 +1751,8 @@ async def run_agent_background(username: str, query: str, conv_id: str, lifecycl
         from agents.watch_context import set_context, clear_context
         set_context(username, conv.conv_id, conv.current_agent or "orchestrator", conv.session._current_line_id)
         conv.session._api_turn_id = turn_uid
+        conv.session._defer_scientific_delivery = True
+        conv.session._answer_completion_candidate = False
         try:
             if lifecycle_event:
                 result = conv.session.resume_lifecycle_event(lifecycle_event)
@@ -1051,6 +1767,8 @@ async def run_agent_background(username: str, query: str, conv_id: str, lifecycl
                 conv.conversation_active = True
             return result
         finally:
+            if getattr(conv.session,'_api_turn_id',None) == turn_uid:
+                conv.session._defer_scientific_delivery = False
             clear_context()
 
     conv_lock = _get_conv_lock(username, conv.conv_id)
@@ -1061,7 +1779,16 @@ async def run_agent_background(username: str, query: str, conv_id: str, lifecycl
     # smoke-test conversation of the same user legitimately run together.
     # A bounded wait keeps the old "silent empty answer" failure visible:
     # if the lock can't be acquired, surface the reason in the answer.
-    if not await asyncio.to_thread(conv_lock.acquire, timeout=60):
+    try:
+        acquired = await _acquire_conversation_lease(conv_lock, timeout=60)
+    except BaseException:
+        if conv.current_uid == turn_uid:
+            conv.is_processing = False
+            await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id)
+        raise
+    if not acquired:
+        if conv.current_uid != turn_uid:
+            return
         conv.is_processing = False
         _busy = "⚠️ 系统繁忙：这个对话正在处理上一条消息，请稍后重试本条消息。"
         conv.current_answer = _busy
@@ -1073,12 +1800,14 @@ async def run_agent_background(username: str, query: str, conv_id: str, lifecycl
             "message": "系统繁忙：同会话并发处理中，等待60s后放弃"
         })
         try:
-            session_manager.persist_conversations(username, conv_id=conv.conv_id)
+            (await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id))
         except Exception:
             pass
         return
 
     try:
+        if not _api_turn_is_current(conv, turn_uid):
+            return
         # Another API process may have finished this conversation while we waited
         # for its kernel lease. Restore its newer execution state before replying.
         from agents.workspace import session_root
@@ -1086,6 +1815,7 @@ async def run_agent_background(username: str, query: str, conv_id: str, lifecycl
         if checkpoint.exists():
             saved = json.loads(checkpoint.read_text())
             if saved.get('checkpoint_at', 0) > getattr(conv.session, '_last_checkpoint_at', 0):
+                conv._api_session_binding = None
                 conv.session.import_state(saved)
                 _ensure_session(conv)
         conv.current_agent = "orchestrator"
@@ -1103,7 +1833,20 @@ async def run_agent_background(username: str, query: str, conv_id: str, lifecycl
             print(f"  [turn] conv {conv_id} superseded (uid {turn_uid} != {conv.current_uid}) — discarding old turn output", flush=True)
             return
 
+        if not _api_turn_is_current(conv, turn_uid):
+            return
+        result = await _gate_answer_delivery(conv, turn_uid, query, result)
+        if result is None or not _api_turn_is_current(conv, turn_uid):
+            return
+        result = await _attach_workflow_reply_status(conv, turn_uid, result)
+        if result is None or not _api_turn_is_current(conv, turn_uid):
+            return
+        delivery = getattr(conv.session,'context',{}).get('answer_delivery',{})
+        publication_id = delivery.get('publication_id') if delivery.get('turn_uid') == turn_uid else None
+        if publication_id and any(m.get('publication_id') == publication_id for m in conv.messages_history):
+            return
         conv.current_answer = result
+        conv.session.last_text = result
         # 用户消息已在 turn 开始时落盘（防中途崩溃/重启吞掉提问），
         # 这里只补上 assistant 回复。本地对话历史完整落盘，不截断不设限；
         # 压缩只对"发给 LLM 的上下文"做（session._trim_messages）。
@@ -1111,7 +1854,8 @@ async def run_agent_background(username: str, query: str, conv_id: str, lifecycl
         conv.current_status = _execution_status(conv.session)
         conv.messages_history.append({'role': 'assistant', 'content': result if result else '',
                                       'agent': 'lead-orchestrator', 'timestamp': time.time(),
-                                      'status': conv.current_status, 'uid': turn_uid,
+                                      'status': conv.current_status, 'uid': turn_uid, 'publication_id':publication_id,
+                                      'answer_phase':delivery.get('phase','published'),
                                       'delivery_owner': 'lead-orchestrator', 'negotiation_owner': 'lead-orchestrator'})
         conv.execution_logs.append({'time': datetime.now().isoformat(), 'message': conv.current_status})
 
@@ -1123,11 +1867,11 @@ async def run_agent_background(username: str, query: str, conv_id: str, lifecycl
 
         # Persist conversation to log
         try:
-            _append_conversation_log([
+            (await _durable_io(_append_conversation_log, [
                 {"time": datetime.now().isoformat(), "username": username,
                  "conv_id": conv_id, "role": role, "content": content}
                 for role, content in [("user", query), ("assistant", result or "")]
-            ])
+            ]))
         except Exception:
             pass
 
@@ -1135,57 +1879,61 @@ async def run_agent_background(username: str, query: str, conv_id: str, lifecycl
         # orphan JobWatch notifications (conv "gone" → dropped). Without this,
         # a job that fails hours after a restart never wakes its agent.
         try:
-            session_manager.persist_conversations(username, conv_id=conv.conv_id)
+            (await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id))
         except Exception:
             pass
 
     except Exception as e:
-        conv.current_status = f"Error: {str(e)}"
-        _err = f"处理请求时出错: {str(e)}"
-        conv.current_answer = _err
-        # 用户消息已在 turn 开始时落盘，这里补上出错回复，保证问题+回复都不消失
-        conv.messages_history.append({"role": "assistant", "content": _err})
-        conv.execution_logs.append({"time": datetime.now().isoformat(), "message": f"❌ 错误: {str(e)}"})
-        try:
-            session_manager.persist_conversations(username, conv_id=conv.conv_id)
-        except Exception:
-            pass
-    finally:
-        # 只有仍拥有本轮所有权时才清 is_processing/interrupt；若已被新消息
-        # 接管（uid 更新），绝不动新轮的状态（否则会把新 turn 标成空闲/清掉
-        # 它的中断，造成"发了又处理中/又冻结"）。
         if conv.current_uid == turn_uid:
-            conv.is_processing = False
-            if conv.session:
-                conv.session._api_turn_id = turn_uid
-                conv.session._persist_chain('api_turn_end')
-                conv.session._api_turn_id = None
-            # A turn always ends — clear any pending user-interrupt flag so a later
-            # "继续" message doesn't abort immediately.
-            # Preserve an explicit user freeze until their next directive;
-            # scheduler/supervisor events may not silently unfreeze it.
-            # ⚠️ 关键：上面的 is_processing=False 必须在**清标志后**再持久化一次。
-            # 否则 users.json 会一直存着 is_processing=True（第574行 persist 跑在
-            # finally 之前），服务重启时 auth 自愈会把**已正常完成**的对话误标成
-            # "已中断（服务重启）"——用户切 session / 刷新后"响应消失"。
+            conv.current_status = f"Error: {str(e)}"
+            _err = f"处理请求时出错: {str(e)}"
+            conv.current_answer = _err
+            # 用户消息已在 turn 开始时落盘，这里补上出错回复，保证问题+回复都不消失
+            conv.messages_history.append({"role": "assistant", "content": _err})
+            conv.execution_logs.append({"time": datetime.now().isoformat(), "message": f"❌ 错误: {str(e)}"})
             try:
-                session_manager.persist_conversations(username, conv_id=conv.conv_id)
+                (await _durable_io(session_manager.persist_conversations, username, conv_id=conv.conv_id))
+            except Exception:
+                pass
+    finally:
+        try:
+            await _finish_api_turn(conv, turn_uid, username)
+            # Restart requests run only after the owned reply/chain commit.
+            try:
+                from agents._restart import consume
+                if consume():
+                    asyncio.create_task(_perform_backend_restart())
+            except Exception as error:
+                print(f"  [backend] restart consume error: {error}", flush=True)
+        finally:
+            try:
+                conv_lock.release()
+            except RuntimeError:
+                pass
+
+
+async def _finish_api_turn(conv, turn_uid, username):
+    if conv.current_uid != turn_uid:
+        return
+    session = conv.session
+    try:
+        if session:
+            session._api_turn_id = turn_uid
+            await _durable_io(_owned_conversation_io, conv,
+                              session._persist_chain, 'api_turn_end')
+    finally:
+        # A redirect can change ownership while disk I/O is pending. Never
+        # clear its busy flag, pause or current turn identity from this turn.
+        if conv.current_uid == turn_uid:
+            if session and session._api_turn_id == turn_uid:
+                session._api_turn_id = None
+            conv.is_processing = False
+            try:
+                await _durable_io(session_manager.persist_conversations,
+                                        username, conv_id=conv.conv_id)
             except Exception:
                 pass
             _workflow_events.publish(username, conv.conv_id)
-        # A framework patcher may have requested a backend restart so its code
-        # edits take effect. Do it ONLY after the reply is written + persisted
-        # (never mid-turn), and detached so the new process survives us.
-        try:
-            from agents._restart import consume
-            if consume():
-                asyncio.create_task(_perform_backend_restart())
-        except Exception as _e:
-            print(f"  [backend] restart consume error: {_e}", flush=True)
-        try:
-            conv_lock.release()
-        except RuntimeError:
-            pass  # already released by an overlapping force-release
 
 
 async def _resume_after_freeze(username: str, conv_id: str, redirect: str):
@@ -1225,7 +1973,8 @@ async def _perform_backend_restart():
     fully written + persisted its reply (never mid-turn). Called from the
     turn's finally via asyncio.create_task."""
     await asyncio.sleep(2)  # let the HTTP response flush to the frontend
-    busy = any(c.is_processing for u in session_manager.list_users() for c in session_manager.get_user(u).conversations.values())
+    busy = any(not task.done() for task in _api_durable_writes)
+    busy = busy or any(c.is_processing for u in session_manager.list_users() for c in session_manager.get_user(u).conversations.values())
     busy = busy or any(agent.get('busy_event_id') for u in session_manager.list_users()
         for c in session_manager.get_user(u).conversations.values() if c.session and c.session._lifecycle_store
         for agent in c.session._lifecycle_store.snapshot().get('agents', {}).values())
@@ -1234,6 +1983,12 @@ async def _perform_backend_restart():
         from agents._restart import request
         request()
         print('[backend] administrator restart deferred: other user/session turns still active', flush=True)
+        return
+    managed_restart = os.environ.get('BIMEM_MANAGED_RESTART_FILE')
+    if managed_restart:
+        from agents.state_io import write_checkpoint
+        write_checkpoint(Path(managed_restart), {'requested_at': time.time(), 'pid': os.getpid()})
+        print('[backend] restart requested from the existing compute allocation supervisor', flush=True)
         return
     # Never pgrep/head an arbitrary uvicorn belonging to another workspace.
     pid, root = os.getpid(), str(Path(__file__).resolve().parent)
@@ -1268,7 +2023,7 @@ async def system_status():
     return {
         "status": "healthy",
         "version": app.version,
-        "total_users_registered": len(load_users()) if USER_DB.exists() else 0,
+        "total_users_registered": await _durable_io(registered_user_count),
         "active_sessions": len(users),
         "active_queries": active,
         "max_concurrent_llm": MODEL_CALL_CONCURRENCY,
@@ -1322,29 +2077,89 @@ def _ensure_workflow_runtime(conv):
     from agents.parallel_workflow import ParallelWorkflow, WorkflowStore
     from agents.workspace import session_root
     from agents.task_line import get_store
-    main = _ensure_session(conv)
-    if main is None:
-        raise ValueError('session could not be restored')
-    key = (conv.username, conv.conv_id)
-    if key not in _workflow_runtimes:
-        _workflow_runtimes[key] = ParallelWorkflow(main, session_root(conv.conv_id, conv.username),
-            WorkflowStore(main.config.project_root / 'data/state/parallel_workflows.json'),
-            main._lifecycle_store, get_store(), conv.username, conv.conv_id, job_watch=_watch,
-            on_change=lambda reason: _workflow_events.publish(conv.username, conv.conv_id))
-    _workflow_runtimes[key].main = main
-    return _workflow_runtimes[key]
+    guard=conv.__dict__.setdefault('_api_runtime_binding_lock',threading.RLock())
+    with guard:
+        scope=(conv.username,conv.conv_id)
+        main=_ensure_session(conv)
+        if main is None:raise ValueError('session could not be restored')
+        if conv.session is not main or (conv.username,conv.conv_id)!=scope:
+            raise ValueError('runtime binding owner changed during hydration')
+        runtime=_workflow_runtimes.get(scope)
+        if runtime is None:
+            prepared=ParallelWorkflow(main,session_root(conv.conv_id,conv.username),
+                WorkflowStore(main.config.project_root/'data/state/parallel_workflows.json'),
+                main._lifecycle_store,get_store(),conv.username,conv.conv_id,job_watch=_watch,
+                on_change=lambda reason:_workflow_events.publish(conv.username,conv.conv_id))
+            if conv.session is not main or (conv.username,conv.conv_id)!=scope:
+                prepared.shutdown()
+                raise ValueError('runtime binding Session changed during preparation')
+            runtime=prepared
+            _workflow_runtimes[scope]=runtime
+        if conv.session is not main or (conv.username,conv.conv_id)!=scope:
+            raise ValueError('runtime binding Session was replaced')
+        runtime.main=main
+        return runtime
 
 
 class WorkflowExecutionRequest(BaseModel):
     plan_version: int
 
 
-def _start_workflow_runtime(conv, plan_version):
+class LocalPreparationRequeueRequest(BaseModel):
+    expected_token: str = Field(min_length=1)
+    failed_call_id: str = Field(min_length=1)
+    verification_call_id: Optional[str] = Field(default=None, min_length=1)
+
+
+class UserReportRetryRequest(BaseModel):
+    plan_version: int = Field(gt=0, strict=True)
+    expected_failure_call_id: str = Field(min_length=1, max_length=128, pattern=r'^[A-Za-z0-9_-]+$')
+    expected_failure_token: str = Field(min_length=32, max_length=32, pattern=r'^[a-f0-9]{32}$')
+    request_id: str = Field(min_length=16, max_length=128, pattern=r'^[A-Za-z0-9_-]+$')
+    confirm_same_report_only: StrictBool
+    model_config = {'extra':'forbid'}
+
+
+class WorkflowProposalDiscardRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class NativeResultRevalidationRequest(BaseModel):
+    expected_token: str = Field(min_length=1)
+
+
+class NativeResultRejectionRequest(BaseModel):
+    expected_token: str = Field(min_length=1)
+    goal_version: int = Field(gt=0)
+    plan_version: int = Field(gt=0)
+
+
+class CDFTPartialPrepareRequest(BaseModel):
+    timeout_seconds: int = Field(gt=0)
+    walltime: str = Field(min_length=1, max_length=32)
+
+
+class PausedWorkflowStageRequest(BaseModel):
+    base_version: int = Field(gt=0)
+    goal_version: int = Field(gt=0)
+    reason: str = Field(min_length=5, max_length=2000)
+    changes: List[Dict[str, Any]] = Field(min_length=1, max_length=128)
+
+    model_config = {'extra': 'forbid'}
+
+
+def _start_workflow_runtime(conv, plan_version, *, preserve_user_pause=False, control_valid=None):
+    if control_valid is not None and not control_valid():
+        raise ValueError('workflow control changed before runtime binding')
     runtime = _ensure_workflow_runtime(conv)
+    if control_valid is not None and not control_valid():
+        raise ValueError('workflow control changed during runtime binding')
     jobs = [job for job in _watch.list()
             if (job.get('username'), job.get('conv_id')) == (conv.username, conv.conv_id)]
+    options = {'preserve_user_pause': True} if preserve_user_pause else {}
+    if control_valid is not None: options['control_valid'] = control_valid
     return runtime.start_and_tick(plan_version, jobs=jobs,
-                                  paused=bool(conv.interrupt_requested))
+                                  paused=bool(conv.interrupt_requested), **options)
 
 
 class WorkerMessageRequest(BaseModel):
@@ -1358,14 +2173,803 @@ async def execute_parallel_workflow(conv_id: str, request: WorkflowExecutionRequ
     conv = session_manager.get_user(username).get_conversation(conv_id)
     if conv is None: raise HTTPException(404, 'conversation not found')
     if conv.is_processing or conv.interrupt_requested: raise HTTPException(409, 'main turn busy or user paused; approve through main chat')
+    if (conv.username, conv.conv_id) != (username, conv_id):
+        raise HTTPException(403, 'conversation owner does not match execution request')
+    # Reserve before the first await, including while waiting for the lease.
+    conv.is_processing = True
+    uid = conv.current_uid
+    initial_actor = conv.session
+    lock = _get_conv_lock(username, conv_id)
+    acquired = False
+    cancelled = threading.Event()
     try:
-        result = _start_workflow_runtime(conv, request.plan_version)
-        conv.session.task_complete = False
+        acquired = await _acquire_conversation_lease(lock, timeout=60)
+        if not acquired: raise ValueError('conversation control lease is busy')
+        def initial_control():
+            return (not cancelled.is_set() and conv.current_uid == uid and conv.is_processing
+                    and not conv.interrupt_requested and not conv.interrupt_message
+                    and conv.session is initial_actor)
+        if not initial_control(): raise ValueError('execution control was superseded or paused')
+        # Lazy session hydration also reads durable evidence. Keep it off-loop;
+        # the reservation and lease remain owned until its writer has stopped.
+        actor = await _durable_io(_owned_conversation_io, conv, _ensure_session, conv)
+        if (cancelled.is_set() or conv.current_uid != uid or not conv.is_processing
+                or conv.interrupt_requested or conv.interrupt_message
+                or actor is None or conv.session is not actor
+                or initial_actor is not None and actor is not initial_actor):
+            raise ValueError('session or execution control changed during hydration')
+        goal = copy.deepcopy(actor.goal_contract.to_dict())
+        if goal.get('execution_authorized') is not True:
+            raise HTTPException(403, 'current goal is not authorized for execution')
+        if goal.get('approved_plan_version') != request.plan_version:
+            raise ValueError('execute requires the exact approved structured plan version')
+        def control_valid():
+            return (not cancelled.is_set() and conv.session is actor and conv.current_uid == uid
+                    and conv.is_processing and not conv.interrupt_requested and not conv.interrupt_message
+                    and actor.goal_contract.to_dict() == goal)
+        def start():
+            if not control_valid(): raise ValueError('execution control changed before startup')
+            return _owned_conversation_io(conv, _start_workflow_runtime, conv,
+                request.plan_version, control_valid=control_valid)
+        pending = asyncio.create_task(asyncio.to_thread(start))
+        _api_durable_writes.add(pending)
+        pending.add_done_callback(_api_durable_writes.discard)
+        try: result = await asyncio.shield(pending)
+        except asyncio.CancelledError:
+            cancelled.set()
+            try: await _finish_pending_io(pending)
+            except BaseException: pass
+            raise
+        if not control_valid(): raise ValueError('execution control changed during startup')
+        actor.task_complete = False
         conv.conversation_active = True
-        conv.session._checkpoint('workflow_api_start')
-        session_manager.persist_conversations(username, conv_id=conv.conv_id)
+        def checkpoint():
+            if not control_valid(): raise ValueError('execution control changed before checkpoint')
+            actor._checkpoint('workflow_api_start')
+        await _durable_io(_owned_conversation_io, conv, checkpoint)
+        if not control_valid(): raise ValueError('execution control changed before receipt persistence')
+        await _durable_io(session_manager.persist_conversations, username, conv_id=conv_id,
+                          completed_turn_uid=uid)
+        if not control_valid(): raise ValueError('execution control changed before receipt delivery')
         return result
     except ValueError as error: raise HTTPException(409, str(error))
+    finally:
+        if acquired: lock.release()
+        if conv.current_uid == uid: conv.is_processing = False
+
+
+@app.post('/api/conversations/{conv_id}/workflow/nodes/{step_id}/requeue-local-preparation')
+async def requeue_workflow_local_preparation(conv_id: str, step_id: str, request: LocalPreparationRequeueRequest,
+                                            username: str = Depends(_get_user)):
+    """An authenticated owner can request an evidence-backed, unchanged retry."""
+    conv = session_manager.get_user(username).get_conversation(conv_id)
+    if conv is None: raise HTTPException(404, 'conversation not found')
+    if conv.is_processing or conv.interrupt_requested:
+        raise HTTPException(409, 'main turn busy or user paused')
+    # Reserve synchronously before yielding: another query cannot claim this
+    # conversation while its control transaction is in progress.
+    conv.is_processing = True
+    saved_uid = conv.current_uid
+    lock = _get_conv_lock(username, conv_id)
+    acquired = False
+    try:
+        acquired = await _acquire_conversation_lease(lock, timeout=60)
+        if not acquired: raise HTTPException(409, 'conversation control lease is busy')
+        if conv.current_uid != saved_uid or conv.interrupt_requested or conv.interrupt_message:
+            raise HTTPException(409, 'conversation control was superseded or paused')
+        runtime = _ensure_workflow_runtime(conv)
+        session = conv.session
+        goal = session.goal_contract
+        if not goal.execution_authorized:
+            raise HTTPException(403, 'current goal is not authorized for execution')
+        version = goal.version
+        source = {'origin': 'user', 'turn_id': 'api-' + uuid.uuid4().hex,
+                  'owner': {'username': username, 'conv_id': conv_id}, 'goal_version': version}
+        def control_valid():
+            return (conv.session is session and conv.current_uid == saved_uid and conv.is_processing
+                    and not conv.interrupt_requested and not conv.interrupt_message
+                    and session.goal_contract.version == version and session.goal_contract.execution_authorized)
+        def inspect_and_requeue():
+            verification_call_id = request.verification_call_id
+            if not verification_call_id:
+                from agents.local_preparation_recovery import preparation_capability
+                from agents.recovery import failure_reason
+                state = runtime.snapshot()
+                node = state.get('nodes', {}).get(step_id, {})
+                contract = node.get('contract', {})
+                if (not control_valid() or node.get('token') != request.expected_token
+                        or node.get('status') != 'failed' or not preparation_capability(contract)):
+                    raise ValueError('local preparation changed before native inspection')
+                arguments = copy.deepcopy(node.get('effective_arguments') or contract['arguments'])
+                parameters = {'tool_name': contract['tool'], 'arguments': arguments}
+                observed = session.registry.execute_dict('inspect_runtime', parameters)
+                if not control_valid():
+                    raise ValueError('control was superseded during native inspection')
+                session.memory.record_tool_call('operations', 'inspect_runtime', parameters,
+                    json.dumps(observed, ensure_ascii=False, default=str), failed=bool(failure_reason(observed)))
+                verification_call_id = session.memory.tool_call_log[-1]['call_id']
+                session._checkpoint('external_local_preparation_inspected')
+            return runtime.requeue_local_preparation(
+                step_id, request.expected_token, request.failed_call_id, verification_call_id,
+                control_source=source, authority_role='lead-orchestrator',
+                operations_authority=None, control_valid=control_valid)
+        pending = asyncio.create_task(asyncio.to_thread(
+            inspect_and_requeue))
+        _api_durable_writes.add(pending)
+        pending.add_done_callback(_api_durable_writes.discard)
+        try:
+            receipt = await asyncio.shield(pending)
+        except asyncio.CancelledError:
+            await _finish_pending_io(pending)
+            raise
+        conv.session._checkpoint('local_preparation_requeued_by_api')
+        if conv.current_uid == saved_uid:
+            conv.is_processing = False
+        await _durable_io(session_manager.persist_conversations, username, conv_id=conv_id)
+        return receipt
+    except PermissionError as error: raise HTTPException(403, str(error))
+    except ValueError as error: raise HTTPException(409, str(error))
+    finally:
+        if acquired: lock.release()
+        if conv.current_uid == saved_uid: conv.is_processing = False
+
+
+@app.post('/api/conversations/{conv_id}/workflow/nodes/{step_id}/retry-report-once')
+async def retry_owned_report_once(conv_id: str, step_id: str, request: UserReportRetryRequest,
+                                  username: str = Depends(_get_user)):
+    """An authenticated, explicit owner decision; never a model-granted retry."""
+    if request.confirm_same_report_only is not True:raise HTTPException(400,'explicit report retry confirmation required')
+    conv=session_manager.get_user(username).get_conversation(conv_id)
+    if conv is None:raise HTTPException(404,'conversation not found')
+    if (conv.username,conv.conv_id)!=(username,conv_id):raise HTTPException(403,'conversation owner mismatch')
+    if conv.is_processing or conv.interrupt_requested or conv.interrupt_message:
+        raise HTTPException(409,'main turn busy or user paused')
+    from agents.workflow_user_control import advance_user_control,workflow_control_guard
+    advance_user_control(conv)
+    conv.is_processing=True;saved_uid=conv.current_uid;lock=_get_conv_lock(username,conv_id)
+    acquired=False;cancelled=threading.Event()
+    try:
+        acquired=await _acquire_conversation_lease(lock,timeout=60)
+        if not acquired:raise ValueError('conversation control lease is busy')
+        runtime=await _durable_io(_owned_conversation_io,conv,_ensure_workflow_runtime,conv)
+        actor=conv.session
+        if actor is None or runtime.main is not actor:raise ValueError('owned actor changed')
+        goal=copy.deepcopy(actor.goal_contract.to_dict())
+        native_control=workflow_control_guard(actor,username,conv_id)
+        def control():
+            return (not cancelled.is_set() and conv.is_processing and conv.current_uid==saved_uid
+                and conv.session is actor and not conv.interrupt_requested and not conv.interrupt_message
+                and native_control() and actor.goal_contract.to_dict()==goal)
+        if not control() or goal.get('execution_authorized') is not True or goal.get('approved_plan_version')!=request.plan_version:
+            raise ValueError('user control or approved plan changed')
+        lifecycle=actor._lifecycle_store.snapshot() if actor._lifecycle_store else {}
+        if any(v.get('busy_event_id') for v in (lifecycle.get('agents')or{}).values()):
+            raise ValueError('native receiver is busy; retry after it finishes')
+        owner={'username':username,'conv_id':conv_id}
+        authorization={'kind':'authenticated_user_report_retry','owner':owner,'step_id':step_id,
+            'plan_version':request.plan_version,'failure_call':request.expected_failure_call_id,
+            'failure_token':request.expected_failure_token,'request_id':request.request_id,
+            'confirmed':request.confirm_same_report_only}
+        def execute():
+            from agents.report_bounded_retry import capture_report_retry
+            state=runtime.snapshot()
+            proof,packet=capture_report_retry(runtime,state,step_id,control_valid=control,
+                return_packet=True,user_authorization=authorization)
+            def revalidate(current):
+                if not control():raise ValueError('user control changed before report retry commit')
+                return capture_report_retry(runtime,current,step_id,control_valid=control,
+                    prepared_packet=packet,user_authorization=authorization)
+            receipt=runtime.store.requeue_bounded_report(runtime.workflow_id,step_id,
+                request.expected_failure_token,goal,owner,proof,revalidate,control_valid=control)
+            # Only the explicitly approved report node may be claimed by this
+            # wake-up. Ordinary background scheduling remains independent.
+            wake='claimed_requires_reconciliation'
+            try:
+                # Even if user control was revoked after commit, the targeted
+                # dispatcher must settle a provably unstarted claim immediately.
+                wake=runtime.dispatch_user_report_only(step_id,control_valid=control,proof=proof,packet=packet,ticket=receipt['user_claim_ticket'])
+            except Exception:pass  # The durable receipt still resolves an interrupted wake.
+            return receipt,wake
+        pending=asyncio.create_task(asyncio.to_thread(_owned_conversation_io,conv,execute))
+        _api_durable_writes.add(pending);pending.add_done_callback(_api_durable_writes.discard)
+        try:receipt,wake=await asyncio.shield(pending)
+        except asyncio.CancelledError:
+            cancelled.set()
+            try:await _finish_pending_io(pending)
+            except BaseException:pass
+            raise
+        _workflow_events.publish(username,conv_id)
+        return {'ok':True,'status':wake,'step_id':step_id,
+            'request_id':request.request_id,'proof_sha256':receipt['proof_sha256'],'wake_status':wake,
+            'no_scientific_resubmission':True,'scientific_acceptance':False}
+    except PermissionError as error:raise HTTPException(403,str(error)) from None
+    except ValueError as error:raise HTTPException(409,str(error)) from None
+    finally:
+        if acquired:lock.release()
+        if conv.current_uid==saved_uid:conv.is_processing=False
+
+
+@app.get('/api/conversations/{conv_id}/workflow/report-retry-options')
+async def get_user_report_retry_options(conv_id: str,username: str=Depends(_get_user)):
+    """Advisory owner-scoped report failures; never grants or triggers retry."""
+    conv=session_manager.get_user(username).get_conversation(conv_id)
+    if conv is None or (conv.username,conv.conv_id)!=(username,conv_id):raise HTTPException(404,'conversation not found')
+    from agents.parallel_workflow import WorkflowStore
+    from agents.report_bounded_retry import _digest
+    from agents.workflow_patch import execution_contract
+    root=Path(__file__).resolve().parent
+    owner={'username':username,'conv_id':conv_id}
+    def inspect():
+        data=WorkflowStore(root/'data/state/parallel_workflows.json').snapshot()
+        matches=[w for w in (data.get('workflows')or{}).values()
+            if isinstance(w,dict) and (w.get('username'),w.get('conv_id'))==(username,conv_id)]
+        if len(matches)>1:raise ValueError('workflow owner is ambiguous')
+        if not matches:return {'plan_version':None,'options':[],'advisory':True}
+        state=matches[0];ledgers=data.get('user_report_retry_ledger') or {}
+        if not isinstance(ledgers,dict):raise ValueError('user report retry ledger malformed')
+        ledger=ledgers.get(_digest(owner),[])
+        if not isinstance(ledger,list) or any(not isinstance(v,dict)for v in ledger):raise ValueError('user report retry ledger malformed')
+        options=[]
+        for step,node in (state.get('nodes')or{}).items():
+            contract=node.get('contract')or{};args=contract.get('arguments')or{};ref=node.get('result_ref')or{}
+            token=node.get('token');call=ref.get('call_id');output=args.get('output_path')
+            if (node.get('status')!='failed' or contract.get('tool')!='generate_scientific_report'
+                    or not isinstance(step,str) or not isinstance(token,str) or not isinstance(call,str)
+                    or not isinstance(output,str)):continue
+            path=Path(os.path.abspath(output));owned=root/'runs'/username/conv_id
+            if not path.is_relative_to(owned) or path==owned:continue
+            contract_key=_digest(execution_contract(contract));output_key=_digest({'owner':owner,'output':str(path)})
+            used=any(v.get('contract_key')==contract_key or v.get('output_identity_sha256')==output_key for v in ledger)
+            options.append({'step_id':step,'label':step,'plan_version':state.get('plan_version'),
+                'expected_failure_call_id':call,'expected_failure_token':token,
+                'retry_state':'used' if used else 'check_required'})
+        return {'plan_version':state.get('plan_version'),'options':options,'advisory':True,
+            'note':'资格、来源、用户控制和输出将在确认时重新验证；此列表不授权重试。'}
+    try:return await _durable_io(inspect)
+    except ValueError as error:raise HTTPException(409,str(error)) from None
+
+
+@app.get('/api/conversations/{conv_id}/workflow/report-retry-receipts/{request_id}')
+async def get_user_report_retry_receipt(conv_id: str,request_id: str,username: str=Depends(_get_user)):
+    """Resolve an interrupted HTTP response without reissuing authorization."""
+    import re
+    if not re.fullmatch(r'[A-Za-z0-9_-]{16,128}',request_id):raise HTTPException(400,'invalid request id')
+    conv=session_manager.get_user(username).get_conversation(conv_id)
+    if conv is None or (conv.username,conv.conv_id)!=(username,conv_id):raise HTTPException(404,'conversation not found')
+    from agents.parallel_workflow import WorkflowStore
+    from agents.report_bounded_retry import _digest
+    root=Path(__file__).resolve().parent
+    def read():
+        from agents.state_io import json_transaction
+        with json_transaction(WorkflowStore(root/'data/state/parallel_workflows.json').path) as data:
+            ledgers=data.get('user_report_retry_ledger') or {};owner={'username':username,'conv_id':conv_id}
+            if not isinstance(ledgers,dict):raise ValueError('user retry ledger malformed')
+            records=ledgers.get(_digest(owner),[]);nonce=_digest({'owner':owner,'request_id':request_id})
+            if not isinstance(records,list) or any(not isinstance(v,dict)for v in records):raise ValueError('user retry ledger malformed')
+            matches=[v for v in records if v.get('nonce_key')==nonce]
+            if len(matches)>1:raise ValueError('user retry receipt ambiguous')
+            return copy.deepcopy(matches[0]) if matches else None
+    try:record=await _durable_io(read)
+    except ValueError as error:raise HTTPException(409,str(error)) from None
+    if record is None:raise HTTPException(404,'report retry receipt not found')
+    return {'ok':True,'request_id':request_id,'status':record.get('dispatch_status','claimed'),
+        'proof_sha256':record['proof_sha256'],'scientific_acceptance':False}
+
+
+@app.post('/api/conversations/{conv_id}/workflow/proposals/{plan_version}/discard')
+async def discard_workflow_proposal(conv_id: str, plan_version: int, request: WorkflowProposalDiscardRequest,
+                                    username: str = Depends(_get_user)):
+    """Withdraw one exact pending proposal without changing the approved DAG."""
+    conv = session_manager.get_user(username).get_conversation(conv_id)
+    if conv is None: raise HTTPException(404, 'conversation not found')
+    if conv.is_processing or conv.interrupt_requested: raise HTTPException(409, 'main turn busy or user paused')
+    conv.is_processing = True
+    saved_uid = conv.current_uid
+    lock = _get_conv_lock(username, conv_id)
+    acquired = False
+    try:
+        acquired = await _acquire_conversation_lease(lock, timeout=60)
+        if not acquired: raise HTTPException(409, 'conversation control lease is busy')
+        if conv.current_uid != saved_uid or conv.interrupt_requested or conv.interrupt_message:
+            raise HTTPException(409, 'conversation control was superseded or paused')
+        session = _ensure_session(conv)
+        source = {'origin': 'user', 'turn_id': 'api-' + uuid.uuid4().hex,
+                  'owner': {'username': username, 'conv_id': conv_id}}
+        def withdraw():
+            from agents.watch_context import set_context, clear_context
+            if conv.session is not session or conv.current_uid != saved_uid or conv.interrupt_requested or conv.interrupt_message:
+                raise ValueError('conversation control was superseded or paused')
+            set_context(username, conv_id)
+            try: return session._discard_workflow_patch_as_user(plan_version, request.reason,
+                          control_source=source, owner={'username': username, 'conv_id': conv_id})
+            finally: clear_context()
+        pending = asyncio.create_task(asyncio.to_thread(withdraw))
+        _api_durable_writes.add(pending)
+        pending.add_done_callback(_api_durable_writes.discard)
+        try: receipt = await asyncio.shield(pending)
+        except asyncio.CancelledError:
+            await _finish_pending_io(pending)
+            raise
+        if conv.current_uid == saved_uid: conv.is_processing = False
+        await _durable_io(session_manager.persist_conversations, username, conv_id=conv_id)
+        return receipt
+    except PermissionError as error: raise HTTPException(403, str(error))
+    except ValueError as error: raise HTTPException(409, str(error))
+    finally:
+        if acquired: lock.release()
+        if conv.current_uid == saved_uid: conv.is_processing = False
+
+
+@app.post('/api/conversations/{conv_id}/workflow/nodes/{step_id}/reject-result')
+async def reject_native_workflow_result(conv_id: str, step_id: str, request: NativeResultRejectionRequest,
+                                        username: str = Depends(_get_user)):
+    """Reject only a freshly proven invalid owned terminal result; never resubmit."""
+    conv = session_manager.get_user(username).get_conversation(conv_id)
+    if conv is None: raise HTTPException(404, 'conversation not found')
+    if (conv.username, conv.conv_id) != (username, conv_id): raise HTTPException(403, 'conversation owner mismatch')
+    if conv.is_processing: raise HTTPException(409, 'conversation is busy')
+    conv.is_processing = True
+    uid, initial_actor = conv.current_uid, conv.session
+    interrupted = (conv.interrupt_requested, conv.interrupt_message)
+    lock = _get_conv_lock(username, conv_id)
+    acquired = False
+    cancelled = threading.Event()
+    try:
+        acquired = await _acquire_conversation_lease(lock, timeout=60)
+        if not acquired: raise ValueError('conversation control lease is busy')
+        if (conv.current_uid != uid or not conv.is_processing
+                or (conv.interrupt_requested, conv.interrupt_message) != interrupted):
+            raise ValueError('rejection control changed before session hydration')
+        if initial_actor is None:
+            actor = await _durable_io(_owned_conversation_io, conv, _ensure_session, conv, publish=False)
+            if (actor is None or conv.session is not None or conv.current_uid != uid or not conv.is_processing
+                    or (conv.username, conv.conv_id) != (username, conv_id)
+                    or (conv.interrupt_requested, conv.interrupt_message) != interrupted):
+                raise ValueError('conversation control changed during session preparation')
+            # The loop owns this no-await identity check and publication.
+            conv.session = actor
+            conv._api_session_binding = actor._api_ready_binding
+            await _durable_io(_owned_conversation_io, conv, actor._api_after_bind)
+        else:
+            actor = initial_actor
+        if (actor is None or conv.session is not actor or conv.current_uid != uid or not conv.is_processing
+                or (conv.interrupt_requested, conv.interrupt_message) != interrupted):
+            raise ValueError('conversation session or control changed during hydration')
+        goal = copy.deepcopy(actor.goal_contract.to_dict())
+        if (goal.get('execution_authorized') is not True or goal.get('version') != request.goal_version
+                or goal.get('approved_plan_version') != request.plan_version):
+            raise ValueError('approved goal or plan changed')
+        runtime = _ensure_workflow_runtime(conv)
+        initial_runtime = await asyncio.to_thread(runtime.snapshot)
+        pause_revision = initial_runtime.get('user_pause_revision', 0)
+        def control_valid():
+            return (not cancelled.is_set() and conv.session is actor and conv.current_uid == uid and conv.is_processing
+                    and (conv.interrupt_requested, conv.interrupt_message) == interrupted
+                    and actor.goal_contract.to_dict() == goal
+                    and runtime.snapshot().get('user_pause_revision', 0) == pause_revision)
+        def reject():
+            from agents.watch_context import set_context, clear_context
+            set_context(username, conv_id, 'operations', actor._current_line_id)
+            try:
+                if not control_valid(): raise ValueError('rejection control changed')
+                return runtime.reject_workflow_result(step_id, expected_token=request.expected_token,
+                                                      control_valid=control_valid)
+            finally: clear_context()
+        pending = asyncio.create_task(asyncio.to_thread(reject))
+        try:
+            receipt = await asyncio.shield(pending)
+        except asyncio.CancelledError:
+            cancelled.set()
+            try: await _finish_pending_io(pending)
+            except BaseException: pass
+            raise
+        if not control_valid(): raise ValueError('rejection control changed after commit')
+        actor.memory.record_tool_call('operations', 'reject_workflow_result',
+            {'step_id':step_id, 'expected_token':request.expected_token,
+             'goal_version':request.goal_version, 'plan_version':request.plan_version},
+            json.dumps(receipt, ensure_ascii=False, default=str), failed=False)
+        await _durable_io(actor._checkpoint, 'native_result_rejected_by_api')
+        await _durable_io(session_manager.persist_conversations, username, conv_id=conv_id,
+                          completed_turn_uid=uid)
+        return receipt
+    except PermissionError as error: raise HTTPException(403, str(error))
+    except (KeyError, ValueError) as error: raise HTTPException(409, str(error))
+    finally:
+        if acquired: lock.release()
+        if conv.current_uid == uid: conv.is_processing = False
+
+
+@app.post('/api/conversations/{conv_id}/workflow/nodes/{step_id}/revalidate-gcmc')
+async def revalidate_gcmc_native_outputs(conv_id: str, step_id: str, request: NativeResultRevalidationRequest,
+                                         username: str = Depends(_get_user)):
+    """Review current owned GCMC artifacts; the server chooses native paths."""
+    conv = session_manager.get_user(username).get_conversation(conv_id)
+    if conv is None: raise HTTPException(404, 'conversation not found')
+    if conv.is_processing or conv.interrupt_requested: raise HTTPException(409, 'main turn busy or user paused')
+    conv.is_processing = True
+    saved_uid = conv.current_uid
+    lock = _get_conv_lock(username, conv_id)
+    acquired = False
+    try:
+        acquired = await _acquire_conversation_lease(lock, timeout=60)
+        if not acquired: raise HTTPException(409, 'conversation control lease is busy')
+        if conv.current_uid != saved_uid or conv.interrupt_requested or conv.interrupt_message:
+            raise HTTPException(409, 'conversation control was superseded or paused')
+        runtime = _ensure_workflow_runtime(conv)
+        session = conv.session
+        version = session.goal_contract.version
+        if not session.goal_contract.execution_authorized:
+            raise HTTPException(403, 'current goal is not authorized for execution')
+        def control_valid():
+            return (conv.session is session and conv.current_uid == saved_uid and conv.is_processing
+                    and not conv.interrupt_requested and not conv.interrupt_message
+                    and session.goal_contract.version == version and session.goal_contract.execution_authorized)
+        def review():
+            from agents.watch_context import set_context, clear_context
+            set_context(username, conv_id)
+            try:
+                node = runtime.snapshot().get('nodes', {}).get(step_id, {})
+                if (node.get('contract', {}).get('tool') not in {'run_gcmc_isotherm', 'run_gcmc_batch'}
+                        or node.get('token') != request.expected_token or not control_valid()):
+                    raise ValueError('current owned GCMC attempt does not match the request')
+                return runtime.revalidate_outputs(step_id, None, expected_token=request.expected_token,
+                                                  control_valid=control_valid)
+            finally: clear_context()
+        pending = asyncio.create_task(asyncio.to_thread(review))
+        _api_durable_writes.add(pending)
+        pending.add_done_callback(_api_durable_writes.discard)
+        try: receipt = await asyncio.shield(pending)
+        except asyncio.CancelledError:
+            await _finish_pending_io(pending)
+            raise
+        session._checkpoint('gcmc_native_outputs_revalidated_by_api')
+        if conv.current_uid == saved_uid: conv.is_processing = False
+        await _durable_io(session_manager.persist_conversations, username, conv_id=conv_id)
+        return receipt
+    except PermissionError as error: raise HTTPException(403, str(error))
+    except (KeyError, ValueError) as error: raise HTTPException(409, str(error))
+    finally:
+        if acquired: lock.release()
+        if conv.current_uid == saved_uid: conv.is_processing = False
+
+
+@app.post('/api/conversations/{conv_id}/workflow/nodes/{step_id}/prepare-cdft-partial')
+async def prepare_cdft_partial_retry(conv_id: str, step_id: str, request: CDFTPartialPrepareRequest,
+                                    username: str = Depends(_get_user)):
+    """Prepare an owned evidenced failed-only subset; no scientific job starts."""
+    conv = session_manager.get_user(username).get_conversation(conv_id)
+    if conv is None: raise HTTPException(404, 'conversation not found')
+    if conv.is_processing: raise HTTPException(409, 'main turn busy')
+    conv.is_processing = True
+    saved_uid = conv.current_uid
+    saved_interrupt = (conv.interrupt_requested, conv.interrupt_message)
+    lock = _get_conv_lock(username, conv_id)
+    acquired = False
+    try:
+        acquired = await _acquire_conversation_lease(lock, timeout=60)
+        if not acquired: raise HTTPException(409, 'conversation control lease is busy')
+        if conv.current_uid != saved_uid or (conv.interrupt_requested, conv.interrupt_message) != saved_interrupt:
+            raise HTTPException(409, 'conversation control was superseded')
+        runtime = _ensure_workflow_runtime(conv)
+        session = conv.session
+        version = session.goal_contract.version
+        if not session.goal_contract.execution_authorized:
+            raise HTTPException(403, 'current goal is not authorized for execution')
+        source = {'origin': 'user', 'turn_id': 'api-' + uuid.uuid4().hex,
+                  'owner': {'username': username, 'conv_id': conv_id}, 'goal_version': version}
+        def control_valid():
+            return (conv.session is session and conv.current_uid == saved_uid and conv.is_processing
+                    and (conv.interrupt_requested, conv.interrupt_message) == saved_interrupt
+                    and session.goal_contract.version == version and session.goal_contract.execution_authorized)
+        pending = asyncio.create_task(asyncio.to_thread(runtime.prepare_cdft_partial_recovery,
+            step_id, request.timeout_seconds, request.walltime, control_source=source,
+            authority_role='lead-orchestrator', operations_authority=None, control_valid=control_valid,
+            allow_paused=True))
+        _api_durable_writes.add(pending)
+        pending.add_done_callback(_api_durable_writes.discard)
+        try: receipt = await asyncio.shield(pending)
+        except asyncio.CancelledError:
+            await _finish_pending_io(pending)
+            raise
+        if not control_valid(): raise ValueError('control changed before partial recovery receipt was recorded')
+        from agents.recovery import failure_reason
+        session.memory.record_tool_call('operations', 'prepare_cdft_partial_recovery',
+            {'step_id': step_id, 'timeout_seconds': request.timeout_seconds, 'walltime': request.walltime},
+            json.dumps(receipt, ensure_ascii=False, default=str), failed=bool(failure_reason(receipt)))
+        session._checkpoint('cdft_partial_recovery_prepared_by_api')
+        if conv.current_uid == saved_uid: conv.is_processing = False
+        await _durable_io(session_manager.persist_conversations, username, conv_id=conv_id)
+        return receipt
+    except PermissionError as error: raise HTTPException(403, str(error))
+    except (KeyError, ValueError) as error: raise HTTPException(409, str(error))
+    finally:
+        if acquired: lock.release()
+        if conv.current_uid == saved_uid: conv.is_processing = False
+
+
+@app.post('/api/conversations/{conv_id}/workflow/stage-paused-plan')
+async def stage_paused_workflow_plan(conv_id: str, request: PausedWorkflowStageRequest,
+                                     username: str = Depends(_get_user)):
+    """Compile and stage an explicitly supplied owned plan; keep all execution paused.
+
+    TaskLine and runtime are separate durable files. A partial commit is a
+    recoverable inconsistency, never reported as an atomic success or dispatched.
+    """
+    conv = session_manager.get_user(username).get_conversation(conv_id)
+    if conv is None: raise HTTPException(404, 'conversation not found')
+    if conv.is_processing: raise HTTPException(409, 'main turn is busy')
+    if len(json.dumps(request.changes, ensure_ascii=False).encode()) > 2*1024*1024:
+        raise HTTPException(422, 'plan changes exceed bounded control request size')
+    actor = conv.session
+    if actor is None or not actor.goal_contract.execution_authorized:
+        raise HTTPException(403, 'an existing authorized execution goal is required')
+    conv.is_processing = True
+    uid = conv.current_uid
+    interrupt = (conv.interrupt_requested, conv.interrupt_message)
+    lock = _get_conv_lock(username, conv_id)
+    acquired = False; cancelled = threading.Event()
+    try:
+        acquired = await _acquire_conversation_lease(lock, timeout=60)
+        if not acquired: raise HTTPException(409, 'conversation control lease is busy')
+        runtime = _ensure_workflow_runtime(conv)
+        initial = await asyncio.to_thread(runtime.snapshot)
+        pause = (bool(initial.get('user_paused')), initial.get('user_pause_revision', 0))
+        goal = actor.goal_contract.to_dict()
+        allowed_plans = {request.base_version}
+        if (not pause[0] or initial.get('plan_version') != request.base_version
+                or goal.get('version') != request.goal_version
+                or goal.get('approved_plan_version') != request.base_version
+                or (initial.get('username'), initial.get('conv_id')) != (username, conv_id)):
+            raise HTTPException(409, 'paused native runtime and requested approved goal/plan do not match')
+        if actor._pending_workflow_patch:
+            raise HTTPException(409, 'resolve the exact existing pending proposal before staging another plan')
+
+        def control_valid():
+            if (cancelled.is_set() or conv.session is not actor or conv.current_uid != uid or not conv.is_processing
+                    or (conv.interrupt_requested, conv.interrupt_message) != interrupt
+                    or not actor.goal_contract.execution_authorized
+                    or actor.goal_contract.version != request.goal_version): return False
+            current = runtime.snapshot()
+            return ((current.get('username'), current.get('conv_id')) == (username, conv_id)
+                and (bool(current.get('user_paused')), current.get('user_pause_revision', 0)) == pause
+                and current.get('plan_version') in allowed_plans)
+
+        def stage():
+            from agents.watch_context import set_context, clear_context
+            from agents.task_line import get_store
+            from agents.control_policy import issue_operations_authority
+            from agents.defns import OPERATIONS
+            from agents.workflow_patch import execution_contract
+            from agents.recovery import is_submission
+            from agents.answer_delivery import digest
+            from agents.workflow_audit import verified_job_observation
+            set_context(username, conv_id, 'operations', actor._current_line_id)
+            saved_agent = actor.current_agent
+            saved_source = copy.deepcopy(getattr(actor, '_control_source', None))
+            saved_authority = copy.deepcopy(getattr(actor, '_operations_authority', None))
+            source = {'origin': 'user', 'turn_id': 'api-' + uuid.uuid4().hex,
+                      'owner': {'username': username, 'conv_id': conv_id}, 'goal_version': request.goal_version,
+                      'api_operation': 'stage_paused_plan', 'requested_changes_sha256': digest(request.changes)}
+            try:
+                if not control_valid(): raise ValueError('paused plan control changed before compilation')
+                line = get_store().get_line(actor._current_line_id, username=username, conv_id=conv_id) or {}
+                if (line.get('plan_version') != request.base_version
+                        or any(item.get('job_ids') and item.get('step_id') not in initial.get('nodes', {})
+                               and not verified_job_observation(actor,runtime,initial,item)
+                               for item in line.get('steps', []))):
+                    raise ValueError('only the complete current native plan may use paused staging; legacy jobs require reconciliation')
+                approved = {item.get('step_id'): item for item in goal.get('approved_nodes', [])}
+                if not runtime.approved_contracts_match(initial, goal.get('approved_nodes', [])):
+                    raise ValueError('approved goal and current native executable contracts differ')
+                if not control_valid() or actor.goal_contract.to_dict() != goal:
+                    raise ValueError('paused plan control changed during native contract proof')
+                actor.current_agent = OPERATIONS
+                actor._control_source = source
+                actor._operations_authority = issue_operations_authority(source, source['owner'], request.goal_version)
+                previous_review = actor.context.get('resource_review')
+                proposal = actor._propose_workflow_patch(request.base_version, request.reason,
+                    copy.deepcopy(request.changes), control_valid=control_valid)
+                if not control_valid(): raise ValueError('paused plan control changed after compilation')
+                patch = proposal.get('patch') if isinstance(proposal, dict) else None
+                if (not isinstance(proposal, dict) or proposal.get('ok') is not True or proposal.get('applied')
+                        or not isinstance(patch, dict) or patch != actor._pending_workflow_patch
+                        or patch.get('base_version') != request.base_version or patch.get('goal_version') != request.goal_version
+                        or type(patch.get('new_version')) is not int or patch['new_version'] <= request.base_version):
+                    raise ValueError('compiler did not return the exact current unapplied proposal')
+                submissions = [item['node'] for item in patch.get('changes', [])
+                    if item.get('operation') == 'upsert' and item.get('node')
+                    and is_submission(item['node'].get('tool'), item['node'].get('arguments', {}))]
+                if submissions:
+                    review = actor.context.get('resource_review')
+                    if not isinstance(review, dict) or review is previous_review:
+                        callback = getattr(actor, '_on_resource_review', None)
+                        if not callback: raise ValueError('fresh resource review is required before staging submission changes')
+                        review = callback({'kind': 'before_submission', 'review_phase': 'planning',
+                                           'nodes': submissions, 'goal_version': request.goal_version})
+                    if (not isinstance(review, dict) or review.get('status') != 'ready'
+                            or any(review.get('resource_allocations', {}).get(item['step_id'], {}).get('budget_final') is not True
+                                   for item in submissions)):
+                        raise ValueError('resource review is not ready with final workload-backed budgets')
+                if not control_valid(): raise ValueError('paused plan control changed after resource review')
+                allowed_plans.add(patch['new_version'])
+                actor.memory.record_tool_call('operations', 'propose_workflow_patch',
+                    {'base_version': request.base_version, 'reason': request.reason, 'changes': request.changes},
+                    json.dumps(proposal, ensure_ascii=False, default=str), failed=False)
+                applied = actor._apply_workflow_patch(patch['new_version'], preserve_user_pause=True, control_valid=control_valid)
+                if not control_valid(): raise ValueError('paused plan control changed while staging durable files')
+                current = runtime.snapshot()
+                latest = get_store().get_line(actor._current_line_id, username=username, conv_id=conv_id) or {}
+                final_goal = actor.goal_contract.to_dict()
+                approved_final = {item['step_id']: item for item in final_goal.get('approved_nodes', [])}
+                if (not isinstance(applied, dict) or applied.get('ok') is not True or applied.get('applied') is not True
+                        or not applied.get('execution', {}).get('plan_staged')
+                        or applied.get('execution', {}).get('scheduled') is not False
+                        or {current.get('plan_version'), latest.get('plan_version'), final_goal.get('approved_plan_version')} != {patch['new_version']}
+                        or any(item.get('job_ids')and item.get('step_id')not in current.get('nodes',{})
+                               and not verified_job_observation(actor,runtime,current,item)
+                               for item in latest.get('steps',[]))
+                        or not runtime.approved_contracts_match(current, final_goal.get('approved_nodes', []))):
+                    raise ValueError('plan files are not consistently staged; retain pause and reconcile approved runtime')
+                if not control_valid() or actor.goal_contract.to_dict() != final_goal:
+                    raise ValueError('paused plan control changed during final native contract proof')
+                actor.memory.record_tool_call('operations', 'apply_workflow_patch', {'plan_version': patch['new_version']},
+                    json.dumps(applied, ensure_ascii=False, default=str), failed=False)
+                # Persist the conversation's prior role/source, not this API's
+                # temporary controller identity. Approval proof and tool audit
+                # retain the actual authenticated request independently.
+                actor.current_agent = saved_agent
+                actor._control_source = saved_source
+                actor._operations_authority = saved_authority
+                actor._checkpoint('owner_api_paused_plan_staged')
+                if not control_valid(): raise ValueError('paused plan control changed after final checkpoint')
+                return {'ok': True, 'status': 'staged_paused', 'plan_version': patch['new_version'],
+                        'dispatch_started': False, 'user_paused': True, 'proposal': patch,
+                        'cross_file_atomic_transaction': False}
+            finally:
+                actor.current_agent = saved_agent
+                actor._control_source = saved_source
+                actor._operations_authority = saved_authority
+                clear_context()
+
+        pending = asyncio.create_task(asyncio.to_thread(stage))
+        _api_durable_writes.add(pending)
+        pending.add_done_callback(_api_durable_writes.discard)
+        try:
+            result = await asyncio.shield(pending)
+        except asyncio.CancelledError:
+            cancelled.set()
+            try: await _finish_pending_io(pending)
+            except Exception: pass
+            raise
+        if conv.current_uid == uid:
+            conv.is_processing = False
+        await _durable_io(session_manager.persist_conversations, username, conv_id=conv_id)
+        return result
+    except PermissionError as error:
+        raise HTTPException(403, str(error))
+    except (ValueError, KeyError) as error:
+        raise HTTPException(409, {'status': 'not_staged_or_recovery_required', 'recovery_required': True,
+                                  'dispatch_started': False, 'reason': str(error)})
+    finally:
+        if acquired: lock.release()
+        if conv.current_uid == uid: conv.is_processing = False
+
+
+class RestoreApprovedPausedPlanRequest(BaseModel):
+    plan_version: int = Field(gt=0)
+    goal_version: int = Field(gt=0)
+    model_config = {'extra': 'forbid'}
+
+
+@app.post('/api/conversations/{conv_id}/workflow/restore-approved-paused-plan')
+async def restore_approved_paused_plan(conv_id: str, request: RestoreApprovedPausedPlanRequest,
+                                       username: str = Depends(_get_user)):
+    """Restore an already durable approval, keeping execution paused throughout."""
+    conv = session_manager.get_user(username).get_conversation(conv_id)
+    if conv is None: raise HTTPException(404, 'conversation not found')
+    if conv.is_processing: raise HTTPException(409, 'main turn is busy')
+    actor = conv.session
+    if actor is None: raise HTTPException(409, 'owned session is not loaded')
+    conv.is_processing = True
+    uid = conv.current_uid; interrupt = (conv.interrupt_requested, conv.interrupt_message)
+    lock = _get_conv_lock(username, conv_id); acquired = False; cancelled = threading.Event()
+    try:
+        acquired = await _acquire_conversation_lease(lock, timeout=60)
+        if not acquired: raise ValueError('conversation control lease is busy')
+        runtime = _ensure_workflow_runtime(conv)
+        goal = copy.deepcopy(actor.goal_contract.to_dict())
+        proof = copy.deepcopy(actor.context.get('approved_execution_proof'))
+        state = await asyncio.to_thread(runtime.snapshot)
+        owner = {'username': username, 'conv_id': conv_id}
+        pause = (bool(state.get('user_paused')), state.get('user_pause_revision', 0))
+        plans = {state.get('plan_version'), request.plan_version}
+
+        def control_valid():
+            if (cancelled.is_set() or conv.session is not actor or conv.current_uid != uid or not conv.is_processing
+                    or (conv.interrupt_requested, conv.interrupt_message) != interrupt
+                    or actor.goal_contract.to_dict() != goal or actor.context.get('approved_execution_proof') != proof
+                    or actor._pending_workflow_patch or actor._awaiting_plan_approval): return False
+            visible = runtime.snapshot()
+            return ((visible.get('username'), visible.get('conv_id')) == (username, conv_id)
+                and (bool(visible.get('user_paused')), visible.get('user_pause_revision', 0)) == pause
+                and visible.get('plan_version') in plans)
+
+        def restore():
+            from agents.watch_context import set_context, get_context
+            from agents.task_line import get_store
+            from agents.parallel_workflow import _approval_digest
+            from agents.workflow_patch import execution_contract
+            previous = get_context(); set_context(username, conv_id, 'operations', actor._current_line_id)
+            try:
+                if not control_valid(): raise ValueError('recovery control was superseded')
+                if (goal.get('execution_authorized') is not True or goal.get('version') != request.goal_version
+                        or goal.get('approved_plan_version') != request.plan_version or not pause[0]
+                        or type(state.get('plan_version')) is not int or state['plan_version'] > request.plan_version):
+                    raise ValueError('recovery requires the exact saved authorized plan and a paused owned runtime')
+                source = proof.get('control_source', {}) if isinstance(proof, dict) else {}
+                if (not isinstance(proof, dict) or proof.get('schema_version') != 1
+                        or proof.get('kind') != 'main_model_applied_plan' or proof.get('owner') != owner
+                        or proof.get('plan_version') != request.plan_version or proof.get('goal_version') != request.goal_version
+                        or proof.get('approval_sha256') != _approval_digest(goal)
+                        or type(proof.get('base_plan_version')) is not int
+                        or not 0 <= proof['base_plan_version'] < request.plan_version
+                        or source.get('origin') != 'user' or source.get('owner') != owner
+                        or source.get('goal_version') != request.goal_version or not source.get('turn_id')):
+                    raise PermissionError('saved approval has no matching authenticated native user provenance')
+                protected = ('method', 'gases', 'parameters', 'execution_mode', 'execution_authorized')
+                saved = state.get('goal_contract', {})
+                if (any(saved.get(key) != goal.get(key) for key in protected)
+                        or type(saved.get('version')) is not int or saved['version'] > goal['version']):
+                    raise ValueError('protected scientific goal changed; use a new formal plan')
+                approved_list = goal.get('approved_nodes') or []
+                approved = {item['step_id']: execution_contract(item) for item in approved_list}
+                line = get_store().get_line(actor._current_line_id, username=username, conv_id=conv_id) or {}
+                executable = [item for item in line.get('steps', []) if item.get('arguments') is not None and 'expected_outputs' in item]
+                if (not approved or len(approved) != len(approved_list) or line.get('plan_version') != request.plan_version
+                        or len(executable) != len(approved)
+                        or {item['step_id']: execution_contract(item) for item in executable} != approved):
+                    raise ValueError('saved TaskLine executable contracts do not match the approved graph')
+                if not control_valid(): raise ValueError('recovery control changed before native activation')
+                result = runtime.start_and_tick(request.plan_version, paused=True,
+                    preserve_user_pause=True, control_valid=control_valid)
+                if not control_valid(): raise ValueError('recovery control changed during native activation')
+                current = runtime.snapshot()
+                latest = get_store().get_line(actor._current_line_id, username=username, conv_id=conv_id) or {}
+                if (not result.get('plan_staged') or result.get('scheduled') is not False
+                        or result.get('dispatch_started') is not False or current.get('plan_version') != request.plan_version
+                        or latest.get('plan_version') != request.plan_version
+                        or not runtime.approved_contracts_match(current, approved_list)
+                        or {item['step_id']: execution_contract(item) for item in latest.get('steps', [])
+                            if item.get('arguments') is not None and 'expected_outputs' in item} != approved):
+                    raise ValueError('approved runtime graph was not consistently restored; keep pause and reconcile')
+                receipt = {'ok': True, 'status': 'staged_paused', 'plan_version': request.plan_version,
+                    'user_paused': True, 'dispatch_started': False, 'cross_file_atomic_transaction': False,
+                    'needs_recovery': bool(result.get('needs_recovery')), 'blocked_nodes': result.get('blocked_nodes', [])}
+                actor.memory.record_tool_call('operations', 'restore_approved_paused_plan',
+                    request.model_dump(), json.dumps(receipt), failed=False)
+                actor._checkpoint('owner_restored_saved_approved_plan_paused')
+                if not control_valid(): raise ValueError('recovery control changed before receipt delivery')
+                return receipt
+            finally: set_context(**previous)
+
+        pending = asyncio.create_task(asyncio.to_thread(restore))
+        _api_durable_writes.add(pending); pending.add_done_callback(_api_durable_writes.discard)
+        try: result = await asyncio.shield(pending)
+        except asyncio.CancelledError:
+            cancelled.set()
+            try: await _finish_pending_io(pending)
+            except Exception: pass
+            raise
+        if conv.current_uid == uid: conv.is_processing = False
+        await _durable_io(session_manager.persist_conversations, username, conv_id=conv_id)
+        return result
+    except PermissionError as error: raise HTTPException(403, str(error))
+    except (ValueError, KeyError, TypeError) as error:
+        raise HTTPException(409, {'status': 'recovery_required', 'reason': str(error),
+            'dispatch_started': False, 'cross_file_atomic_transaction': False})
+    finally:
+        if acquired: lock.release()
+        if conv.current_uid == uid: conv.is_processing = False
 
 
 @app.post('/api/conversations/{conv_id}/workflow/nodes/{step_id}/messages')
@@ -1403,6 +3007,7 @@ def _ensure_supervisor(conv):
     observer._evidence_root = root / 'evidence'
     observer._lifecycle_store = main._lifecycle_store
     observer._runtime_snapshot = main._runtime_snapshot
+    observer._on_display_request=getattr(main,'_on_display_request',None)
     observer._chain_state_is_primary = False
     observer._chain_jobs = main._chain_jobs
     # A user freeze covers the full-lifecycle pair, not only main chat.  The
@@ -1410,7 +3015,7 @@ def _ensure_supervisor(conv):
     # retried after resume; it must not keep draining a backlog during deploy.
     observer._on_interrupt_requested = lambda c=conv: bool(getattr(c, 'interrupt_requested', False))
     observer._on_interrupt_message = lambda c=conv: str(getattr(c, 'interrupt_message', '') or '')
-    observer.context['main_evidence_calls'] = main._recovery_state()['evidence_calls']
+    observer.context['main_evidence_calls'] = main._recovery_evidence_calls()
     def save(state, reason):
         state['owner'] = {'username': conv.username, 'conv_id': conv.conv_id, 'role': 'supervisor'}
         references = compact_checkpoint_evidence(state, root / 'evidence')
@@ -1430,44 +3035,139 @@ def _review_resources(conv, request):
     import copy
     root = session_root(conv.conv_id,conv.username)
     lock=ConversationLock(root/'resource_review.lock')
-    if not lock.acquire(blocking=False): return {'status':'review_retry','retryable':True,'reason':'resource agent is reviewing this session; do not dispatch duplicate work'}
+    if not lock.acquire(blocking=False):
+        return {'status': 'review_busy', 'review_in_progress': True, 'retryable': True,
+                'retry_after_seconds': 5,
+                'reason': 'resource agent is already reviewing this session; wait for that review without consuming a failed-review attempt'}
     previous=get_context()
     try:
-        set_context(conv.username,conv.conv_id,'monitor',conv.session._current_line_id)
-        observer=Session(config=conv.session.config,registry=conv.session.registry)
-        observer.client=observer.client.with_options(timeout=60,max_retries=0)
-        observer.goal_contract=copy.deepcopy(conv.session.goal_contract)
-        observer._evidence_root=root/'evidence'
-        def checkpoint(state, reason):
-            state['owner']={'username':conv.username,'conv_id':conv.conv_id,'role':'resource_monitor'}
-            refs=compact_checkpoint_evidence(state,root/'evidence')
-            write_checkpoint(root/'resource_monitor_checkpoint.json',state)
-            apply_evidence_references(observer.memory,refs)
-        observer._on_checkpoint=checkpoint
-        try: receipt=run_resource_review(observer,request)
-        except Exception as error: receipt={'status':'review_retry','retryable':True,'reason':f'resource agent unavailable: {error}','not_resubmitted':True}
-        if request.get('kind')=='before_submission':
-            from agents.resource_review import allocate_reviewed_resources
-            receipt = allocate_reviewed_resources(observer, request, receipt)
-        write_checkpoint(root/'resource_review.json',receipt)
-        known={c.get('call_id') for c in conv.session.memory.tool_call_log}
-        for call in receipt.get('evidence_calls',[]):
-            if call.get('call_id') not in known:conv.session.memory.tool_call_log.append(copy.deepcopy(call))
-        conv.session._checkpoint('resource_monitor_receipt')
-        return receipt
+        return _review_resources_locked(conv, request, root, copy.deepcopy(conv.session.goal_contract))
     finally:
         set_context(**previous)
         lock.release()
 
 
+def _review_resources_locked(conv, request, root, reviewed_goal):
+    from agents.session import Session
+    from agents.resource_review import run_resource_review, allocate_reviewed_resources
+    from agents.state_io import write_checkpoint, compact_checkpoint_evidence, apply_evidence_references
+    from agents.watch_context import set_context
+    from agents.workload_budget import _digest
+    from agents.resource_intent import resource_intent
+    from agents.node_inventory import load_policy
+    import copy
+    policy = load_policy(conv.session.config.project_root)
+    if request.get('kind') == 'before_submission':
+        from agents.workload_context import enrich_resource_request
+        from agents.installations import cdft_installation_files
+        executable = None
+        if any(n.get('tool') == 'run_cdft' and n.get('arguments', {}).get('action') == 'submit'
+               for n in request.get('nodes', [])):
+            try:
+                executable = cdft_installation_files(conv.session.config.project_root,
+                    {'action': 'submit'})['cdft_executable'][0]
+            except (KeyError, ValueError, OSError):
+                pass  # Missing installation remains an explicit unverified budget.
+        request = enrich_resource_request(request, owned_root=root, cdft_executable=executable)
+        # Request labels do not establish user/operator authority. The server
+        # supplies authenticated constraints separately from model arguments.
+        request.pop('resource_constraints', None)
+        request.pop('resource_pins', None)
+        request.update(resource_intent(reviewed_goal, request.get('nodes', [])))
+    set_context(conv.username,conv.conv_id,'monitor',conv.session._current_line_id)
+    observer=Session(config=conv.session.config,registry=conv.session.registry)
+    observer.client=observer.client.with_options(timeout=60,max_retries=0)
+    observer.goal_contract=copy.deepcopy(reviewed_goal)
+    observer._evidence_root=root/'evidence'
+    def checkpoint(state, reason):
+        state['owner']={'username':conv.username,'conv_id':conv.conv_id,'role':'resource_monitor'}
+        refs=compact_checkpoint_evidence(state,root/'evidence')
+        write_checkpoint(root/'resource_monitor_checkpoint.json',state)
+        apply_evidence_references(observer.memory,refs)
+    observer._on_checkpoint=checkpoint
+    try: receipt=run_resource_review(observer,request)
+    except Exception as error: receipt={'status':'review_retry','retryable':True,'reason':f'resource agent unavailable: {error}','not_resubmitted':True}
+    if request.get('kind')=='before_submission':
+        receipt = allocate_reviewed_resources(observer, request, receipt)
+        for node in request.get('nodes', []):
+            allocation = receipt.get('resource_allocations', {}).get(node.get('step_id'), {})
+            if allocation.get('budget_final') is True:
+                allocation.update(goal_version=reviewed_goal.version,
+                    operator_policy_sha256=_digest(policy),
+                    resource_intent_sha256=_digest(resource_intent(reviewed_goal, [node])))
+    if (conv.session.goal_contract.to_dict() != reviewed_goal.to_dict()
+            or load_policy(conv.session.config.project_root) != policy):
+        receipt = {**receipt, 'status':'review_retry', 'retryable':True,
+            'reason':'Goal or operator resource policy changed during review; reassess the current request.',
+            'resource_allocations':{}}
+    write_checkpoint(root/'resource_review.json',receipt)
+    known={c.get('call_id') for c in conv.session.memory.tool_call_log}
+    for call in receipt.get('evidence_calls',[]):
+        if call.get('call_id') not in known:conv.session.memory.tool_call_log.append(copy.deepcopy(call))
+    conv.session._checkpoint('resource_monitor_receipt')
+    return receipt
+
+
 async def _supervise_lifecycle_event(conv, event):
     store = conv.session._lifecycle_store
+    recovery = event.get('payload', {}).get('failure_recovery') or {}
+    if event.get('kind') == 'worker_failure_recovery' and recovery.get('stage') in {'diagnosis', 'repair'}:
+        # A pending scientific question must not suppress read-only diagnosis.
+        # Do not issue a provisional main-chat receipt: the diagnostic stage
+        # owns its event until native evidence has been committed.
+        from agents.failure_recovery import FailureRecovery
+        actor = conv.session
+        turn_uid = conv.current_uid
+        goal = copy.deepcopy(actor.goal_contract.to_dict())
+        controller = FailureRecovery(_ensure_workflow_runtime(conv))
+        def valid():
+            return (conv.session is actor and conv.current_uid == turn_uid
+                    and not conv.interrupt_requested and not conv.interrupt_message
+                    and actor.goal_contract.to_dict() == goal)
+        cancelled = False
+        try:
+            if not valid() or not await asyncio.to_thread(controller.current_event, event):
+                await _durable_io(store.receipt, event['event_id'], 'supervisor', 'obsolete',
+                                  {'reason': 'failure diagnosis superseded', 'not_resubmitted': True})
+                await _durable_io(store.receipt, event['event_id'], 'main_chat', 'obsolete',
+                                  {'reason': 'failure diagnosis superseded', 'not_resubmitted': True})
+                return
+            observer = _ensure_supervisor(conv)
+            observer._on_interrupt_requested = lambda: not valid()
+            run_stage = controller.run_diagnosis if recovery['stage'] == 'diagnosis' else controller.run_repair
+            pending = asyncio.create_task(asyncio.to_thread(run_stage, observer,
+                recovery.get('incident_id'), recovery.get('revision'),
+                checkpoint_path=observer._evidence_root.parent / 'supervisor_checkpoint.json',
+                control_valid=valid))
+            try:
+                result = await asyncio.shield(pending)
+            except asyncio.CancelledError:
+                cancelled = True
+                result = await _finish_pending_io(pending)
+            await _durable_io(store.receipt, event['event_id'], 'supervisor', 'delivered', result)
+            await _durable_io(store.receipt, event['event_id'], 'main_chat', 'obsolete',
+                              {'reason': 'recovery stage completed; next stage owns continuation',
+                               'not_resubmitted': True})
+            if cancelled:
+                raise asyncio.CancelledError
+        except Exception as error:
+            still_current = valid() and await asyncio.to_thread(controller.current_event, event)
+            status = 'retry' if still_current else 'obsolete'
+            await _durable_io(store.receipt, event['event_id'], 'supervisor', status,
+                              {'reason': 'native diagnostic stage did not complete',
+                               'error_type': type(error).__name__, 'not_resubmitted': True})
+            if not still_current:
+                await _durable_io(store.receipt, event['event_id'], 'main_chat', 'obsolete',
+                                  {'reason': 'diagnostic stage superseded', 'not_resubmitted': True})
+            if cancelled:
+                raise asyncio.CancelledError
+        return
     action = ('ask_user' if event.get('payload', {}).get('requires_user') else
               'advance_dependencies' if event['kind'] in {'job_completed', 'result_verified'} else
               'wait_existing' if event['kind'] in {'tool_uncertain', 'stalled', 'user_paused', 'waiting_jobs'} else 'diagnose_and_fix')
     provisional = {'next_action': action, 'reason': '控制层只允许诊断/等终态/推进依赖；详细只读审核异步进行，不阻塞主chat推进',
                    'evidence_refs': [event['event_id']]}
-    store.provisional(event['event_id'], provisional)
+    (await _durable_io(store.provisional, event['event_id'], provisional))
     try:
         def observe():
             from agents.watch_context import set_context, clear_context
@@ -1478,7 +3178,7 @@ async def _supervise_lifecycle_event(conv, event):
                         'pending_reason':event['payload']['notification'].get('pending_reason'),
                         'instruction':'Review actual exit/return state for a completed job, or constraints for a pending job; only report facts, never cancel/update/resubmit. Result acceptance belongs to the scientific owner.'})
                     event['payload']['resource_review']=resource_receipt
-                    event['payload']['requires_user']=resource_receipt.get('status') in {'needs_user','propose_resource_patch'}
+                    event['payload']['requires_user']=resource_receipt.get('status') == 'needs_user'
                 observer = _ensure_supervisor(conv)
                 if event['kind'] == 'scientific_review':
                     return conv.session.audit_scientific_answer(observer, event)
@@ -1496,29 +3196,29 @@ async def _supervise_lifecycle_event(conv, event):
                 conv.session.context['resource_review']={**resource_receipt,'job_id':event['payload']['job']['job_id']}
             elif resource_receipt.get('status') == 'needs_user':
                 receipt.update(next_action='ask_user',reason=resource_receipt.get('reason','resource review requires user decision'))
-        store.receipt(event['event_id'], 'supervisor', 'delivered', receipt)
+        (await _durable_io(store.receipt, event['event_id'], 'supervisor', 'delivered', receipt))
         if event['kind'] == 'scientific_review':
             action = receipt.get('review_action')
             if action in {'verified', 'obsolete'}:
-                store.receipt(event['event_id'], 'main_chat', 'delivered' if action == 'verified' else 'obsolete',
-                              {'status': action, 'delivery_owner': 'lead-orchestrator', 'not_resubmitted': True})
+                (await _durable_io(store.receipt, event['event_id'], 'main_chat', 'delivered' if action == 'verified' else 'obsolete',
+                              {'status': action, 'delivery_owner': 'lead-orchestrator', 'not_resubmitted': True}))
             elif action in {'correct_main', 'ask_user'}:
                 payload = {**event['payload'], 'main_already_handling': False, 'supervisor_decision': receipt,
                            'requires_user': action == 'ask_user'}
-                review_id = store.emit('scientific_review_failed', payload, event_id=event['event_id'] + ':feedback')
-                store.receipt(review_id, 'supervisor', 'delivered', receipt)
-                store.receipt(event['event_id'], 'main_chat', 'delivered', {'status':'forwarded_to_main', 'delivery_owner':'lead-orchestrator'})
-            session_manager.persist_conversations(conv.username, conv_id=conv.conv_id)
+                review_id = (await _durable_io(store.emit, 'scientific_review_failed', payload, event_id=event['event_id'] + ':feedback'))
+                (await _durable_io(store.receipt, review_id, 'supervisor', 'delivered', receipt))
+                (await _durable_io(store.receipt, event['event_id'], 'main_chat', 'delivered', {'status':'forwarded_to_main', 'delivery_owner':'lead-orchestrator'}))
+            (await _durable_io(session_manager.persist_conversations, conv.username, conv_id=conv.conv_id))
             return
-        latest = store.snapshot()['events'][event['event_id']]
+        latest = (await asyncio.to_thread(store.snapshot))['events'][event['event_id']]
         if (event['kind'] not in {'user_paused', 'stalled', 'waiting_jobs', 'tool_uncertain', 'supervisor_review'}
                 and latest.get('main_chat') == 'delivered'
                 and (receipt.get('next_action') != provisional['next_action'] or receipt.get('suggested_changes')
                      or receipt.get('scientific_review', {}).get('passed') is False)):
-            review_id = store.emit('supervisor_review', {
+            review_id = (await _durable_io(store.emit, 'supervisor_review', {
                 **event.get('payload', {}), 'parent_event_id': event['event_id'], 'supervisor_decision': receipt,
-            }, event_id=event['event_id'] + ':review')
-            store.receipt(review_id, 'supervisor', 'delivered', receipt)
+            }, event_id=event['event_id'] + ':review'))
+            (await _durable_io(store.receipt, review_id, 'supervisor', 'delivered', receipt))
         conv.execution_logs.append({'time': datetime.now().isoformat(), 'tool': 'supervisor',
                                     'message': f"监督交回主chat：{receipt['next_action']} — {receipt['reason']}"})
     except Exception as error:
@@ -1531,24 +3231,55 @@ async def _supervise_lifecycle_event(conv, event):
         if event['kind'] == 'scientific_review':
             fallback.update(review_action='ask_user', review_status='insufficient_evidence',
                             scientific_review={'passed':False,'issues':['Supervisor infrastructure failure; main computations were not invalidated.']})
-            review_id = store.emit('scientific_review_failed', {**event['payload'], 'main_already_handling':False,
-                                   'requires_user':True}, event_id=event['event_id'] + ':infrastructure')
-            store.receipt(review_id, 'supervisor', 'delivered', fallback)
-        store.receipt(event['event_id'], 'supervisor', 'delivered', fallback)
+            review_id = (await _durable_io(store.emit, 'scientific_review_failed', {**event['payload'], 'main_already_handling':False,
+                                   'requires_user':True}, event_id=event['event_id'] + ':infrastructure'))
+            (await _durable_io(store.receipt, review_id, 'supervisor', 'delivered', fallback))
+        (await _durable_io(store.receipt, event['event_id'], 'supervisor', 'delivered', fallback))
 
 
-async def _continue_lifecycle_event(conv, event):
+async def _continue_lifecycle_event(conv, event, reservation=None):
     store = conv.session._lifecycle_store
+    turn_uid = reservation['uid'] if reservation else conv.current_uid
+    def rollback_unscheduled():
+        if conv.current_uid == turn_uid:
+            conv.is_processing = False
+            if reservation:
+                conv.current_uid = reservation['previous_uid']
+    if reservation:
+        try:
+            changed = await _lifecycle_controls_changed(conv, event, reservation['goal_version'])
+            if changed or conv.current_uid != turn_uid or not conv.is_processing:
+                await _durable_io(store.receipt, event['event_id'], 'main_chat', 'retry',
+                                  {'reason': 'reservation superseded before lifecycle turn started'})
+                rollback_unscheduled()
+                return
+        except BaseException:
+            try:
+                await _durable_io(store.receipt, event['event_id'], 'main_chat', 'retry',
+                                  {'reason': 'dispatcher stopped before lifecycle turn started'})
+            finally:
+                rollback_unscheduled()
+            raise
     try:
         await run_agent_background(conv.username, f"[生命周期事件] {event['kind']}：监督已交回主chat处理",
                                    conv.conv_id, lifecycle_event=event)
-        store.receipt(event['event_id'], 'main_chat', 'delivered', {
-            'turn_uid': conv.current_uid, 'status': conv.current_status,
+        if not _api_turn_is_current(conv, turn_uid):
+            await _durable_io(store.receipt, event['event_id'], 'main_chat', 'retry',
+                              {'reason': 'lifecycle turn superseded or paused'})
+            return
+        await _durable_io(store.receipt, event['event_id'], 'main_chat', 'delivered', {
+            'turn_uid': turn_uid, 'status': conv.current_status,
             'negotiation_owner': 'lead-orchestrator', 'delivery_owner': 'lead-orchestrator',
         })
-    except Exception as error:
-        store.receipt(event['event_id'], 'main_chat', 'retry', {'error': str(error)})
-        conv.is_processing = False
+    except BaseException as error:
+        try:
+            await _durable_io(store.receipt, event['event_id'], 'main_chat', 'retry',
+                              {'reason': 'lifecycle turn did not complete', 'error': str(error)})
+        finally:
+            if conv.current_uid == turn_uid:
+                conv.is_processing = False
+        if isinstance(error, asyncio.CancelledError) or not isinstance(error, Exception):
+            raise
 
 
 def _schedule_lifecycle(coro):
@@ -1566,111 +3297,334 @@ async def _dispatch_lifecycle_once():
             store = conv.session._lifecycle_store
             if not store:
                 continue
-            store.recover_claims()
-            store.heartbeat()
-            runtime_state = conv.session._runtime_snapshot() if conv.session._runtime_snapshot else {}
-            if runtime_state:
-                runtime = _ensure_workflow_runtime(conv)
-                jobs = [j for j in _watch.list() if j.get('username') == username and j.get('conv_id') == conv.conv_id]
-                await asyncio.to_thread(runtime.tick, jobs, bool(conv.interrupt_requested))
-                # tick() can complete or pause the graph, so use its current
-                # durable state for all wake-up decisions below.
-                runtime_state = conv.session._runtime_snapshot() or {}
-            formal_runtime_active = bool(
-                runtime_state.get('nodes')
-                and runtime_state.get('status') in {'active', 'needs_user'}
-                and not runtime_state.get('user_paused')
-            )
-            # Freeze is session-wide: keep durable mailbox events pending, but
-            # do not claim fresh main/supervisor work until the user resumes.
-            if conv.interrupt_requested or conv.interrupt_message or runtime_state.get('user_paused'):
+            try:
+                await _dispatch_conversation_lifecycle(username, conv, store)
+            except Exception as error:
+                # One corrupt mailbox or workflow receipt must not starve
+                # other conversations. Keep its state and claims for recovery.
+                print(f'[Lifecycle] conversation {username}/{conv.conv_id} dispatch error: {error}', flush=True)
+
+
+async def _claim_lifecycle_receiver(store, event_id, receiver):
+    """Cancellation never abandons a claim still committing in a worker."""
+    pending = asyncio.create_task(asyncio.to_thread(store.claim, event_id, receiver))
+    _api_durable_writes.add(pending)
+    pending.add_done_callback(_api_durable_writes.discard)
+    try:
+        return await asyncio.shield(pending)
+    except asyncio.CancelledError:
+        claimed = await _finish_pending_io(pending)
+        if claimed:
+            await _durable_io(store.receipt, event_id, receiver, 'retry',
+                                    {'reason': 'dispatcher cancelled before scheduling'})
+        raise
+
+
+async def _lifecycle_controls_changed(conv, event, goal_version):
+    from agents.lifecycle import superseded_runtime_event, current_goal_runtime_event
+    snapshot = conv.session._runtime_snapshot
+    runtime = (await asyncio.to_thread(snapshot) if snapshot else {}) or {}
+    metadata_current=True
+    if ((event.get('payload')or{}).get('recovery')or{}).get('action')=='inspect_forward_metadata_alignment':
+        from agents.metadata_recovery import metadata_event_current
+        native_runtime=_workflow_runtimes.get((conv.username,conv.conv_id))
+        metadata_current=bool(native_runtime)and await _durable_io(
+            _owned_conversation_io,conv,metadata_event_current,native_runtime,event)
+    origin=(event.get('payload') or {}).get('origin_goal_version',conv.session.goal_contract.version)
+    scope_current=(origin is None or origin == conv.session.goal_contract.version or await _durable_io(
+        _owned_conversation_io,conv,current_goal_runtime_event,conv.session,event,runtime))
+    return bool(conv.interrupt_requested or conv.interrupt_message or not scope_current
+        or runtime.get('user_paused') or conv.session.goal_contract.version != goal_version
+        or superseded_runtime_event(event, runtime) or not metadata_current)
+
+
+
+async def _claim_current_lifecycle_receiver(conv, event, store, receiver, goal_version):
+    claimed = False
+    try:
+        claimed = await _claim_lifecycle_receiver(store, event['event_id'], receiver)
+        if claimed and await _lifecycle_controls_changed(conv, event, goal_version):
+            await _durable_io(store.receipt, event['event_id'], receiver, 'retry',
+                                    {'reason': 'controls changed while claiming lifecycle event'})
+            return False
+        return claimed
+    except BaseException:
+        if claimed:
+            await _durable_io(store.receipt, event['event_id'], receiver, 'retry',
+                                    {'reason': 'dispatcher stopped before scheduling'})
+        raise
+
+
+async def _reserve_and_schedule_lifecycle_main(conv, event, store):
+    # Control decisions and the reservation stay on the API loop. No second
+    # dispatcher or query may start this conversation while disk claim waits.
+    if conv.is_processing or conv.interrupt_requested or conv.interrupt_message:
+        return False
+    previous_uid = conv.current_uid
+    reserved_uid = 'lifecycle:' + uuid.uuid4().hex
+    goal_version = conv.session.goal_contract.version
+    conv.is_processing = True
+    conv.current_uid = reserved_uid
+    def rollback_reservation():
+        if conv.current_uid == reserved_uid:
+            conv.is_processing = False
+            conv.current_uid = previous_uid
+    claimed = False
+    try:
+        claimed = await _claim_current_lifecycle_receiver(conv, event, store, 'main_chat', goal_version)
+        if not claimed:
+            rollback_reservation()
+            return False
+        if conv.current_uid != reserved_uid or not conv.is_processing:
+            await _durable_io(store.receipt, event['event_id'], 'main_chat', 'retry',
+                                    {'reason': 'controls changed before main scheduling'})
+            rollback_reservation()
+            return False
+        _schedule_lifecycle(_continue_lifecycle_event(conv, event, reservation={
+            'uid': reserved_uid, 'previous_uid': previous_uid, 'goal_version': goal_version}))
+        return True
+    except BaseException:
+        try:
+            if claimed:
+                await _durable_io(store.receipt, event['event_id'], 'main_chat', 'retry',
+                                        {'reason': 'dispatcher stopped before main scheduling'})
+        finally:
+            rollback_reservation()
+        raise
+
+
+async def _dispatch_conversation_lifecycle(username, conv, store):
+    (await _durable_io(store.recover_claims))
+    (await _durable_io(store.heartbeat))
+    runtime_state = (await asyncio.to_thread(conv.session._runtime_snapshot)) if conv.session._runtime_snapshot else {}
+    if runtime_state:
+        runtime = _ensure_workflow_runtime(conv)
+        jobs = [j for j in (await asyncio.to_thread(_watch.list)) if j.get('username') == username and j.get('conv_id') == conv.conv_id]
+        await asyncio.to_thread(_owned_conversation_io, conv, runtime.tick, jobs, bool(conv.interrupt_requested), (),
+                                runtime_state.get("user_pause_revision", 0))
+        # tick() can complete or pause the graph, so use its current
+        # durable state for all wake-up decisions below.
+        runtime_state = (await asyncio.to_thread(conv.session._runtime_snapshot)) or {}
+    formal_runtime_active = bool(
+        runtime_state.get('nodes')
+        and runtime_state.get('status') in {'active', 'needs_user'}
+        and not runtime_state.get('user_paused')
+    )
+    # Freeze is session-wide: keep durable mailbox events pending, but
+    # do not claim fresh main/supervisor work until the user resumes.
+    if conv.interrupt_requested or conv.interrupt_message or runtime_state.get('user_paused'):
+        return
+    if conv.is_processing and conv.last_progress_at and time.time() - conv.last_progress_at > 360:
+        (await _durable_io(store.emit, 'stalled', {'workflow_id': conv.session._current_line_id,
+                              'current_agent': conv.current_agent, 'last_progress_at': conv.last_progress_at},
+                   event_id='stalled:' + str(conv.current_uid)))
+    from agents.workflow_priority import order_events
+    from agents.workflow_review_stage import WorkflowReviewStage
+    review_controller = WorkflowReviewStage(runtime) if runtime_state and hasattr(runtime, 'root') else None
+    if review_controller is not None:
+        review_changed = bool(await asyncio.to_thread(review_controller.recover, observed_state=runtime_state))
+        for step, node in runtime_state.get('nodes', {}).items():
+            if node.get('status') == 'prefinish':
+                created_review = await asyncio.to_thread(review_controller.observe, step, observed_state=runtime_state)
+                review_changed = bool(created_review) or review_changed
+        if review_changed:
+            await asyncio.to_thread(runtime.flush_events)
+    events = await asyncio.to_thread(store.pending)
+    review_reserved = any(record.get('phase') == 'reviewing'
+        for record in (runtime_state.get('scientific_owner_reviews') or {}).values())
+    for event in order_events(events, runtime_state):
+        from agents.retained_prerequisite_scope import defer_pending_prerequisite_event
+        if defer_pending_prerequisite_event(conv.session,event,runtime_state):
+            # The currently owned prerequisite may still be valid under a
+            # pending condition edit. Keep its exact durable notice untouched;
+            # never promote it or grant execution until the new graph is proved.
+            continue
+        if ((event.get('payload')or{}).get('recovery')or{}).get('action')=='inspect_forward_metadata_alignment':
+            if await _lifecycle_controls_changed(conv,event,conv.session.goal_contract.version):
+                for receiver in ('supervisor','main_chat'):
+                    await _durable_io(store.receipt,event['event_id'],receiver,'obsolete',
+                        {'reason':'metadata capability source, owner, approval, controls or native proof superseded','not_resubmitted':True})
                 continue
-            if conv.is_processing and conv.last_progress_at and time.time() - conv.last_progress_at > 360:
-                store.emit('stalled', {'workflow_id': conv.session._current_line_id,
-                                      'current_agent': conv.current_agent, 'last_progress_at': conv.last_progress_at},
-                           event_id='stalled:' + str(conv.current_uid))
-            for event in store.pending():
-                # A dead process may have left a receiver in `processing`; its
-                # claim is recovered as `retry`.  Replaying that event for an
-                # ordinary/non-DAG chat caused the observed "old session spoke
-                # by itself" loop.  Archive it for audit instead.  An active
-                # formal DAG is deliberately exempt, because its persisted
-                # node/job state proves there is real work to continue.
-                if float(event.get('time', 0) or 0) < _PROCESS_STARTED_AT and not formal_runtime_active:
-                    details = {
-                        'reason': 'pre-restart event has no active formal workflow',
-                        'process_started_at': _PROCESS_STARTED_AT,
-                        'not_resubmitted': True,
-                    }
-                    if event.get('supervisor') not in {'delivered', 'obsolete'}:
-                        store.receipt(event['event_id'], 'supervisor', 'obsolete', details)
-                    if event.get('main_chat') not in {'delivered', 'obsolete'}:
-                        store.receipt(event['event_id'], 'main_chat', 'obsolete', details)
-                    continue
-                if (event['kind'] == 'worker_validation_dossier_ready'
-                        and event.get('supervisor') in {'pending', 'retry'}):
-                    dossier = event.get('payload', {}).get('validation_dossier') or {}
-                    store.receipt(event['event_id'], 'supervisor', 'delivered', {
-                        'next_action': 'advance_dependencies' if dossier.get('verdict') == 'pass' else 'diagnose_and_fix',
-                        'reason': 'executor-bound validation dossier is already kernel verified',
-                        'evidence_refs': [dossier.get('evidence_call_id')],
-                        'scientific_review': {'passed': dossier.get('verdict') == 'pass', 'issues': dossier.get('failed_items', [])},
-                    })
-                    event = store.snapshot().get('events', {}).get(event['event_id'], event)
-                if (event['kind'] == 'worker_recovery_ready'
-                        and event.get('supervisor') in {'pending', 'retry'}):
-                    recovery = event.get('payload', {}).get('recovery') or {}
-                    store.receipt(event['event_id'], 'supervisor', 'delivered', {
-                        'next_action': 'diagnose_and_fix',
-                        'reason': 'durable workflow state exposes a bounded recovery capability',
-                        'evidence_refs': [event['event_id']],
-                        'suggested_changes': [{
-                            'action': 'call_tool', 'tool': recovery.get('tool'),
-                            'step_id': event.get('payload', {}).get('step_id'),
-                        }],
-                        'scientific_review': {'passed': True, 'issues': []},
-                    })
-                    event = store.snapshot().get('events', {}).get(event['event_id'], event)
-                if event.get('supervisor') in {'pending', 'retry'} and store.claim(event['event_id'], 'supervisor'):
-                    _schedule_lifecycle(_supervise_lifecycle_event(conv, event))
-                    continue
-                if (event.get('supervisor') not in ({'delivered'} if event['kind']=='job_pending_warning' else {'delivered','processing'}) or not event.get('supervisor_receipt')
-                        or event.get('main_chat') not in {'pending', 'retry', 'waiting_user'}):
-                    continue
-                payload = event.get('payload', {})
-                if payload.get('runtime_id') and event['kind'] == 'workflow_started':
-                    store.receipt(event['event_id'], 'main_chat', 'delivered', {'status': 'runtime scheduled; main remains owner'})
-                    continue
-                if payload.get('main_already_handling') or event['kind'] in {'user_paused', 'tool_uncertain', 'stalled', 'waiting_jobs', 'plan_patch_applied'}:
-                    store.receipt(event['event_id'], 'main_chat', 'delivered', {'status': 'notification_only', 'not_resubmitted': True})
-                    continue
-                old_goal = payload.get('origin_goal_version', payload.get('goal_contract', {}).get('version'))
-                node = runtime_state.get('nodes', {}).get(payload.get('step_id'), {})
-                reconciled_event = bool(node.get('token')
-                    and payload.get('plan_version') == runtime_state.get('plan_version')
-                    and runtime_state.get('goal_contract', {}).get('version') == conv.session.goal_contract.version
-                    and event['event_id'] == f"runtime:{payload.get('runtime_id')}:{node['token']}:{node.get('status')}"
-                    and any(h.get('from_version') == old_goal for h in runtime_state.get('goal_reconciliation_history', [])))
-                if old_goal is not None and old_goal != conv.session.goal_contract.version and not reconciled_event:
-                    store.receipt(event['event_id'], 'main_chat', 'obsolete', {'reason': 'user superseded the goal'})
-                    continue
-                from agents.lifecycle import obsolete_internal_question_for_recovery
-                if obsolete_internal_question_for_recovery(conv.session, event):
-                    conv.current_status = '恢复工作流'
-                pending = conv.session._pending_user_interaction or {}
-                if conv.session._awaiting_plan_approval or pending.get('tool') in {'failure_decision', 'workflow_patch_decision', 'user_decision'}:
-                    store.receipt(event['event_id'], 'main_chat', 'waiting_user', {'negotiation_owner': 'lead-orchestrator'})
-                    continue
-                if conv.is_processing or conv.interrupt_requested or conv.interrupt_message:
-                    continue
-                if event.get('main_chat') == 'waiting_user':
-                    store.receipt(event['event_id'], 'main_chat', 'retry')
-                if store.claim(event['event_id'], 'main_chat'):
-                    # Reserve synchronously, before any await/task scheduling.
-                    # Otherwise several events could start overlapping main turns.
-                    conv.is_processing = True
-                    conv.current_uid = str(time.time())
-                    _schedule_lifecycle(_continue_lifecycle_event(conv, event))
+        if event.get('kind') == 'worker_scientific_owner_review' and review_controller is not None:
+            if not await asyncio.to_thread(review_controller.current_event, event):
+                for role in ('scientific_owner', 'supervisor', 'main_chat'):
+                    await _durable_io(store.receipt, event['event_id'], role, 'obsolete',
+                        {'reason':'scientific review attempt or controls superseded', 'not_resubmitted':True})
+                continue
+            if event.get('scientific_owner','pending') in {'pending','retry'} and not review_reserved:
+                if await _claim_current_lifecycle_receiver(conv, event, store, 'scientific_owner', conv.session.goal_contract.version):
+                    _schedule_lifecycle(_run_scientific_owner_review(conv, event))
+                    review_reserved = True
+            continue
+        if event.get('kind') == 'worker_prefinish' and review_controller is not None:
+            # A native durable acceptance ticket owns this attempt. Do not send
+            # the same review through main where unrelated patch work can win.
+            current_review = await asyncio.to_thread(runtime.snapshot)
+            step = (event.get('payload') or {}).get('step_id')
+            owned_review = any(record.get('binding',{}).get('step_id') == step
+                and record.get('binding',{}).get('token') == current_review.get('nodes',{}).get(step,{}).get('token')
+                and record.get('phase') in {'required','retryable','reviewing'}
+                for record in (current_review.get('scientific_owner_reviews') or {}).values())
+            if owned_review:
+                for role in ('supervisor','main_chat'):
+                    if event.get(role) not in {'delivered','obsolete'}:
+                        await _durable_io(store.receipt, event['event_id'], role, 'obsolete',
+                            {'reason':'exact native scientific owner review lane owns acceptance', 'not_resubmitted':True})
+                continue
+        from agents.answer_delivery import completed_notification_binding, sources_unchanged, digest as delivery_digest
+        delivered = getattr(conv.session,'context',{}).get('answer_delivery') or {}
+        delivery_actor, delivery_uid = conv.session, conv.current_uid
+        delivered_goal = conv.session.goal_contract.to_dict() if delivered.get('native_bindings') else {}
+        notice = completed_notification_binding(event,runtime_state,delivered,goal_sha256=delivery_digest(delivered_goal))
+        if notice:
+            unchanged = await asyncio.to_thread(sources_unchanged,delivered.get('sources',[]))
+            fresh_runtime = (await asyncio.to_thread(conv.session._runtime_snapshot)) or {}
+            if (unchanged and conv.session is delivery_actor and conv.current_uid == delivery_uid
+                    and conv.session.goal_contract.to_dict() == delivered_goal
+                    and getattr(conv.session,'context',{}).get('answer_delivery') is delivered
+                    and completed_notification_binding(event,fresh_runtime,delivered,goal_sha256=delivery_digest(delivered_goal))):
+                proof={'status':'notification_only','reason':'exact completed native attempt already delivered',
+                       'publication_id':delivered.get('publication_id'),'native_binding':notice,'not_resubmitted':True}
+                for receiver in ('supervisor','main_chat'):
+                    await _durable_io(store.receipt,event['event_id'],receiver,'delivered',proof)
+                continue
+        from agents.lifecycle import superseded_runtime_event
+        if superseded_runtime_event(event, runtime_state):
+            for receiver in ('main_chat', 'supervisor'):
+                if event.get(receiver) not in {'delivered', 'obsolete'}:
+                    (await _durable_io(store.receipt, event['event_id'], receiver, 'obsolete', {
+                        'reason': 'newer durable node attempt or phase supersedes this event',
+                        'not_resubmitted': True}))
+            continue
+        # A default-review event is allowed to reach its current native main
+        # even while the original question remains pending. Revalidate source
+        # ownership/science before both restart replay and negotiation gates.
+        default_review_binding=None
+        if (event.get('kind')=='preflight_recovered'
+                and (event.get('payload')or{}).get('status')=='preparation_default_review_required'):
+            from agents.preparation_defaults import preparation_review_binding
+            review_actor,review_uid=conv.session,conv.current_uid
+            review_goal=copy.deepcopy(review_actor.goal_contract.to_dict())
+            review_question=copy.deepcopy(review_actor._pending_user_interaction)
+            review_patch=copy.deepcopy(review_actor._pending_workflow_patch)
+            proof=await _durable_io(_owned_conversation_io,conv,preparation_review_binding,review_actor,event)
+            if (proof and conv.session is review_actor and conv.current_uid==review_uid
+                    and review_actor.goal_contract.to_dict()==review_goal
+                    and review_actor._pending_user_interaction==review_question
+                    and review_actor._pending_workflow_patch==review_patch):
+                default_review_binding=proof
+        # A dead process may have left a receiver in `processing`; its
+        # claim is recovered as `retry`.  Replaying that event for an
+        # ordinary/non-DAG chat caused the observed "old session spoke
+        # by itself" loop.  Archive it for audit instead.  An active
+        # formal DAG is deliberately exempt, because its persisted
+        # node/job state proves there is real work to continue.
+        if (float(event.get('time', 0) or 0) < _PROCESS_STARTED_AT
+                and not formal_runtime_active and not default_review_binding):
+            details = {
+                'reason': 'pre-restart event has no active formal workflow',
+                'process_started_at': _PROCESS_STARTED_AT,
+                'not_resubmitted': True,
+            }
+            if event.get('supervisor') not in {'delivered', 'obsolete'}:
+                (await _durable_io(store.receipt, event['event_id'], 'supervisor', 'obsolete', details))
+            if event.get('main_chat') not in {'delivered', 'obsolete'}:
+                (await _durable_io(store.receipt, event['event_id'], 'main_chat', 'obsolete', details))
+            continue
+        if (runtime_state and getattr(conv.session, '_evidence_root', None)
+                and event['kind'] == 'worker_prefinish' and event.get('supervisor') in {'pending', 'retry'}):
+            from agents.dossier_event import verify_executor_dossier_event
+            observed_session, observed_uid = conv.session, conv.current_uid
+            observed_goal = conv.session.goal_contract.version
+            observed_approval = copy.deepcopy(observed_session.goal_contract.to_dict())
+            proof = await asyncio.to_thread(verify_executor_dossier_event, event, runtime_state,
+                owned_root=observed_session._evidence_root.parent,
+                goal_contract=observed_approval, jobs=jobs, session=observed_session)
+            if proof:
+                try:
+                    changed = await _lifecycle_controls_changed(conv, event, observed_goal)
+                    if (changed or conv.session is not observed_session or conv.current_uid != observed_uid
+                            or conv.session.goal_contract.to_dict() != observed_approval):
+                        continue
+                except Exception:
+                    continue  # No stale identity receipt or scheduling on uncertain controls.
+            if proof:
+                await _durable_io(store.receipt, event['event_id'], 'supervisor', 'delivered', {
+                    'next_action': 'advance_dependencies',
+                    'reason': 'native executor dossier identity verified; scientific owner must still review and finish',
+                    'identity_verified': True, 'needs_scientific_owner_review': True,
+                    'evidence_refs': [proof['dossier_call_id'], proof['producer_call_id']],
+                    'executor_identity': proof, 'not_resubmitted': True,
+                })
+                event = (await asyncio.to_thread(store.snapshot)).get('events', {}).get(event['event_id'], event)
+        if (event['kind'] == 'worker_validation_dossier_ready'
+                and event.get('supervisor') in {'pending', 'retry'}):
+            dossier = event.get('payload', {}).get('validation_dossier') or {}
+            (await _durable_io(store.receipt, event['event_id'], 'supervisor', 'delivered', {
+                'next_action': 'advance_dependencies' if dossier.get('verdict') == 'pass' else 'diagnose_and_fix',
+                'reason': 'executor-bound validation dossier is already kernel verified',
+                'evidence_refs': [dossier.get('evidence_call_id')],
+                'scientific_review': {'passed': dossier.get('verdict') == 'pass', 'issues': dossier.get('failed_items', [])},
+            }))
+            event = (await asyncio.to_thread(store.snapshot)).get('events', {}).get(event['event_id'], event)
+        if (event['kind'] == 'worker_recovery_ready'
+                and event.get('supervisor') in {'pending', 'retry'}):
+            recovery = event.get('payload', {}).get('recovery') or {}
+            (await _durable_io(store.receipt, event['event_id'], 'supervisor', 'delivered', {
+                'next_action': 'diagnose_and_fix',
+                'reason': 'durable workflow state exposes a bounded recovery capability',
+                'evidence_refs': [event['event_id']],
+                'suggested_changes': [{
+                    'action': 'call_tool', 'tool': recovery.get('tool'),
+                    'arguments': copy.deepcopy(recovery.get('arguments') or {}),
+                    'step_id': event.get('payload', {}).get('step_id'),
+                }],
+                'diagnostic': True, 'recovery_capability_verified': True,
+            }))
+            event = (await asyncio.to_thread(store.snapshot)).get('events', {}).get(event['event_id'], event)
+        if event.get('supervisor') in {'pending', 'retry'}:
+            supervisor_goal = conv.session.goal_contract.version
+            if await _claim_current_lifecycle_receiver(conv, event, store, 'supervisor', supervisor_goal):
+                _schedule_lifecycle(_supervise_lifecycle_event(conv, event))
+                continue
+        if (event.get('supervisor') not in ({'delivered'} if event['kind']=='job_pending_warning' else {'delivered','processing'}) or not event.get('supervisor_receipt')
+                or event.get('main_chat') not in {'pending', 'retry', 'waiting_user'}):
+            continue
+        payload = event.get('payload', {})
+        if payload.get('runtime_id') and event['kind'] == 'workflow_started':
+            (await _durable_io(store.receipt, event['event_id'], 'main_chat', 'delivered', {'status': 'runtime scheduled; main remains owner'}))
+            continue
+        if payload.get('main_already_handling') or event['kind'] in {'user_paused', 'tool_uncertain', 'stalled', 'waiting_jobs', 'plan_patch_applied'}:
+            (await _durable_io(store.receipt, event['event_id'], 'main_chat', 'delivered', {'status': 'notification_only', 'not_resubmitted': True}))
+            continue
+        old_goal = payload.get('origin_goal_version', payload.get('goal_contract', {}).get('version'))
+        node = runtime_state.get('nodes', {}).get(payload.get('step_id'), {})
+        reconciled_event = bool(node.get('token')
+            and payload.get('plan_version') == runtime_state.get('plan_version')
+            and runtime_state.get('goal_contract', {}).get('version') == conv.session.goal_contract.version
+            and event['event_id'] == f"runtime:{payload.get('runtime_id')}:{node['token']}:{node.get('status')}"
+            and any(h.get('from_version') == old_goal for h in runtime_state.get('goal_reconciliation_history', [])))
+        retained_event=False
+        if old_goal is not None and old_goal != conv.session.goal_contract.version and not reconciled_event:
+            from agents.lifecycle import current_goal_runtime_event
+            retained_event=await _durable_io(_owned_conversation_io,conv,current_goal_runtime_event,
+                conv.session,event,runtime_state,jobs=jobs)
+        if old_goal is not None and old_goal != conv.session.goal_contract.version and not reconciled_event and not retained_event:
+            (await _durable_io(store.receipt, event['event_id'], 'main_chat', 'obsolete', {'reason': 'user superseded the goal'}))
+            continue
+        from agents.lifecycle import obsolete_internal_question_for_recovery
+        if obsolete_internal_question_for_recovery(conv.session, event, runtime=runtime_state):
+            conv.current_status = '恢复工作流'
+        pending = conv.session._pending_user_interaction or {}
+        if (conv.session._awaiting_plan_approval or pending.get('tool') in {'failure_decision', 'workflow_patch_decision', 'user_decision'}
+                and not default_review_binding):
+            (await _durable_io(store.receipt, event['event_id'], 'main_chat', 'waiting_user', {'negotiation_owner': 'lead-orchestrator'}))
+            continue
+        if conv.is_processing or conv.interrupt_requested or conv.interrupt_message:
+            continue
+        if event.get('main_chat') == 'waiting_user':
+            (await _durable_io(store.receipt, event['event_id'], 'main_chat', 'retry'))
+        await _reserve_and_schedule_lifecycle_main(conv, event, store)
 
 
 async def _drain_lifecycle_events():
@@ -1698,7 +3652,7 @@ async def _drain_job_notifications():
     while True:
         await asyncio.sleep(5)
         try:
-            notifs = _watch.drain_notifications()
+            notifs = (await asyncio.to_thread(_watch.drain_notifications))
         except Exception as e:
             notifs = []
             print(f"  [JobWatch] drain error: {e}", flush=True)
@@ -1711,7 +3665,7 @@ async def _drain_job_notifications():
             msg = n.get("message", "")
             if not conv_id or not username:
                 print(f"  [JobWatch] notification {n.get('job_id')} has no conv/user — dropped", flush=True)
-                _watch.ack_notification(str(n.get("job_id", "")),n.get('notification_id',''))
+                (await asyncio.to_thread(_watch.ack_notification, str(n.get("job_id", "")),n.get('notification_id','')))
                 continue
             try:
                 # Wake the conversation (session.reply → agent fault handling).
@@ -1720,10 +3674,10 @@ async def _drain_job_notifications():
                 if conv is None:
                     # conversation deleted while job was running
                     print(f"  [JobWatch] conv {conv_id} gone — notification dropped", flush=True)
-                    _watch.ack_notification(str(n.get("job_id", "")),n.get('notification_id',''))
+                    (await asyncio.to_thread(_watch.ack_notification, str(n.get("job_id", "")),n.get('notification_id','')))
                     continue
                 _ensure_session(conv)
-                rec = _watch.get(str(n.get('job_id'))) or {}
+                rec = (await asyncio.to_thread(_watch.get, str(n.get('job_id')))) or {}
                 kind=n.get('kind') or ('job_failed' if rec.get('failed') else 'job_completed')
                 conv.session._lifecycle_store.emit(kind, {
                     'job': rec, 'notification': n, 'workflow_id': conv.session._current_line_id,
@@ -1731,7 +3685,7 @@ async def _drain_job_notifications():
                     'instruction':'PENDING is nonterminal: delegate resource review, preserve leases and original job, never label completion or auto-resubmit.' if kind=='job_pending_warning' else '',
                 }, event_id=f"job:{n.get('job_id')}:{n.get('notification_id') or n.get('state')}")
                 # Ack only after the durable two-receiver mailbox has accepted it.
-                _watch.ack_notification(str(n.get("job_id", "")),n.get('notification_id',''))
+                (await asyncio.to_thread(_watch.ack_notification, str(n.get("job_id", "")),n.get('notification_id','')))
                 print(f"  [JobWatch] notified conv {conv_id} about job {n.get('job_id')}", flush=True)
             except Exception as e:
                 print(f"  [JobWatch] notify conv {conv_id} failed: {e}", flush=True)
@@ -1784,7 +3738,7 @@ async def _startup_watch():
 async def list_watched_jobs(username: str = Depends(_get_user), conv_id: str = ''):
     """List jobs currently tracked by JobWatch (any state)."""
     jobs = []
-    for j in _watch.list():
+    for j in (await asyncio.to_thread(_watch.list)):
         if j.get('username') != username or (conv_id and j.get('conv_id') != conv_id): continue
         jobs.append({
             "job_id": j.get("job_id"),
@@ -1815,7 +3769,7 @@ async def explain_job(job_id: str, username: str = Depends(_get_user)):
       无 submit/scancel/write/run_bash；本端点还会剥离其 handoff 工具，杜绝委派连锁。
     - 前端任务栏"AI 看进度"按钮调用；其他 Agent 也可在会话内委派 monitor。
     """
-    rec = _watch.get(str(job_id).strip())
+    rec = (await asyncio.to_thread(_watch.get, str(job_id).strip()))
     if not rec:
         return {"job_id": job_id, "error": "该作业不在当前监控列表中（可能已完成并被清理）", "done": True}
     if rec.get('username') != username:
@@ -1868,7 +3822,7 @@ async def explain_job(job_id: str, username: str = Depends(_get_user)):
 @app.post("/api/jobs/{job_id}/cancel")
 async def cancel_job(job_id: str, username: str = Depends(_get_user)):
     """Interrupt a running computation job (scancel). Frontend '中断' button."""
-    record = _watch.get(job_id)
+    record = (await asyncio.to_thread(_watch.get, job_id))
     if not record or record.get('username') != username:
         raise HTTPException(status_code=403, detail='只能取消本用户作业')
     def control():
@@ -1905,3 +3859,78 @@ async def serve_static(full_path: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5001)
+
+
+def _ensure_scientific_owner_reviewer(conv, runtime, event):
+    """Fresh isolated role state; no reuse of a busy main/supervisor actor."""
+    from agents.session import Session
+    from agents.goal_contract import GoalContract
+    from agents.state_io import compact_checkpoint_evidence, apply_evidence_references, write_checkpoint
+    binding = event['payload']['review_binding']
+    actor = Session(config=conv.session.config, registry=conv.session.registry)
+    actor.goal_contract = GoalContract.from_dict(conv.session.goal_contract.to_dict())
+    actor._current_line_id = conv.session._current_line_id
+    actor._evidence_root = runtime.root / 'evidence'
+    actor._runtime_snapshot = runtime.snapshot
+    actor._persist_chain = lambda *args, **kwargs: None
+    # Attempt identity comes from the controller, never a model-supplied path.
+    path = runtime.root / ('scientific_review_' + uuid.uuid4().hex + '.json')
+    def save(state, reason):
+        state['owner'] = {'username':conv.username, 'conv_id':conv.conv_id, 'step_id':binding['step_id']}
+        references = compact_checkpoint_evidence(state, actor._evidence_root)
+        write_checkpoint(path, state)
+        apply_evidence_references(actor.memory, references)
+    actor._on_checkpoint = save
+    return actor, path
+
+
+async def _run_scientific_owner_review(conv, event):
+    """Independent acceptance lane; never reserve or clear a live main turn."""
+    from agents.workflow_review_stage import WorkflowReviewStage
+    main = conv.session
+    from agents.workflow_user_control import workflow_control_guard
+    user_control=workflow_control_guard(main,conv.username,conv.conv_id)
+    goal = copy.deepcopy(main.goal_contract.to_dict())
+    runtime = _ensure_workflow_runtime(conv)
+    controller = WorkflowReviewStage(runtime)
+    store = main._lifecycle_store
+    stopped = threading.Event()
+    def authority_current():
+        return (conv.session is main and user_control()
+                and main.goal_contract.to_dict() == goal)
+    def valid():
+        return not stopped.is_set() and authority_current()
+    def run():
+        from agents.watch_context import get_context, set_context
+        previous = get_context()
+        set_context(conv.username, conv.conv_id, 'scientific-owner', main._current_line_id)
+        try:
+            if not valid(): raise ValueError('owner review controls changed before actor creation')
+            actor, path = _ensure_scientific_owner_reviewer(conv, runtime, event)
+            return controller.run(actor, event, checkpoint_path=path, control_valid=valid)
+        finally:
+            set_context(**previous)
+    cancelled = False
+    pending = asyncio.create_task(asyncio.to_thread(run))
+    _api_durable_writes.add(pending)
+    pending.add_done_callback(_api_durable_writes.discard)
+    try:
+        try:
+            receipt = await asyncio.shield(pending)
+        except asyncio.CancelledError:
+            cancelled = True; stopped.set()
+            receipt = await _finish_pending_io(pending)
+        await _durable_io(store.receipt, event['event_id'], 'scientific_owner', 'delivered', receipt)
+        await _durable_io(store.receipt, event['event_id'], 'supervisor', 'obsolete',
+            {'reason':'independent scientific owner lane completed', 'not_resubmitted':True})
+        await _durable_io(store.receipt, event['event_id'], 'main_chat', 'obsolete',
+            {'reason':'scientific owner lane completed; authoritative DAG state owns continuation', 'not_resubmitted':True})
+    except Exception as error:
+        from agents.owner_review_diagnostics import failure_record
+        current = authority_current() and await asyncio.to_thread(controller.current_event, event)
+        await _durable_io(store.receipt, event['event_id'], 'scientific_owner', 'retry' if current else 'obsolete',
+            {**failure_record(error),'not_resubmitted':True})
+    finally:
+        # This transports durable events only; display rendering has its own lane.
+        await asyncio.to_thread(runtime.flush_events)
+    if cancelled: raise asyncio.CancelledError

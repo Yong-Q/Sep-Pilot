@@ -1,0 +1,36 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           0
+Potential Type
+wild                          
+Classical Mixrule
+wild                          
+Number of Bonded Terms
+           0
+Number of Angle Terms
+           0
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           1
+Improper Type Number
+           1
+Improper Form
+           1
+Improper Style
+           3
+Improper Coefficients
+    0.5000000000E+02
+    0.1000000000E+03
+Force Field Name
+mgmstereo 
+Number of Atoms with Same Parameters  
+           0
+Atom Names
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

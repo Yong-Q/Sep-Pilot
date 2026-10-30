@@ -1,0 +1,410 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           7
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Explicit                      
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3090000000E+01
+    0.4448434744E+02
+    0.3090000000E+01
+    0.4448434744E+02
+Nonbond Coefficients
+    0.3210000000E+01
+    0.4020700634E+02
+    0.3210000000E+01
+    0.4020700634E+02
+Nonbond Coefficients
+    0.1880000000E+01
+    0.3532580532E+02
+    0.1880000000E+01
+    0.3532580532E+02
+Nonbond Coefficients
+    0.2050000000E+01
+    0.3527548366E+02
+    0.2050000000E+01
+    0.3527548366E+02
+Nonbond Coefficients
+    0.2900000000E+01
+    0.9762402040E+02
+    0.2900000000E+01
+    0.9762402040E+02
+Nonbond Coefficients
+    0.2080000000E+01
+    0.1464360306E+02
+    0.2080000000E+01
+    0.1464360306E+02
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Richar1995
+Atom Names
+O         
+O         
+O         
+O         
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3320000000E+01
+    0.3638256018E+02
+    0.3320000000E+01
+    0.3638256018E+02
+Nonbond Coefficients
+    0.1990000000E+01
+    0.2833109458E+02
+    0.1990000000E+01
+    0.2833109458E+02
+Nonbond Coefficients
+    0.2160000000E+01
+    0.2908591948E+02
+    0.2160000000E+01
+    0.2908591948E+02
+Nonbond Coefficients
+    0.3010000000E+01
+    0.8806290500E+02
+    0.3010000000E+01
+    0.8806290500E+02
+Nonbond Coefficients
+    0.2190000000E+01
+    0.1207719840E+02
+    0.2190000000E+01
+    0.1207719840E+02
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Richar1995
+Atom Names
+N         
+N         
+N         
+N         
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.2808600000E+02
+Element
+Si
+Bond Pattern
+sp3  
+Base Charge 
+    0.1583333333E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Richar1995
+Atom Names
+Si        
+Si        
+Si        
+Si        
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.2698200000E+02
+Element
+Al
+Bond Pattern
+sp3  
+Base Charge 
+    0.1583333333E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Richar1995
+Atom Names
+Al        
+Al        
+Al        
+Al        
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+   -0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Richar1995
+Atom Names
+Oz        
+Oz        
+Oz        
+Oz        
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.6941000000E+01
+Element
+Li
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Richar1995
+Atom Names
+Li        
+Li        
+Li        
+Li        
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.0000000000E+00
+Element
+- 
+Bond Pattern
+sp   
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Richar1995
+Atom Names
+mp        
+mp        
+mp        
+mp        
+Number of Bonded Terms
+           3
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.5490000000E+00
+Vibration Order
+wild      
+Force Field Name
+Richar1995
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+N          mp        
+Bond Type Number
+           2
+Bond Style
+           1
+Bond Coefficients
+    0.6040000000E+00
+Vibration Order
+wild      
+Force Field Name
+Richar1995
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+O          mp        
+Bond Type Number
+           3
+Bond Style
+           8
+Bond Coefficients
+Vibration Order
+wild      
+Force Field Name
+Richar1995
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Si         Oz        
+Al         Oz        
+Number of Angle Terms
+           2
+Angle Type Number
+           1
+Angle Style
+           0
+Angle Coefficients
+    0.1800000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+Richar1995
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       mp         wild      
+Angle Type Number
+           2
+Angle Style
+          11
+Angle Coefficients
+Angle Order
+wild           
+Force Field Name
+Richar1995
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       wild       wild      
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+           8
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+Torsion Order
+wild           
+Force Field Name
+Richar1995
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       wild       wild       wild      
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           3
+Bond Increment Type Number
+           1
+Bond Increment Value
+   -0.4050000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Richar1995
+Atom Names
+N          mp        
+Bond Increment Type Number
+           2
+Bond Increment Value
+   -0.1120000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Richar1995
+Atom Names
+O          mp        
+Bond Increment Type Number
+           3
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Richar1995
+Atom Names
+wild       wild      

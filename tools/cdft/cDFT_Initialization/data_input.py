@@ -1,4 +1,5 @@
 import os
+from contextlib import contextmanager
 import numpy as np
 
 # ── Paths ────────────────────────────────────────────────────────────────────
@@ -200,6 +201,64 @@ def _cif_dataset(source):
     return dataset
 
 
+def _open_native_output_directory(output_dir):
+    """Create/open the literal directory using no-follow ancestor descriptors."""
+    raw = os.fspath(output_dir)
+    if not raw:
+        raise ValueError('native output directory must be explicit')
+    path = os.path.abspath(raw)
+    fd = os.open(os.path.sep, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for part in path.split(os.path.sep):
+            if not part:
+                continue
+            flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_NONBLOCK
+            try:
+                child = os.open(part, flags, dir_fd=fd)
+            except FileNotFoundError:
+                try:
+                    os.mkdir(part, dir_fd=fd)
+                except FileExistsError:
+                    pass  # A concurrent creator must still pass the no-follow open.
+                child = os.open(part, flags, dir_fd=fd)
+            os.close(fd)
+            fd = child
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def _check_native_output_collisions(output_dir, dataset):
+    """Reject the whole batch before writing when any intended target exists."""
+    fd = _open_native_output_directory(output_dir)
+    try:
+        for entry in dataset:
+            name = entry.stem + '.dat'
+            try:
+                os.stat(name, dir_fd=fd, follow_symlinks=False)
+            except FileNotFoundError:
+                continue
+            raise FileExistsError('cDFT native input already exists; preserve evidence and choose a fresh output directory: ' + name)
+    finally:
+        os.close(fd)
+
+
+@contextmanager
+def _exclusive_native_output(output_dir, filename):
+    """Publish a new input exclusively; preserve partial files on any failure."""
+    if os.path.basename(filename) != filename or not filename.endswith('.dat'):
+        raise ValueError('native input requires a literal .dat basename')
+    directory_fd = _open_native_output_directory(output_dir)
+    try:
+        fd = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                     0o666, dir_fd=directory_fd)
+        with os.fdopen(fd, 'w') as stream:
+            yield stream
+    finally:
+        os.close(directory_fd)
+
+
 def generate_cdft_inputs(
     cif_dir,
     gases,
@@ -256,10 +315,10 @@ def generate_cdft_inputs(
         if not os.path.exists(uff_path):
             raise FileNotFoundError(f"UFF def not found: {uff_path}")
 
-    os.makedirs(output_dir, exist_ok=True)
     generated_files = []
 
     dataset = _cif_dataset(cif_dir)
+    _check_native_output_collisions(output_dir, dataset)
     for entry in dataset:
         if not (entry.is_file() and entry.name.endswith('.cif')):
             continue
@@ -338,7 +397,7 @@ def generate_cdft_inputs(
         massmof = sum(a[6] for a in atoms_out)
         generated_files.append(out_path)
 
-        with open(out_path, 'w') as f:
+        with _exclusive_native_output(output_dir, filename + '.dat') as f:
             f.write('water  %.2f  %d\n' % (massmof,henry))
             f.write('Nmaxx Nmaxy Nmaxz\n')
             f.write('%d   %d   %d\n' % (ngrid, ngrid, ngrid))
@@ -534,6 +593,119 @@ if __name__ == '__main__':
 # ----------------------------------------------------------------------------
 _orig_generate_cdft_inputs = generate_cdft_inputs
 
+
+class GeneratedInputs(list):
+    """Legacy list API plus a receipt for freshly regenerated native bytes."""
+    def __init__(self, paths, manifest, reused):
+        super().__init__(paths)
+        self.manifest = manifest
+        self.reused_existing_inputs = reused
+
+
+def _workload_reader():
+    # Load the shared pure reader without importing backend/session machinery.
+    import importlib.util
+    from pathlib import Path
+    path = Path(__file__).resolve().parents[3] / 'agents/workload_budget.py'
+    spec = importlib.util.spec_from_file_location('_cdft_workload_reader', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _publish_regenerated_inputs(arguments):
+    """Render off-path, then compare the entire immutable batch before writing."""
+    import fcntl
+    import hashlib
+    from pathlib import Path
+    import tempfile
+    import uuid
+    reader = _workload_reader()
+    import importlib.util
+    grid_path = Path(__file__).resolve().parents[3] / 'agents/cdft_grid_guard.py'
+    grid_spec = importlib.util.spec_from_file_location('_cdft_candidate_grid_guard', grid_path)
+    grid_guard = importlib.util.module_from_spec(grid_spec); grid_spec.loader.exec_module(grid_guard)
+    output = arguments['output_dir'] or os.path.join(_SCRIPT_DIR, 'inputCOF')
+    output = os.path.abspath(output)
+    directory = _open_native_output_directory(output)
+    try:
+        dataset = _cif_dataset(arguments['cif_dir'])
+        if not dataset or len(dataset) > reader.MAX_ITEMS:
+            raise ValueError('empty or oversized native input batch')
+        # TemporaryDirectory owns exactly this unpredictable scratch prefix.
+        # Failed rendering never publishes a partial file into the real inputdir.
+        with tempfile.TemporaryDirectory(prefix='seppilot-cdft-candidate-') as scratch:
+            render = dict(arguments, output_dir=scratch)
+            generated = _orig_generate_cdft_inputs(**render)
+            if len(generated) != len(dataset):
+                raise ValueError('native generation skipped inputs; incomplete batches cannot be reused')
+            candidate_fd = _open_native_output_directory(scratch)
+            try:
+                items, payloads, total = [], {}, 0
+                for path in generated:
+                    name = Path(path).name
+                    fact = reader._fact(candidate_fd, name)
+                    total += fact['bytes']
+                    if total > reader.MAX_TOTAL_BYTES:
+                        raise ValueError('native input batch exceeds aggregate byte bound')
+                    raw = Path(path).read_bytes()
+                    if len(raw) != fact['bytes'] or hashlib.sha256(raw).hexdigest() != fact['sha256']:
+                        raise ValueError('candidate changed during generation')
+                    grid_guard.native_grid_axes(raw)
+                    items.append(fact); payloads[name] = raw
+            finally:
+                os.close(candidate_fd)
+            items.sort(key=lambda item: item['path'])
+            expected = {item['path'] for item in items}
+            if len(expected) != len(dataset):
+                raise ValueError('native generation has duplicate input identities')
+            # Coordinate cooperating generators, without creating a lock file or
+            # changing directory metadata on a byte-identical retry.
+            fcntl.flock(directory, fcntl.LOCK_EX)
+            before = os.fstat(directory)
+            names = set()
+            with os.scandir(directory) as entries:
+                for index, entry in enumerate(entries):
+                    if index >= reader.MAX_ENTRIES:
+                        raise ValueError('native output directory exceeds entry bound')
+                    if entry.name.endswith('.dat'): names.add(entry.name)
+            if names:
+                if names != expected:
+                    raise FileExistsError('partial or extra native inputs; choose a fresh input_dir')
+                try:
+                    actual = [reader._fact(directory, item['path']) for item in items]
+                except ValueError as error:
+                    raise FileExistsError('existing native input is not a bounded regular candidate') from error
+                if actual != items or os.fstat(directory).st_mtime_ns != before.st_mtime_ns:
+                    raise FileExistsError('native inputs differ from freshly generated recipe; choose a fresh input_dir')
+                reused = True
+            else:
+                for item in items:
+                    temporary = '.cdft-publish-' + uuid.uuid4().hex
+                    try:
+                        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                                     0o600, dir_fd=directory)
+                        with os.fdopen(fd, 'wb') as stream:
+                            stream.write(payloads[item['path']]); stream.flush(); os.fsync(stream.fileno())
+                        os.link(temporary, item['path'], src_dir_fd=directory, dst_dir_fd=directory)
+                        os.fsync(directory)
+                    finally:
+                        try: os.unlink(temporary, dir_fd=directory)
+                        except FileNotFoundError: pass
+                reused = False
+            # Verify publication/reuse with the same reader used by dispatch.
+            if [reader._fact(directory, item['path']) for item in items] != items:
+                raise ValueError('native inputs changed after publication')
+            manifest = {'schema_version': 1, 'items': items, 'n_inputs': len(items),
+                        'input_dir': output, 'verification': 'fresh_recipe_byte_comparison',
+                        'native_recipe': {key: value for key, value in arguments.items()
+                                          if key not in {'cif_dir', 'output_dir'}},
+                        'bulk_density_unit': 'molecule/angstrom^3'}
+            return GeneratedInputs([os.path.join(output, item['path']) for item in items], manifest, reused)
+    finally:
+        os.close(directory)
+
+
 def generate_cdft_inputs(*args, **kwargs):
     def _to_rho(x):
         try:
@@ -550,4 +722,7 @@ def generate_cdft_inputs(*args, **kwargs):
         kwargs['bulk_densities'] = [_to_rho(x) for x in bd]
     elif bd is not None:
         kwargs['bulk_densities'] = [_to_rho(x) for x in bd]
-    return _orig_generate_cdft_inputs(*args, **kwargs)
+    import inspect
+    bound = inspect.signature(_orig_generate_cdft_inputs).bind(*args, **kwargs)
+    bound.apply_defaults()
+    return _publish_regenerated_inputs(bound.arguments)

@@ -8,6 +8,30 @@
   },
   "skills": [
     {
+      "id": "parallel-task-executor",
+      "title": "Parallel Task Orchestration",
+      "aliases": [],
+      "automation_level": "metadata",
+      "legacy_source": "https://hub.cocoloop.cn/skills/1559",
+      "use_when": "Use when coordinating multiple requested tasks, independent scientific branches, or a user parameter change in an existing workflow.",
+      "do_not_use_for": "Do not replace the persistent DAG executor, submit scientific jobs directly, or configure an external OpenClaw runtime.",
+      "inputs": [
+        "current user goal and explicit parameter changes",
+        "owned workflow/node/attempt and scheduler evidence",
+        "dependencies and resource availability"
+      ],
+      "automation": "Use the existing structured workflow draft, versioned patch and execution tools. The native executor owns scheduling and recovery; this skill is guidance only.",
+      "notes": [
+        "Adapted independently from the task decomposition, dependency, result collection and progress concepts of parallel-task-executor v1.0.0 by Erichy777 at https://hub.cocoloop.cn/skills/1559. The downloaded guide contains no execution engine; its illustrative scheduler code and OpenClaw configuration are not bundled.",
+        "Keep one authoritative task graph. Each branch records its owner, inputs, expected artifacts and actual dependencies. Run independent branches concurrently only when their resource leases and outputs are compatible; join verified evidence before delivering a combined result.",
+        "On an explicit user parameter change, reconcile the current goal with pending typed node arguments, propose the corresponding versioned graph patch, then apply and execute within that existing user authority. Do not ask the user to repeat an unambiguous parameter instruction. Preserve unaffected verified results.",
+        "A running or uncertain submission retains its job and attempt identity. Report whether old parameters remain active; reconcile that job before a conflicting edit. Changing a future parameter does not authorize cancelling or repeating an existing job.",
+        "Use returned schema, contract and activation errors to choose the next concrete repair. A goal/plan/argument mismatch is a graph reconciliation issue; delegate framework repair only when execution evidence demonstrates a code defect. Repeated reads or handoffs alone are not progress.",
+        "Report actual pending, running, blocked, validated and delivered states with job or artifact references. A model reply, tool proposal or queued task is not a completed calculation. Derive progress from verified work and disclose blocked branches.",
+        "Use configured concurrency, scientific walltimes and native retry receipts. Generic example defaults such as four workers, thirty seconds or three retries do not override user scope, compute resource review, idempotency or scientific acceptance."
+      ]
+    },
+    {
       "id": "harness",
       "title": "Harness Maintenance",
       "aliases": [],
@@ -341,7 +365,7 @@
       "use_when": "Use for all broad or ambiguous user requests.",
       "inputs": ["user request", "project state", "available run artifacts"],
       "outputs": ["task plan", "delegated specialist prompts", "user-facing summary"],
-      "skills": ["overview", "cif", "paper", "literature-rag", "nature-figure", "nature-reader", "nature-citation", "nature-writing", "adsorption", "cdft", "xtb-optimize", "guest-forcefield", "jobs", "analysis", "results"],
+      "skills": ["parallel-task-executor", "overview", "cif", "paper", "literature-rag", "nature-figure", "nature-reader", "nature-citation", "nature-writing", "adsorption", "cdft", "xtb-optimize", "guest-forcefield", "jobs", "analysis", "results"],
       "workflow": ["Resolve the scientific objective and identify the evidence each result must provide.", "If the request is a real numerical calculation, prefer scheduler submission over local execution.", "If the user asks for mechanisms, benchmarks, or parameter advice, query `literature-rag` first.", "If the user asks for paper reading, publication figures, citation support, or manuscript text, route into the Nature-style communication skills instead of improvising.", "Pick the method path.", "If this project already has a matching domain skill, use that skill path before probing raw executables or backend binaries from the shell.", "Use `xtb-optimize` for linker, adsorbate, or finite-cluster semiempirical cleanup instead of periodic framework MD.", "Use `guest-forcefield` when the missing piece is a guest molecule package or mixed-guest RASPA case scaffold rather than framework simulation itself.", "Resolve parameters from the user request, task manifest, or completed upstream outputs; ask only when the scientific choice remains ambiguous.", "Place independent, resource-compatible branches in the existing DAG for parallel execution; add explicit dependencies for produced inputs and a join before cross-branch conclusions.", "Dispatch specialist work or run structured scripts.", "Record run ids, source paths, units, and validation evidence when workflows are executed.", "If a branch fails, diagnose and repair that branch through the existing recovery path while independent branches continue; reassess the final claim at the join.", "Summarize outcomes and next steps."],
       "notes": ["This is the entry agent for the new harness.", "Prefer `scripts/run_workflow.py` over ad hoc shell commands so runs are captured in the ledger.", "Trigger `literature-rag` before answering literature-grounded questions instead of relying on memory.", "For cluster-type compute, default to submission rather than node01 local execution unless the task is explicitly lightweight and non-computational.", "Shell-level probing is a fallback for debugging missing capability, not the default path when a project skill already exists.", "Reuse the existing persistent DAG and resource leases rather than introducing another parallel-task queue.", "Do not treat an unvalidated branch or a surrogate model prediction as a completed physical calculation.", "Keep account identifiers and credentials out of delegated prompts, workflow artifacts, and logs."]
     },
@@ -523,7 +547,7 @@
       "use_when": "Use for job-status checks and failure-signature collection.",
       "inputs": ["job_ids or work_dirs"],
       "outputs": ["status table", "flagged errors", "verdict"],
-      "skills": ["jobs", "results"],
+      "skills": ["parallel-task-executor", "jobs", "results"],
       "workflow": ["Inspect scheduler state.", "Inspect work directories and logs.", "Report verdicts without retrying jobs."],
       "notes": []
     }

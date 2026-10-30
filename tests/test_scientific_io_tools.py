@@ -28,19 +28,8 @@ def test_download_scientific_file_is_scoped_hashed_and_atomic(tmp_path, monkeypa
     root = _scope(tmp_path, monkeypatch)
     payload = b"data_demo\n_cell_length_a 10.0\n"
 
-    class Response:
-        status_code = 200
-        headers = {"Content-Length": str(len(payload)), "Content-Type": "chemical/x-cif", "ETag": "demo"}
-        raw = SimpleNamespace(_connection=SimpleNamespace(
-            sock=SimpleNamespace(getpeername=lambda: ("93.184.216.34", 443))))
-        def iter_content(self, chunk_size=65536):
-            yield payload[:8]
-            yield payload[8:]
-        def close(self):
-            pass
-
-    monkeypatch.setattr(socket, "getaddrinfo", lambda *a, **k: [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))])
-    monkeypatch.setattr("requests.get", lambda *a, **k: Response())
+    from tests.native_protocol_cases import public_https_transport
+    calls=public_https_transport(monkeypatch,payload)
     target = root / "downloads" / "demo.cif"
     result = _exec_download_scientific_file({
         "url": "https://example.org/demo.cif",
@@ -53,6 +42,10 @@ def test_download_scientific_file_is_scoped_hashed_and_atomic(tmp_path, monkeypa
     assert result["sha256"] == hashlib.sha256(payload).hexdigest()
     assert target.read_bytes() == payload
     assert not target.with_name("demo.cif.part").exists()
+    assert calls[0][0:3]==('pool','93.184.216.34',443)
+    assert calls[1][0:3]==('request','GET','/demo.cif')
+    assert result['transport_hops'][0]['connect_target_public_ip']=='93.184.216.34'
+    assert result['transport_hops'][0]['origin_tls_verified']is True
 
 
 def test_download_rejects_private_network_before_request(tmp_path, monkeypatch):
@@ -70,18 +63,40 @@ def test_download_rejects_private_network_before_request(tmp_path, monkeypatch):
 
 
 def test_ml_train_fails_closed_without_real_labelled_csv(tmp_path, monkeypatch):
-    live_source = inspect.getsource(get_registry().get("ml_train").execute)
-    assert "synthetic labels are forbidden" in live_source
+    from agents.ml_tool_adapter import _legacy_dataset
+    live_source = inspect.getsource(get_registry().get("ml_train").execute) + inspect.getsource(_legacy_dataset)
+    assert "labels are not generated" in live_source
     assert "np.random.uniform" not in live_source
     root = _scope(tmp_path, monkeypatch)
-    result = _exec_ml_train({
-        "data_csv": str(tmp_path / "missing.csv"),
-        "target": "uptake",
-        "output_dir": str(root / "ml" / "model"),
-    })
-    clear_context()
-    assert "synthetic labels are forbidden" in result["error"]
-    assert not (root / "ml" / "model" / "model.joblib").exists()
+    submitted=[]
+    def forbidden_submit(self,*args,**kwargs):
+        submitted.append((args,kwargs))
+        pytest.fail('missing native label inputs must not submit a training job')
+    monkeypatch.setattr('agents.ml_runtime.MLRuntime.submit',forbidden_submit)
+    try:
+        result = _exec_ml_train({
+            "data_csv": str(root / "missing.csv"),
+            "target": "uptake",
+            "output_dir": str(root / "ml" / "model"),
+        })
+        assert result['error_kind']=='native_ml_contract' and result['executed'] is False
+        assert result['labels_generated'] is False and result['scientific_acceptance'] is False
+        assert result['error'] and submitted==[]
+        assert list(root.rglob('labels.csv'))==[]
+        assert not (root / "ml" / "model" / "model.joblib").exists()
+        source=root/'missing-target.csv'
+        source.write_text('feature\n'+''.join(str(index)+'\n' for index in range(8)))
+        before=source.read_bytes()
+        result = _exec_ml_train({"data_csv":str(source),"target":"uptake",
+            "output_dir":str(root/"ml"/"model")})
+        assert result['error_kind']=='native_ml_contract' and result['executed'] is False
+        assert result['labels_generated'] is False and result['scientific_acceptance'] is False
+        assert "labels are not generated" in result["error"]
+        assert submitted==[] and list(root.rglob('labels.csv'))==[]
+        assert source.read_bytes()==before
+        assert not (root / "ml" / "model" / "model.joblib").exists()
+    finally:
+        clear_context()
 
 
 @pytest.mark.skipif(importlib.util.find_spec('tools.mof_features') is None,

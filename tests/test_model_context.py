@@ -61,3 +61,17 @@ def test_large_result_without_matching_evidence_is_retained(tmp_path):
     view, metrics = compact_state_snapshots(history, evidence_root=tmp_path)
     assert view == history
     assert metrics['referenced_snapshots'] == 0
+def test_verified_old_lifecycle_notices_are_compacted_without_touching_user_dialogue():
+    import json
+    from agents.model_context import compact_lifecycle_events
+    old = {'event_id': 'old', 'kind': 'worker_failed', 'time': 1, 'payload': {'error': 'old config'}}
+    current = {'event_id': 'current', 'kind': 'worker_failed', 'time': 2, 'payload': {'error': 'current'}}
+    messages = [{'role': 'user', 'content': '继续执行'},
+                {'role': 'user', 'content': '[生命周期事件]\n' + json.dumps(old)},
+                {'role': 'user', 'content': '[生命周期事件]\n' + json.dumps(current)},
+                {'role': 'user', 'content': '[生命周期事件]\n'+json.dumps({**old, 'event_id': 'unregistered'})}]
+    view, count = compact_lifecycle_events(messages, {'old': {**old, 'main_chat': 'delivered'},
+                                                     'current': {**current, 'main_chat': 'processing'}}, {})
+    assert count == 1 and 'historical_event' in view[1]['content']
+    assert view[0] == messages[0] and view[2:] == messages[2:]
+    assert 'old config' in messages[1]['content']

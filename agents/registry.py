@@ -23,9 +23,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from . import slurm
 from .config import AgentConfig, get_config
-from .ml_templates import build_ml_template, plan_active_learning
+from .ml_templates import build_ml_template, plan_active_learning, native_dataset_planner_mismatch
 from typing import Any, Callable, Dict, List, Optional
 from .output_contract import OUTPUT_SCHEMA
+from .native_timing import timed_native, timed_phase, timed_call
 
 INPUT_BINDINGS_SCHEMA = {
     "type": "object",
@@ -34,19 +35,85 @@ INPUT_BINDINGS_SCHEMA = {
         "additionalProperties": False,
         "properties": {
             "step_id": {"type": "string", "minLength": 1},
-            "output_index": {"type": "integer", "minimum": 0},
+            "output_index": {"type": "integer", "minimum": 0,"description":"Zero-based index of the producer's exact expected_outputs file."},
+            "json_pointer": {"type": "string", "minLength": 2, "maxLength": 256,"description":"For a scalar from a sandbox-produced JSON artifact, use its declared RFC 6901 pointer, e.g. /result. The source JSON schema must declare and require this field."},
+            "value_type": {"type": "string", "enum": ["number", "integer", "string", "boolean"],"description":"Declared source scalar type. Omit the bound target argument rather than copying a value; schema and current approved scientific constraints are checked when the producer has completed."},
         },
         "required": ["step_id", "output_index"],
+        "dependencies": {"json_pointer": ["value_type"], "value_type": ["json_pointer"]},
     },
 }
 
 # Legacy paths
-_legacy_root = Path("/home/user/gcmc_agent/BiMemAgent")
+from bimem_agent.paths import LEGACY_ROOT as _legacy_root
 _project_root = Path(__file__).resolve().parents[1]
 for p in reversed((str(_project_root), str(_legacy_root), str(_legacy_root.parent), str(_legacy_root.parent.parent))):
     if p in sys.path:
         sys.path.remove(p)
     sys.path.insert(0, p)
+
+
+def _installation_path(key, fallback=None):
+    """Resolve operator-owned scientific installations at the call boundary."""
+    from bimem_agent import paths
+    paths.load_runtime_config.cache_clear()
+    if key in paths.get_runtime_section('software'):
+        return str(paths.get_config_path('software', key))
+    if fallback is not None:
+        return str(fallback)
+    raise ValueError(f'Configure software.{key} in runtime.json before using this tool')
+
+
+def _scientific_python(key):
+    from bimem_agent import paths
+    return _installation_path(key, paths.get_config_path('paths', 'agent_env_python'))
+
+
+def _cdft_adapter_bootstrap(project_root, arguments):
+    """Load only SDK adapters, explicitly binding configured scientific data."""
+    from .installations import cdft_installation_files, installation_file_available
+    files = cdft_installation_files(project_root, arguments)
+    missing = [{'name': name, 'path': str(path), 'kind': kind}
+        for name, (path, kind) in files.items() if not installation_file_available(path, kind)]
+    if missing:
+        return '', missing
+    code = '''import sys, os, json, hashlib, importlib.util
+def _sdk_cdft_load(path, role):
+    name = '_seppilot_cdft_' + role + '_' + hashlib.sha256(path.encode()).hexdigest()
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+'''
+    if 'input_adapter' in files:
+        assets = files['framework_forcefield'][0].parent
+        code += f'''_cdft_data = _sdk_cdft_load({str(files['input_adapter'][0])!r}, 'input')
+_cdft_data._CG_FF = {str(assets/'Molecule_FF/data_ff_Coarsening_gas')!r}
+_cdft_data._UFF_DIR = {str(assets/'Molecule_FF/UFF')!r}
+_cdft_data._FF_UFF = {str(assets/'data_ff_UFF')!r}
+generate_cdft_inputs = _cdft_data.generate_cdft_inputs
+_load_cg_ff, _CG_FF = _cdft_data._load_cg_ff, _cdft_data._CG_FF
+expand_cif_dir = _cdft_data.expand_cif_dir
+'''
+    if 'submit_adapter' in files:
+        code += f'''_cdft_submit = _sdk_cdft_load({str(files['submit_adapter'][0])!r}, 'submit')
+submit_cdft_batch = _cdft_submit.submit_cdft_batch
+'''
+    if 'collect_adapter' in files and arguments.get('action') == 'collect':
+        code += f'''_cdft_collect = _sdk_cdft_load({str(files['collect_adapter'][0])!r}, 'collect')
+collect_results = _cdft_collect.collect_results
+'''
+    return code, []
+
+
+def _allocated_cpus(default):
+    """One CPU count for the scheduler request and the scientific launcher."""
+    from .watch_context import get_context
+    allocation = get_context().get('resource_allocation') or {}
+    cpus = allocation.get('cpus', default)
+    if isinstance(cpus, bool) or not isinstance(cpus, int) or cpus < 1:
+        raise ValueError('resource_allocation.cpus must be a positive integer')
+    return cpus
 
 
 # ── Tool Definition ─────────────────────────────────────────────────
@@ -125,6 +192,12 @@ class ToolRegistry:
         from .workspace import tool_scope_issues
         context = get_context()
         issues += tool_scope_issues(params, context.get('username', ''), context.get('conv_id', ''), get_config().project_root)
+        if name in {'check_job', 'diagnose_job'} and context.get('username'):
+            from .job_watch import get_watch
+            record = get_watch().get(str(params.get('job_id', ''))) or {}
+            if (record.get('username') != context['username']
+                    or record.get('conv_id') != context.get('conv_id')):
+                issues.append('job_id: access outside the current user/conversation is forbidden')
         try:
             from jsonschema import Draft7Validator
             validation_errors = list(Draft7Validator(tool.input_schema).iter_errors(schema_params))
@@ -219,6 +292,8 @@ class ToolRegistry:
                 issues.append("run_cdft submit requires input_dir")
             elif action == "collect" and not (params.get("job_work_dir") or params.get("input_dir")):
                 issues.append("run_cdft collect requires job_work_dir or input_dir")
+            elif action == 'collect_recovery' and not all(params.get(key) for key in ('partial_recovery_manifest','retry_step_id','job_work_dir','output')):
+                issues.append('run_cdft collect_recovery requires its owned manifest, retry step, actual retry root and immutable output')
         if name in {'run_cdft', 'ml_predict'} and params.get('cif_path') and params.get('cif_dir'):
             issues.append('cif_path and cif_dir are mutually exclusive; choose one input scope')
         if params.get('gas') and params.get('gases'):
@@ -228,7 +303,7 @@ class ToolRegistry:
                 issues.append('OPLS Towhee assets are discoverable but no Towhee→lammps-interface OPLS adapter is implemented; resolve atom typing/charges and conversion before submission. Never substitute UFF silently.')
             if params.get('mode', 'single') == 'md' and params.get('temperature') is None:
                 issues.append('NPT MD requires user-confirmed temperature')
-            if params.get('mode', 'single') == 'single' and any(k in params for k in ('temperature', 'pressure', 'npt_ps', 'timestep')):
+            if params.get('mode', 'single') == 'single' and any(k in params for k in ('temperature', 'pressure', 'npt_ps', 'timestep', 'warmup_steps', 'equilibration_steps', 'production_steps')):
                 issues.append('temperature/pressure/duration are MD-only; single mode performs minimization')
             unknown = set(params) - set(tool.input_schema.get('properties', {}))
             if unknown:
@@ -264,8 +339,28 @@ class ToolRegistry:
     def tool_schema(self, name):
         tool = self.get(name)
         if not tool: return {'error': 'unknown concrete tool', 'tool': name}
-        return {'ok': True, 'read_only': True, **copy.deepcopy(tool.to_claude_schema()),
+        result={'ok': True, 'read_only': True, **copy.deepcopy(tool.to_claude_schema()),
                 'note': 'Schema discovery is not permission to execute; assigned agent capability and argument guards still apply.'}
+        if name in {'run_bash','write_file'} and self.get('run_analysis_sandbox'):
+            alternate=self.get('run_analysis_sandbox')
+            result['related_capabilities']=[{'name':alternate.name,'description':alternate.description,
+                'discovery':'Use get_tool_schema with this name before compiling; assigned agent and approval remain required.'}]
+        return result
+
+    def validate_plan_params(self, name, params, deferred_fields=()):
+        """Defer only explicitly bound root required fields during planning.
+
+        All other schema and scientific checks remain unchanged; actual tool
+        execution always calls the ordinary full validate_params again.
+        """
+        tool=self._tools.get(name)
+        if tool is None:return [f'Unknown tool: {name}']
+        deferred=set(deferred_fields)
+        if (not deferred<=set(tool.input_schema.get('required',[]))
+                or deferred.intersection(params)):
+            return ['invalid deferred scalar parameters']
+        omitted={f"'{key}' is a required property" for key in deferred}
+        return [issue for issue in self.validate_params(name,params) if issue not in omitted]
 
     @staticmethod
     def _validation_receipt(name: str, issues: List[str], schema: Dict[str, Any]) -> Dict[str, Any]:
@@ -308,7 +403,8 @@ class ToolRegistry:
             result = self.tool_schema(params['tool_name']) if name == 'get_tool_schema' else tool.execute(params)
             if isinstance(result, str):
                 return result
-            return json.dumps(result, ensure_ascii=False, indent=2, default=str)
+            from .recovery import normalize_tool_result
+            return json.dumps(normalize_tool_result(result), ensure_ascii=False, indent=2, default=str)
         except Exception as e:
             return json.dumps({"error": str(e), "traceback": traceback.format_exc()})
     
@@ -322,15 +418,8 @@ class ToolRegistry:
             return self._validation_receipt(name, issues, tool.input_schema)
         try:
             result = self.tool_schema(params['tool_name']) if name == 'get_tool_schema' else tool.execute(params)
-            if isinstance(result, dict):
-                return result
-            # If result is a string, try to parse as JSON
-            if isinstance(result, str):
-                try:
-                    return json.loads(result)
-                except json.JSONDecodeError:
-                    return {"result": result}
-            return {"result": result}
+            from .recovery import normalize_tool_result
+            return normalize_tool_result(result)
         except Exception as e:
             return {"error": str(e), "traceback": traceback.format_exc()}
     def claude_tools(self, tool_names: List[str] | None = None) -> List[Dict[str, Any]]:
@@ -417,26 +506,16 @@ def _normalize_cif_for_raspa(cif_path: str) -> str:
     import shutil as _shutil
     
     path = Path(cif_path)
-    content = path.read_text(encoding="utf-8")
-    
-    needs_fix = False
-    if "_space_group_name_H-M_alt" in content:
-        content = content.replace("_space_group_name_H-M_alt", "_symmetry_space_group_name_H-M")
-        needs_fix = True
-    if "_space_group_IT_number" in content:
-        content = content.replace("_space_group_IT_number", "_symmetry_Int_Tables_number")
-        needs_fix = True
-    if "_space_group_symop_operation_xyz" in content:
-        content = content.replace("_space_group_symop_operation_xyz", "_symmetry_equiv_pos_as_xyz")
-        needs_fix = True
-    
-    if not needs_fix:
+    from .raspa_cif_normalization import normalize_raspa_cif_bytes
+    from .raspa_assets import _read
+    raw, _fact = _read(path.absolute())
+    content = normalize_raspa_cif_bytes(raw)
+    if content == raw:
         return cif_path
-    
-    # Write normalized copy to temp dir
+    # A fresh normalization copy never replaces user input or job results.
     tmp_dir = Path(tempfile.mkdtemp(prefix="raspa_cif_"))
     normalized = tmp_dir / path.name
-    normalized.write_text(content, encoding="utf-8")
+    normalized.write_bytes(content)
     return str(normalized)
 
 def _exec_gcmc_isotherm(p: Dict[str, Any]) -> Any:
@@ -450,7 +529,7 @@ def _exec_gcmc_isotherm(p: Dict[str, Any]) -> Any:
     n_cycles = p.get("cycles", 50000)
     ff = p.get("force_field", "")  # empty → auto-selects via GAS_PRESETS
     guest_ff = p.get("guest_ff", "")  # empty → auto-selects via GAS_PRESETS
-    unit_cells = p.get("unit_cells", "2 2 2")
+    unit_cells = p.get("unit_cells")
     electrostatics_method = p.get("electrostatics_method", p.get("charge_method", "Ewald"))
 
     # ── Framework-charge contract ───────────────────────────────────
@@ -556,7 +635,7 @@ def _exec_gcmc_batch(p: Dict[str, Any]) -> Any:
     pressure = p.get("pressure", 1.0)
     n_cycles = p.get("cycles", 10000)
     ff = p.get("force_field", "")  # empty → per-gas preset default (GenericMOFs/wbao)
-    unit_cells = p.get("unit_cells", "2 2 2")
+    unit_cells = p.get("unit_cells")
     electrostatics_method = p.get("electrostatics_method", p.get("charge_method", "Ewald"))
 
     if not cif_dir:
@@ -604,6 +683,17 @@ def _exec_gcmc_batch(p: Dict[str, Any]) -> Any:
                     },
                 }
 
+    from .watch_context import get_context
+    allocation = get_context().get('resource_allocation') or {}
+    resources = {key: p[key] for key in ('cpus_per_task', 'memory_mb', 'nodelist', 'partition', 'walltime') if key in p}
+    if allocation.get('workload_tool') == 'run_gcmc_batch':
+        from .gcmc_workload import allocation_matches_inputs
+        if not allocation_matches_inputs(p, allocation, owned_root=root):
+            return {'submitted': False, 'failed': True, 'error_code': 'GCMC_WORKLOAD_REVIEW_STALE',
+                'error': 'Actual CIF/gas workload or final worker/RAM budget changed; obtain a fresh resource review.'}
+        resources.update(cpus_per_task=allocation['cpus'], memory_mb=allocation['memory_mb'], workers=allocation['workers'])
+        for key in ('nodelist', 'partition'):
+            if allocation.get(key): resources[key] = allocation[key]
     result = slurm.submit_gcmc_batch(
         cif_dir=cif_dir,
         gases=gases,
@@ -615,6 +705,7 @@ def _exec_gcmc_batch(p: Dict[str, Any]) -> Any:
         unit_cells=unit_cells,
         charge_method=electrostatics_method,
         output_dir=str(output_dir),
+        **resources,
     )
     _register_jobwatch(result, tool="run_gcmc_batch")
     return result
@@ -849,8 +940,10 @@ def _exec_charge(p: Dict[str, Any]) -> Any:
     work_dir = output_dir
 
     if method == "pacman":
-        pacman_dir = "/home/user/PACMAN-charge"
-        pacman_python = "/home/user/.conda/envs/pacmof2/bin/python3.9"
+        from .resource_policy import native_requirements
+        hardware = native_requirements('run_pacman_charge', p)
+        pacman_dir = _installation_path('pacman_dir')
+        pacman_python = _scientific_python('pacman_python')
         command = f"""set -euo pipefail
 mkdir -p {output_dir}
 {pacman_python} {pacman_dir}/pmcharge.py {cif_dir} --charge_type {charge_type}
@@ -862,16 +955,16 @@ echo "Charge calculation completed"
             command=command,
             work_dir=work_dir,
             partition="gpu",
-            extra_directives=["--exclude=gpu3"],
-            gres="gpu:1",
-            cpus_per_task=4,
+            extra_directives=['--exclude=' + ','.join(hardware['excluded_nodes'])],
+            gres=f"gpu:{hardware['gpus']}",
+            cpus_per_task=hardware['default_cpus'],
             walltime="12:00:00",
         )
         suffix = "_pacman.cif"
     else:
         # PACMOF (CPU, fast, default): sklearn RF prediction in the `pacmof` env.
         # No GPU, no DDEC6 SCF — a batch of ~100 MOFs finishes in minutes.
-        py = "/home/user/.conda/envs/pacmof/bin/python"
+        py = _scientific_python('pacmof_python')
         import shlex
         batch_script = config.project_root / "tools" / "pacmof_batch.py"
         command = f"""set -euo pipefail
@@ -944,19 +1037,43 @@ def _exec_md_optimize(p: Dict[str, Any]) -> Any:
     """Submit the local Python adapter using explicitly configured external software."""
     cif_path = p.get("cif_path", "")
     mode = p.get("mode", "single")
+    stage_budgets = None
+    for name, minimum in (('warmup_steps', 0), ('equilibration_steps', 0), ('production_steps', 1)):
+        if name in p and (mode != 'md' or not isinstance(p[name], int) or isinstance(p[name], bool) or p[name] < minimum):
+            return {'submitted':False, 'executed':False, 'error':name + ' requires mode=md and an integer >= ' + str(minimum)}
     options = {'cutoff': p.get('cutoff', 6.0), 'force_field': p.get('force_field', 'UFF')}
     if mode == 'md':
         options.update(temperature=p['temperature'], pressure=p.get('pressure', 1.0),
                        npt_ps=p.get('npt_ps', 700.0), timestep=p.get('timestep', 1.0))
+        for name in ('warmup_steps', 'equilibration_steps', 'production_steps'):
+            if name in p: options[name] = p[name]
+        try:
+            stage_budgets = {'warmup_steps':p.get('warmup_steps',40000),
+                'equilibration_steps':p.get('equilibration_steps',20000),
+                'production_steps':p['production_steps'] if 'production_steps' in p else int(options['npt_ps']*1000/options['timestep'])}
+            if stage_budgets['production_steps'] < 1: raise ValueError('duration includes no steps')
+        except (TypeError, ValueError, ZeroDivisionError, OverflowError):
+            return {'submitted':False, 'executed':False, 'error':'MD duration/timestep must yield positive integration steps'}
+
     config = get_config()
     # Read through the canonical runtime loader, refreshed for existing sessions.
     runtime = config.lammps_config
     if not runtime.get('executable'):
         return {'submitted': False, 'executed': False,
                 'error': 'Configure software.lammps_executable in config/runtime.json (or BIMEM_RUNTIME_CONFIG) before MD submission'}
-    work_dir = _ws("md")
+    requested_output = Path(p.get('output_dir') or _ws("md")).expanduser()
+    work_path = (requested_output if requested_output.is_absolute()
+                 else config.project_root / requested_output).resolve()
+    if work_path.exists() and not work_path.is_dir():
+        return {'submitted': False, 'executed': False, 'blocked': True,
+                'error': 'MD output_dir must be a directory'}
+    if work_path.is_dir() and any(work_path.iterdir()):
+        import uuid
+        work_path = work_path / ('attempt_' + uuid.uuid4().hex)
+    work_dir = str(work_path)
+    cpus = _allocated_cpus(4)
     import shlex
-    parameters = dict(cif_path=cif_path, output_dir=work_dir, mode=mode, n_procs=4,
+    parameters = dict(cif_path=cif_path, output_dir=work_dir, mode=mode, n_procs=cpus,
                       executable=runtime['executable'],
                       mpi_executable=runtime.get('mpi_executable') or 'mpirun',
                       interface_executable=runtime.get('interface_executable') or 'lammps-interface',
@@ -964,6 +1081,7 @@ def _exec_md_optimize(p: Dict[str, Any]) -> Any:
     runner = config.project_root / 'tools' / 'md_runtime.py'
     python = runtime.get('python') or sys.executable
     command = f"""set -euo pipefail
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 mkdir -p {shlex.quote(work_dir)}
 {shlex.quote(str(python))} {shlex.quote(str(runner))} --parameters {shlex.quote(json.dumps(parameters))} 2>&1 | tee {shlex.quote(work_dir)}/md_result.json
 echo 'LAMMPS calculation completed'
@@ -973,18 +1091,23 @@ echo 'LAMMPS calculation completed'
         command=command,
         work_dir=work_dir,
         partition="himem",
-        cpus_per_task=4,
+        cpus_per_task=cpus,
         walltime="04:00:00",
         timeout_minutes=1440,
     )
     result.update({
         "work_dir": work_dir,
         "output_dir": work_dir,
+        "result_json_path": str(work_path / 'md_result.json'),
+        "expected_structure_path": str(work_path / (Path(cif_path).stem +
+                                                    ('_md.cif' if mode == 'md' else '_opt.cif'))),
         "scientific_capability": "framework geometry minimization/NPT relaxation only",
         "guest_diffusion_supported": False,
         "trajectory_path": None,
         "warning": "This wrapper does not insert guest molecules or emit an unwrapped trajectory; it cannot support a guest diffusion coefficient or MSD node.",
     })
+    if stage_budgets is not None:
+        result['stage_budgets'] = stage_budgets  # Expected budget, never claimed completed steps.
     _register_jobwatch(result, tool='run_md_optimize')
     return result
 
@@ -1092,13 +1215,15 @@ def _exec_xtb(p: Dict[str, Any]) -> Any:
     """Submit xTB optimization via SLURM."""
     input_path = p.get("input_path", "")
     output_dir = p.get("output_dir", "")
-    xtb_exe = "/home/user/wbao/xtb/xtb-dist/bin/xtb"
+    xtb_exe = _installation_path('xtb_executable')
     gfn = p.get("gfn", 2)
     import shlex
     opt_level = shlex.quote(p.get('opt_level', 'normal'))
     charge = int(p.get('charge', 0))
+    cpus = _allocated_cpus(1)
 
     command = f"""set -euo pipefail
+export OMP_NUM_THREADS={cpus} OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 mkdir -p {shlex.quote(output_dir)}
 cd {shlex.quote(output_dir)}
 {shlex.quote(xtb_exe)} {shlex.quote(input_path)} --opt {opt_level} --gfn {gfn} --chrg {charge}
@@ -1108,7 +1233,7 @@ cd {shlex.quote(output_dir)}
         command=command,
         work_dir=output_dir,
         partition="compute",
-        cpus_per_task=1,
+        cpus_per_task=cpus,
         walltime="00:30:00",
     )
 
@@ -1159,15 +1284,12 @@ def _register_jobwatch(result: Dict[str, Any], tool: str = "") -> None:
         print(f"  [JobWatch] register failed: {e}", flush=True)
 
 
+@timed_native('run_cdft')
 def _exec_cdft(p: Dict[str, Any]) -> Any:
-    """Run cDFT using the SDK-LOCAL cDFT installation — ALL compute goes through SLURM.
+    """Use SDK adapters with operator-configured cDFT engine/force-field data.
 
-    Everything lives under tools/cdft/cDFT_Initialization/ in this project:
-    the DM_cdft binary, the UFF / coarsening force fields (Molecule_FF/UFF,
-    data_ff_UFF, data_ff_Coarsening_gas) and data_input.py / cdft_submit.py /
-    collect_cdft_results.py all resolve from their own directory, so the
-    EXTERNAL High_Batch_tool copy is never touched (local mode, same
-    philosophy as GCMC force fields).
+    Scientific force-field assets stay in software.cdft_init_dir. Adapters
+    execute from this public project, independently of ambient import caches.
 
     Flow (agent chooses action):
       inputs   → generate <mof>_<gas>.dat into tmp/cdft/inputs/ (a short SLURM job).
@@ -1178,14 +1300,43 @@ def _exec_cdft(p: Dict[str, Any]) -> Any:
     """
     import subprocess as _sp
     action = p.get("action", "pipeline")
+    if action == 'collect_recovery':
+        from .workspace import session_root
+        from .cdft_partial_recovery import collect_recovery
+        try:
+            return timed_call('recovery_collection', collect_recovery, p, root=session_root())
+        except (OSError,ValueError,PermissionError,KeyError,TypeError) as error:
+            return {'submitted':False,'failed':True,'error':str(error),'validation_passed':False}
+    if p.get('wait_job_ids') or p.get('partial_recovery_manifest'):
+        from .workspace import session_root
+        from .cdft_partial_recovery import validate_subset_submission
+        try:
+            if action!='submit' or not p.get('partial_recovery_manifest'):
+                raise ValueError('scheduler dependencies require an owned recorded failed-only cDFT recovery')
+            timed_call('partial_admission', validate_subset_submission, p, root=session_root())
+        except (OSError,ValueError,PermissionError,KeyError,TypeError) as error:
+            return {'submitted':False,'executed':False,'blocked':True,'error':str(error)}
+    import math
+    mesh = {key: p[key] for key in ('ngrid', 'dl') if key in p}
+    if ('ngrid' in mesh and (type(mesh['ngrid']) is not int or not 1 <= mesh['ngrid'] <= 1024)
+            or 'dl' in mesh and (isinstance(mesh['dl'], bool) or not isinstance(mesh['dl'], (int, float))
+                or not math.isfinite(mesh['dl']) or not 0.000001 <= mesh['dl'] <= 1000000)):
+        return {'failed': True, 'submitted': False, 'executed': False,
+                'error': 'cDFT ngrid must be an integer in [1,1024]; dl must be finite in [1e-6,1e6] angstrom (native six-decimal input precision).'}
     config = get_config()
     if action in {'pipeline','submit'} and (not isinstance(p.get('memory_mb'),int) or isinstance(p.get('memory_mb'),bool) or p['memory_mb']<64):
         return {'blocked':True,'executed':False,'submitted':False,'status':'needs_resource_review',
                 'error':'finite memory_mb budget is required; partition defaults may request all node RAM',
                 'next_action':'delegate resource monitor and establish workload-backed or user-approved MiB budget; do not guess small RAM to force scheduling'}
 
-    cdft_dir = str(config.project_root / "tools" / "cdft" / "cDFT_Initialization")
-    dm_cdft = os.path.join(cdft_dir, "cDFT", "DM_cdft")
+    from .installations import cdft_installation_files
+    _BOOT, missing = timed_call('adapter_bootstrap', _cdft_adapter_bootstrap, config.project_root, p)
+    if missing:
+        return {'blocked': True, 'executed': False, 'submitted': False, 'failed': True,
+                'error': 'cDFT installation dependencies are missing or empty; configure software.cdft_init_dir and inspect_runtime',
+                'missing_dependencies': missing}
+    layout = cdft_installation_files(config.project_root, p)
+    dm_cdft = str(layout['cdft_executable'][0]) if 'cdft_executable' in layout else ''
     # Session-isolated workspace: cDFT inputs/results under runs/{user}/{conv}/cdft
     try:
         from .workspace import session_dir
@@ -1201,7 +1352,7 @@ def _exec_cdft(p: Dict[str, Any]) -> Any:
         explicit = Path(p['job_work_dir'])
         work_dir = str((explicit if explicit.is_absolute() else config.project_root / explicit).resolve())
         data_dir = os.path.join(work_dir, 'data')
-    py = "/home/user/.conda/envs/pacmof2/bin/python3"
+    py = _scientific_python('cdft_python')
 
     cif_dir = p.get("cif_dir", p.get("cif_path", ""))
     gases = p.get("gases") or ([p["gas"]] if p.get("gas") else ["CO2"])
@@ -1213,7 +1364,7 @@ def _exec_cdft(p: Dict[str, Any]) -> Any:
     # files. Explicit input_dir remains authoritative for approved DAGs.
     import hashlib
     input_scope = hashlib.sha256(json.dumps({'gases': gases, 'temperature': T, 'cif_dir': cif_dir,
-        'framework_charge': fc, 'bulk_densities': p.get('bulk_densities', [])}, sort_keys=True).encode()).hexdigest()[:16]
+        'framework_charge': fc, 'bulk_densities': p.get('bulk_densities', []), **mesh}, sort_keys=True).encode()).hexdigest()[:16]
     input_dir = p.get("input_dir", os.path.join(work_dir, 'inputs_' + input_scope))
     job_work_dir = work_dir if p.get('job_work_dir') else ''
     output_csv = p.get("output", os.path.join(work_dir, "results.csv"))
@@ -1224,10 +1375,10 @@ def _exec_cdft(p: Dict[str, Any]) -> Any:
         bulk=[float(value)*6.02214076e-4 for value in bulk]
     elif density_unit!='molecule/angstrom^3':
         return {'error':'unsupported bulk_density_unit; native cDFT uses molecule/angstrom^3','submitted':False}
-    resources = {key: p[key] for key in ('nodelist', 'partition', 'num_processes', 'walltime','memory_mb') if key in p}
+    resources = {key: p[key] for key in ('nodelist', 'partition', 'num_processes', 'walltime','memory_mb','timeout','wait_job_ids') if key in p}
     if action in {'pipeline', 'submit'} and (config.project_root / 'env/node_inventory.json').exists():
         from .node_inventory import node_inventory, candidates
-        inventory = node_inventory(config.project_root, refresh=True)
+        inventory = timed_call('inventory_refresh', node_inventory, config.project_root, refresh=True)
         profile = inventory['policy']['tool_profiles']['run_cdft']
         choices = candidates(inventory, cpus=resources.get('num_processes', profile['default_cpus']), min_glibc=profile.get('min_glibc'), memory_mb=p['memory_mb'])
         if resources.get('nodelist'):
@@ -1252,54 +1403,69 @@ def _exec_cdft(p: Dict[str, Any]) -> Any:
     if cif_dir: cif_dir = _project_path(cif_dir)
     input_dir, output_csv = _project_path(input_dir), _project_path(output_csv)
 
+    @timed_phase('child_subprocess')
     def _run_py(code: str, _work: str = work_dir) -> Dict[str, Any]:
-        os.makedirs(_work, exist_ok=True)
         try:
-            proc = _sp.run([py, "-c", code], capture_output=True, text=True, timeout=900, cwd=_work)
+            from bimem_agent.python_child import run_project_python
+            from .watch_context import get_context
+            from .workspace import session_root
+            context = get_context()
+            owner = session_root() if context.get('username') and context.get('conv_id') else None
+            proc = run_project_python(py, code, timeout=900, cwd=_work,
+                                      owned_root=owner, create_cwd=True)
             out = (proc.stdout or "").strip()
             err = (proc.stderr or "").strip()
             if proc.returncode != 0:
-                return {"submitted": False, "failed": True, "error": err[-1500:] or f"cDFT step exited {proc.returncode}", "stdout": out, "stderr": err, "exit_code": proc.returncode}
+                failure = {"submitted": False, "failed": True, "error": err[-1500:] or f"cDFT step exited {proc.returncode}", "stdout": out, "stderr": err, "exit_code": proc.returncode}
+                if 'CDFT_GRID_UNSUPPORTED:' in err or 'CDFT_GRID_UNVERIFIED:' in err:
+                    failure.update(blocked=True, executed=False, error_kind='unsupported_native_grid',
+                                   status='unsupported_native_grid')
+                return failure
             result = {"submitted": True, "stdout": out}
             # Native helpers print one final JSON receipt. Input/collection
             # receipts have no job_id, so the submission-only parser cannot
             # decode them. Merge the typed helper receipt before interpreting it.
+            inner = None
             try:
                 inner = json.loads(out.splitlines()[-1])
                 if isinstance(inner, dict) and any(key in inner for key in ('n_inputs', 'input_dir', 'rows', 'output_csv', 'job_id', 'submitted', 'failed', 'error')):
                     result.update(inner)
             except (ValueError, IndexError):
                 pass
+            if action in {'submit','pipeline'}:
+                from .cdft_submission_receipt import NativeChildResult
+                return NativeChildResult(result, inner)
             return result
         except _sp.TimeoutExpired:
-            return {"submitted": False, "failed": True, "error": "cDFT step timed out (900s)"}
-
-    _BOOT = f"""import sys, os, json
-sys.path.insert(0, {cdft_dir!r})
-from cdft_submit import submit_cdft_batch
-"""
+            result = {"submitted": False, "failed": True, "error": "cDFT step timed out (900s)"}
+            if action in {'submit','pipeline'}:
+                from .cdft_submission_receipt import NativeChildResult
+                return NativeChildResult(result, transport_uncertain=True)
+            return result
 
     if action == "inputs":
         if not cif_dir:
             return {"error": "cif_dir/cif_path is required for cDFT input generation"}
-        code = _BOOT + f"""from data_input import generate_cdft_inputs, _load_cg_ff, _CG_FF
-cg = _load_cg_ff(_CG_FF)
+        code = _BOOT + f"""cg = _load_cg_ff(_CG_FF)
 bulk = {bulk!r}
 if not bulk:
     bulk = [cg.get(g, 0.0000125) for g in {gases!r}]
 generated = generate_cdft_inputs(cif_dir={cif_dir!r}, gases={gases!r}, temperature={T},
                      bulk_densities=bulk, output_dir={input_dir!r},
-                     framework_charge={fc!r})
+                     framework_charge={fc!r}, **{mesh!r})
 n = len(generated)
 if n == 0:
     raise ValueError('No cDFT inputs generated: source must contain CIF files; inspect the source layout before submitting')
-print(json.dumps({{'n_inputs': n, 'input_dir': {input_dir!r}}}))
+print(json.dumps({{'n_inputs': n, 'input_dir': {input_dir!r},
+    'input_manifest': getattr(generated, 'manifest', None),
+    'reused_existing_inputs': getattr(generated, 'reused_existing_inputs', False)}}))
 """
         result = _run_py(code)
         if not result.get('failed'):
             from .recovery import result_object
             result.update(result_object(result))
             result['submitted'] = False  # input generation is not a scheduler receipt
+            result['input_generation_arguments'] = copy.deepcopy(p)
             if not result.get('n_inputs'):
                 result.update(failed=True, error='No cDFT inputs generated; inspect CIF source layout')
         return result
@@ -1320,28 +1486,9 @@ print(json.dumps(r, ensure_ascii=False))
                              f"{{work_dir}}/results.csv when it completes.")
             except Exception as e:
                 r["parse_error"] = str(e)
-        # JobWatch reminder must know where the cDFT products live (results.csv
-        # + per-MOF input_dir/) — same product-path principle as charge steps.
-        r["output_dir"] = str(data_dir)
-        _register_jobwatch(r, tool="run_cdft")
-        # Record cDFT step on the pipeline TaskLine (input_dir=charge products).
-        try:
-            from .watch_context import get_context as _gctx
-            from .task_line import get_store as _taskline
-            _ctx = _gctx()
-            _tl = _taskline()
-            _lid = _ctx.get("line_id") or _ctx.get("conv_id", "")
-            _tl.upsert_step(
-                _lid, _ctx.get('step_id') or 'cdft', tool="run_cdft", arguments=p,
-                job_ids=[r.get("job_id", "")],
-                input_dir=str(input_dir), output_dir=str(data_dir),
-                done=False, note=f"gases={gases} T={T}K",
-                username=_ctx.get("username", ""),
-                conv_id=_ctx.get("conv_id", ""),
-            )
-        except Exception as _te:
-            print(f"  [TaskLine] cdft step write failed: {_te}", flush=True)
-        return r
+        from .cdft_submission_receipt import record_submission
+        return record_submission(r,p,input_dir=input_dir,output_dir=data_dir,
+                                 register_jobwatch=_register_jobwatch)
     elif action == "collect":
         # Work dir = the cDFT job folder containing input_dir/. If not given,
         # fall back to the most recent job folder under data_dir.
@@ -1354,8 +1501,7 @@ print(json.dumps(r, ensure_ascii=False))
             if _subs:
                 wd = str(_subs[0])
         wd = wd or work_dir
-        code = _BOOT + f"""from collect_cdft_results import collect_results
-rows = collect_results({wd!r}, {gases!r}, output_csv={output_csv!r})
+        code = _BOOT + f"""rows = collect_results({wd!r}, {gases!r}, output_csv={output_csv!r})
 if not rows:
     raise ValueError('cDFT collection produced zero material rows; check the actual job work_dir')
 for row in rows:
@@ -1371,18 +1517,32 @@ print(json.dumps({{'rows': rows, 'output_csv': {output_csv!r}}}, ensure_ascii=Fa
             result.update(result_object(result))
             result['submitted'] = False
             result['validation_passed'] = bool(result.get('rows'))
+            from .workspace import session_root
+            from .cdft_result_facts import inspect_cdft_batch_quality
+            result['cdft_quality'] = inspect_cdft_batch_quality(
+                wd, owned_root=session_root(), gases=gases,
+                source_input_dir=input_dir if p.get('input_dir') else None)
+            from .cdft_result_facts import collected_cdft_row_errors
+            row_errors = collected_cdft_row_errors(result.get('rows'), result['cdft_quality'], gases)
+            if row_errors:
+                result['cdft_quality'].setdefault('collection_errors', []).extend(row_errors)
+                result['cdft_quality']['complete_material_outputs'] = False
+            result['scientific_convergence'] = result['cdft_quality']['scientific_convergence']
+            if (result['cdft_quality'].get('expected_materials_verified')
+                    and not result['cdft_quality'].get('complete_material_outputs')):
+                result.update(failed=True, validation_passed=False,
+                    error='cDFT outputs do not cover the original declared inputs with matching finite native evidence')
         return result
     else:  # pipeline → generate inputs then sbatch-submit ONE SLURM cDFT job
         if not cif_dir:
             return {"error": "cif_dir/cif_path is required for cDFT pipeline"}
-        code = _BOOT + f"""from data_input import generate_cdft_inputs, _load_cg_ff, _CG_FF
-cg = _load_cg_ff(_CG_FF)
+        code = _BOOT + f"""cg = _load_cg_ff(_CG_FF)
 bulk = {bulk!r}
 if not bulk:
     bulk = [cg.get(g, 0.0000125) for g in {gases!r}]
 generated = generate_cdft_inputs(cif_dir={cif_dir!r}, gases={gases!r}, temperature={T},
                      bulk_densities=bulk, output_dir={input_dir!r},
-                     framework_charge={fc!r})
+                     framework_charge={fc!r}, **{mesh!r})
 n = len(generated)
 print(json.dumps({{'n_inputs': n}}))
 if n == 0:
@@ -1405,27 +1565,9 @@ print(json.dumps(r, ensure_ascii=False))
                              "Results auto-collected to <work_dir>/results.csv on completion.")
             except Exception as e:
                 r["parse_error"] = str(e)
-        # JobWatch reminder carries the real product dir (results.csv location).
-        r["output_dir"] = str(data_dir)
-        _register_jobwatch(r, tool="run_cdft")
-        # Record cDFT step on the pipeline TaskLine.
-        try:
-            from .watch_context import get_context as _gctx
-            from .task_line import get_store as _taskline
-            _ctx = _gctx()
-            _tl = _taskline()
-            _lid = _ctx.get("line_id") or _ctx.get("conv_id", "")
-            _tl.upsert_step(
-                _lid, _ctx.get('step_id') or 'cdft', tool="run_cdft", arguments=p,
-                job_ids=[r.get("job_id", "")],
-                input_dir=str(input_dir), output_dir=str(data_dir),
-                done=False, note=f"pipeline gases={gases} T={T}K",
-                username=_ctx.get("username", ""),
-                conv_id=_ctx.get("conv_id", ""),
-            )
-        except Exception as _te:
-            print(f"  [TaskLine] cdft step write failed: {_te}", flush=True)
-        return r
+        from .cdft_submission_receipt import record_submission
+        return record_submission(r,p,input_dir=input_dir,output_dir=data_dir,
+                                 register_jobwatch=_register_jobwatch)
 
 def _exec_expand_cell(p: Dict[str, Any]) -> Any:
     """Expand CIFs so the box satisfies the minimum-image rule min(a,b,c) > 2×cutoff.
@@ -1437,22 +1579,24 @@ def _exec_expand_cell(p: Dict[str, Any]) -> Any:
     2×cutoff rule). The cDFT Input.dat generator also auto-expands inline.
     """
     config = get_config()
-    cdft_dir = str(config.project_root / "tools" / "cdft" / "cDFT_Initialization")
     cif_dir = p.get("cif_dir", "")
     if not cif_dir:
         return {"error": "cif_dir is required"}
+    bootstrap, missing = _cdft_adapter_bootstrap(config.project_root, {'action': 'expand'})
+    if missing:
+        return {'expanded': False, 'blocked': True, 'executed': False,
+                'error': 'cDFT cell-expansion adapter or configured framework force field is unavailable',
+                'missing_dependencies': missing}
     cutoff = p.get("cutoff", 15.0)
     output_dir = p.get("output_dir", "")
-    py = "/home/user/.conda/envs/pacmof2/bin/python3"
-    _code = f"""import sys, json
-sys.path.insert(0, {cdft_dir!r})
-from data_input import expand_cif_dir
-r = expand_cif_dir({cif_dir!r}, cutoff={float(cutoff)}, output_dir={output_dir!r} or None)
+    py = _scientific_python('cdft_python')
+    _code = bootstrap + f"""r = expand_cif_dir({cif_dir!r}, cutoff={float(cutoff)}, output_dir={output_dir!r} or None)
 print(json.dumps(r, ensure_ascii=False))
 """
     try:
         import subprocess as _sp
-        proc = _sp.run([py, "-c", _code], capture_output=True, text=True, timeout=900)
+        from bimem_agent.python_child import run_project_python
+        proc = run_project_python(py, _code, timeout=900)
         out = (proc.stdout or "").strip()
         err = (proc.stderr or "").strip()
         if proc.returncode != 0:
@@ -1486,9 +1630,17 @@ def _exec_task_line_query(p: Dict[str, Any]) -> Any:
             line = store.get_line(line_id, username=username, conv_id=current_conv)
             if not line:
                 return {"ok": False, "error": 'task line not found in the current user/conversation'}
+            steps=line.get("steps", [])
+            if p.get('step_id') is not None:
+                requested=p['step_id']
+                if not isinstance(requested,str)or not requested:
+                    return {'ok':False,'error':'step_id must be one owned typed workflow node'}
+                steps=[node for node in steps if node.get('step_id')==requested]
+                if len(steps)!=1 or 'expected_outputs'not in steps[0]:
+                    return {'ok':False,'error':'typed step_id not found in the current owned task line'}
             return {"ok": True, "line_id": line['line_id'], "title": line.get("title", ""),
                     'plan_version': line.get('plan_version') or max((s.get('plan_version', 0) for s in line.get('steps', [])), default=0),
-                    "steps": line.get("steps", [])}
+                    "steps": steps}
         if conv_id:
             lines = store.get_by_conv(conv_id, username=username)
             return {"ok": bool(lines), "lines": lines}
@@ -1616,11 +1768,28 @@ mpirun vasp_std
 
 def _exec_string_tst(p: Dict[str, Any]) -> Any:
     """Submit String TST calculation via SLURM."""
+    issues = get_registry().validate_params('run_string_tst', p)
+    if issues:
+        return {'blocked': True, 'submitted': False, 'executed': False,
+                'error': 'Invalid String parameters', 'issues': issues}
     config = get_config()
-    work_dir = p.get("output_dir", _ws("tst"))
     gas = p.get("gas", "CO2")
     cif_dir = p.get("cif_dir", "")
     temperature = p.get("temperature", 298.0)
+    directions = [int(value) for value in p.get('directions', [1, 2, 3])]
+    budgets = {name: int(p.get(name, default)) for name, default in (
+        ('running_steps', 10000), ('n_string', 401), ('nmax', 70))}
+    single_cif = None
+    if p.get('cif_path'):
+        source = Path(p['cif_path']).expanduser()
+        single_cif = (source if source.is_absolute() else config.project_root / source).resolve()
+        if not single_cif.is_file() or single_cif.suffix.lower() != '.cif':
+            return {'blocked': True, 'submitted': False, 'executed': False,
+                    'error': 'cif_path must identify an existing single CIF input'}
+        cif_dir = str(single_cif.parent)
+    elif cif_dir:
+        directory = Path(cif_dir).expanduser()
+        cif_dir = str((directory if directory.is_absolute() else config.project_root / directory).resolve())
 
     runtime = config.string_tst_config
     if not runtime.get('generator') or not runtime.get('executable'):
@@ -1628,29 +1797,49 @@ def _exec_string_tst(p: Dict[str, Any]) -> Any:
                 'error': 'Configure software.string_tst_generate_script and software.string_tst_executable in config/runtime.json'}
     generate_script = runtime['generator']
     string_exe = runtime['executable']
+    requested_output = Path(p.get('output_dir') or _ws('tst')).expanduser()
+    work_path = (requested_output if requested_output.is_absolute()
+                 else config.project_root / requested_output).resolve()
+    if work_path.exists() and not work_path.is_dir():
+        return {'blocked': True, 'submitted': False, 'executed': False,
+                'error': 'String output_dir must be a directory'}
+    if work_path.is_dir() and any(work_path.iterdir()):
+        import uuid
+        work_path = work_path / ('attempt_' + uuid.uuid4().hex)
+    work_dir = str(work_path)
     input_dir = f"{work_dir}/string_input_{gas}"
     import shlex
     runner = str(config.project_root / 'tools' / 'run_string_tst_batch.py')
     python = shlex.quote(runtime['python'])
+    single_option = f' --cif {shlex.quote(str(single_cif))}' if single_cif else ''
+    budget_options = (' --directions ' + ' '.join(map(str, directions)) +
+                      ''.join(f' --{key.replace("_", "-")} {value}' for key, value in budgets.items()))
+    from .resource_policy import native_requirements
+    hardware = native_requirements('run_string_tst')
+    cpus = _allocated_cpus(hardware['default_cpus'])
 
     command = f"""set -euo pipefail
+export OMP_NUM_THREADS={cpus} OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 mkdir -p {shlex.quote(work_dir)} {shlex.quote(input_dir)}
-{python} {shlex.quote(generate_script)} --cif-dir {shlex.quote(cif_dir)} --output-dir {shlex.quote(input_dir)} --gas {shlex.quote(gas)} --temperature {float(temperature)}
+{python} {shlex.quote(generate_script)} --cif-dir {shlex.quote(cif_dir)}{single_option} --output-dir {shlex.quote(input_dir)} --gas {shlex.quote(gas)} --temperature {float(temperature)}{budget_options}
 {python} {shlex.quote(runner)} --manifest {shlex.quote(input_dir + '/manifest.csv')} --executable {shlex.quote(string_exe)}
-echo "String TST calculation for {gas} completed"
+echo {shlex.quote('String TST calculation for ' + gas + ' completed')}
 """
     result = slurm.submit_and_return(
         job_name=f"string_tst_{gas}",
         command=command,
         work_dir=work_dir,
         partition="gpu",
-        extra_directives=["--exclude=gpu3"],
-        gres="gpu:1",
-        cpus_per_task=8,
-        walltime="48:00:00",
+        extra_directives=['--exclude=' + ','.join(hardware['excluded_nodes'])],
+        gres=f"gpu:{hardware['gpus']}",
+        cpus_per_task=cpus,
+        walltime=p.get('walltime', '48:00:00'),
     )
     result.update(work_dir=work_dir, input_dir=input_dir, output_dir=work_dir,
-                  manifest_path=input_dir + '/manifest.csv')
+                  manifest_path=input_dir + '/manifest.csv',
+                  result_json_path=input_dir + '/string_results.json',
+                  string_parameters={'directions': directions, **budgets},
+                  validation_scope='Native String path only; reduced budgets are interface smoke tests, not evidence of converged diffusion physics')
     _register_jobwatch(result, tool='run_string_tst')
     return result
 
@@ -1662,9 +1851,9 @@ def _exec_vext(p: Dict[str, Any]) -> Any:
     cif_dir = p.get("cif_dir", "")
     temperature = p.get("temperature", 298.0)
 
-    generate_script = "/home/user/gcmc_agent/High_Batch_tool/TST/TuTraSt/generate_vext_input.py"
-    vext_exe = "/home/user/gcmc_agent/High_Batch_tool/TST/TuTraSt/bin/ewald_0719_cell_v"
-    input_param = "/home/user/gcmc_agent/High_Batch_tool/TST/TuTraSt/TuTraSttest/input.param"
+    generate_script = _installation_path('tustrast_generate_script')
+    vext_exe = _installation_path('tustrast_executable')
+    input_param = _installation_path('tustrast_input_param')
     input_dir = f"{work_dir}/vext_inputs"
     run_dir = f"{work_dir}/vext_runs"
 
@@ -1756,7 +1945,63 @@ def _exec_diagnose_job(p: Dict[str, Any]) -> Any:
     job_id = p.get("job_id", "")
     work_dir = p.get("work_dir", "")
     host = p.get("host", "")
-    result = slurm.diagnose_job(job_id, work_dir=work_dir, host=host)
+    from .job_watch import get_watch
+    from .watch_context import get_context
+    context = get_context()
+    record = get_watch().get(str(job_id)) or {}
+    if context.get('username') and (record.get('username') != context['username']
+            or record.get('conv_id') != context.get('conv_id')):
+        return {'blocked': True, 'error': 'job does not belong to this user/conversation'}
+    if record.get('work_dir'):
+        if work_dir and Path(work_dir).resolve() != Path(record['work_dir']).resolve():
+            return {'blocked': True, 'error': 'diagnosis work_dir must match the owned job receipt'}
+        work_dir = record['work_dir']
+    # A terminal receipt survives the scheduler's accounting retention window.
+    # Never infer terminal status from an unknown/purged scheduler response.
+    if record.get('terminal') is True and record.get('failed') is True:
+        result = {k: record[k] for k in ('job_id', 'state', 'terminal', 'failed', 'work_dir') if k in record}
+        result['state_source'] = 'durable_jobwatch_receipt'
+        for suffix, field in (('err', 'stderr_tail'), ('out', 'stdout_tail')):
+            chunks = []
+            for file in sorted((Path(work_dir) / 'logs').glob(f'*_{job_id}.{suffix}'))[:8]:
+                if file.is_file() and not file.is_symlink():
+                    with file.open('rb') as stream:
+                        stream.seek(max(0, file.stat().st_size - 4000))
+                        chunks.append(stream.read(4000).decode('utf-8', errors='replace'))
+            if chunks:
+                result[field] = '\n'.join(chunks)[-8000:]
+        if not any(result.get(k) for k in ('stderr_tail', 'stdout_tail')):
+            result = slurm.diagnose_job(job_id, work_dir=work_dir, host=host)
+    else:
+        result = slurm.diagnose_job(job_id, work_dir=work_dir, host=host)
+    if (isinstance(result, dict) and record.get('tool') == 'run_cdft'
+            and record.get('terminal') is True and record.get('failed') is True
+            and context.get('username')):
+        try:
+            from .workspace import session_root
+            from .parallel_workflow import WorkflowStore
+            from .cdft_failure_facts import inspect_failed_cdft_attempt
+            root = session_root(context['conv_id'], context['username'])
+            state = WorkflowStore(get_config().project_root / 'data/state/parallel_workflows.json').snapshot(
+                WorkflowStore.identity(context['username'], context['conv_id']))
+            matching = [step for step,node in state.get('nodes',{}).items()
+                        if str(job_id) in set(map(str,node.get('job_ids',[])))]
+            if len(matching) != 1:
+                raise ValueError('no unique current owned cDFT attempt matches the failed job')
+            node = state['nodes'][matching[0]]
+            jobs = {str(job): get_watch().get(str(job)) or {} for job in node.get('job_ids',[])}
+            facts = inspect_failed_cdft_attempt(state,matching[0],root,state.get('goal_contract',{}),jobs)
+            fresh = WorkflowStore(get_config().project_root / 'data/state/parallel_workflows.json').snapshot(
+                WorkflowStore.identity(context['username'], context['conv_id']))
+            if (fresh.get('nodes',{}).get(matching[0]) != node
+                    or fresh.get('goal_contract') != state.get('goal_contract')):
+                raise ValueError('native failed attempt changed while diagnosis was inspected')
+            result['native_failure_facts'] = facts
+        except (OSError, ValueError, KeyError, TypeError, PermissionError) as error:
+            # Incomplete diagnostic evidence cannot approve execution or hide
+            # the already confirmed scheduler failure.
+            result['native_failure_facts_unavailable'] = {
+                'reason': str(error)[:500], 'automatic_retry': False, 'read_only': True}
     if job_id and result and not result.get("error"):
         try:
             from .job_watch import get_watch
@@ -1767,6 +2012,11 @@ def _exec_diagnose_job(p: Dict[str, Any]) -> Any:
 
 
 def _exec_discover_forcefield(p):
+    if p.get('target_engine') == 'raspa':
+        from .raspa_assets import discover_raspa_forcefields
+        configured = Path(get_config().raspa_path) / 'share' / 'raspa'
+        source = configured if (configured / 'forcefield').is_dir() else Path(slurm.LOCAL_RASPA_SHARE)
+        return discover_raspa_forcefields(source, p['query'], p.get('required_atom_types'), p.get('max_results', 12))
     from .forcefield_catalog import discover_forcefield
     return discover_forcefield(get_config().project_root, **p)
 
@@ -1893,6 +2143,10 @@ def _exec_rag(p: Dict[str, Any]) -> Any:
     require_both = bool(p.get("require_both", False))
     if not query:
         return {"error": "query is required"}
+    if p.get('web_only'):
+        if require_both:
+            return {'error':'web_only conflicts with require_both; select the requested source scope.'}
+        return _web_literature(query,n_results)
     # Curated, source-linked guardrails are cheap to query and have a relevance
     # floor. Keep the larger FAISS paper index for topics this small index does
     # not cover, rather than loading its embedding model on every method query.
@@ -1955,7 +2209,7 @@ def _exec_rag(p: Dict[str, Any]) -> Any:
     if web.get("results"):
         web["source"] = "web"
         web["coverage"] = ["web"]
-        web["evidence_complete"] = not require_both
+        web["evidence_complete"] = False
         web["note"] = "本地文献库未命中，结果来自 Crossref/arXiv web 检索"
         return web
     # 3) Both empty → honest failure (no fabrication)
@@ -1963,76 +2217,66 @@ def _exec_rag(p: Dict[str, Any]) -> Any:
 
 
 def _web_literature(query: str, n_results: int = 5) -> Dict[str, Any]:
-    """Web literature search via Crossref (DOI metadata) + arXiv (preprints).
-    Both are free, keyless HTTP APIs. Returns normalized results.
-    """
-    import re as _re
-    import requests as _req
-    results = []
-    seen = set()
-    # ── Crossref ──
+    """Public provider metadata plus original publisher/PDF links, not claims."""
+    import requests
+    import xml.etree.ElementTree as ET
+    results=[];seen=set();diagnostics=[];limit=max(1,min(10,int(n_results)))
     try:
-        r = _req.get("https://api.crossref.org/works",
-                     params={"query": query, "rows": n_results, "select": "title,DOI,author,container-title,published-print,published-online,abstract"},
-                     timeout=15, headers={"User-Agent": "bimem-agent/3.1"})
-        if r.status_code == 200:
-            for it in r.json().get("message", {}).get("items", []):
-                doi = it.get("DOI", "")
-                # Skip supplemental/SI entries (*.s001, -s001, etc.) — these are
-                # per-article supplements, not distinct papers.
-                if _re.search(r"\.s\d{2,4}$|[-_/]s\d{2,4}$", doi or "", _re.I):
+        response=requests.get('https://api.crossref.org/works',params={'query':query,'rows':min(40,limit*4)},
+            timeout=15,headers={'User-Agent':'SEP-Pilot-literature/1.0'})
+        diagnostics.append({'provider':'crossref','http_status':response.status_code})
+        if response.status_code==200:
+            for item in response.json().get('message',{}).get('items',[]):
+                doi=item.get('DOI','');kind=item.get('type','')
+                if (not doi or doi in seen or kind in{'peer-review','component','journal-issue','journal-volume','journal'}
+                        or re.search(r'\.s\d{2,4}$|[-_/]s\d{2,4}$',doi,re.I)):
                     continue
-                if doi in seen:
-                    continue
-                seen.add(doi)
-                title = (it.get("title") or [""])[0]
-                if not title:
-                    continue
-                authors = ", ".join(
-                    f"{a.get('given','')} {a.get('family','')}".strip()
-                    for a in (it.get("author") or [])[:3])
-                jr = (it.get("container-title") or [""])
-                jr = jr[0] if isinstance(jr, list) else str(jr)
-                year = (it.get("published-print") or it.get("published-online") or {}).get("date-parts", [[None]])[0][0]
-                results.append({
-                    "title": title, "doi": doi, "authors": authors,
-                    "journal": jr or "Crossref", "year": year or "",
-                    "url": f"https://doi.org/{doi}",
-                    "abstract": (it.get("abstract") or "")[:300],
-                    "source": "crossref",
-                })
-    except Exception:
-        pass
-    # ── arXiv (http fallback to https; free preprint search) ──
-    for base in ("https://export.arxiv.org/api/query", "http://export.arxiv.org/api/query"):
+                title=(item.get('title')or[''])[0]
+                if not title:continue
+                seen.add(doi);links=[]
+                for link in item.get('link',[]):
+                    if not isinstance(link,dict)or not str(link.get('URL','')).startswith('https://'):continue
+                    links.append({'url':link['URL'],'content_type':link.get('content-type',''),
+                        'content_version':link.get('content-version',''),'source':'crossref_original_link'})
+                licenses=[{'url':value.get('URL'),'content_version':value.get('content-version')}
+                    for value in item.get('license',[])if value.get('URL')]
+                pdf=next((link['url']for link in links if link['content_type']=='application/pdf'or'.pdf'in link['url'].lower()),None)
+                authors=', '.join((' '.join(filter(None,(author.get('given'),author.get('family')))))for author in item.get('author',[])[:5])
+                year=(item.get('published-print')or item.get('published-online')or{}).get('date-parts',[[None]])[0][0]
+                results.append({'title':title,'doi':doi,'authors':authors,'journal':(item.get('container-title')or['Crossref'])[0],
+                    'year':year,'url':item.get('URL')or'https://doi.org/'+doi,'doi_url':'https://doi.org/'+doi,
+                    'abstract':item.get('abstract','')[:3000],'source':'crossref','record_type':kind,
+                    'original_links':links,'pdf_url':pdf,'licenses':licenses,'fulltext_read':False})
+                if len(results)>=limit:break
+    except Exception as error:diagnostics.append({'provider':'crossref','error_type':type(error).__name__})
+    remaining=limit-len(results)
+    if remaining:
         try:
-            r = _req.get(base,
-                         params={"search_query": f'all:"{query[:120]}"',
-                                 "max_results": max(0, n_results - len(results)),
-                                 "sortBy": "relevance"},
-                         timeout=15, headers={"User-Agent": "bimem-agent/3.1"})
-            if r.status_code != 200:
-                continue
-            entries = _re.findall(r"<entry>.*?</entry>", r.text, _re.S)
-            for e in entries[: max(0, n_results - len(results))]:
-                t = (_re.search(r"<title>([^<]+)</title>", e, _re.S) or [None, ""])[1].strip()
-                if not t or t in seen:
-                    continue
-                seen.add(t)
-                _idm = _re.search(r"<id>http://arxiv\.org/abs/([^<]+)</id>", e)
-                arx = _idm.group(1) if _idm else ""
-                _sum = (_re.search(r"<summary>([^<]+)</summary>", e, _re.S) or [None, ""])[1].strip()
-                _pub = (_re.search(r"<published>([^<]+)</published>", e) or [None, ""])[1][:4]
-                results.append({
-                    "title": t, "arxiv_id": arx, "authors": "",
-                    "journal": "arXiv", "year": _pub or "",
-                    "url": f"https://arxiv.org/abs/{arx}" if arx else "",
-                    "abstract": _sum[:300], "source": "arxiv",
-                })
-            break  # success on first reachable base
-        except Exception:
-            continue
-    return {"ok": bool(results), "results": results[:n_results]}
+            response=requests.get('https://export.arxiv.org/api/query',params={'search_query':'all:"'+query[:120].replace('"','')+'"',
+                'max_results':remaining,'sortBy':'relevance'},timeout=15,headers={'User-Agent':'SEP-Pilot-literature/1.0'})
+            diagnostics.append({'provider':'arxiv','http_status':response.status_code})
+            if response.status_code==200:
+                root=ET.fromstring(response.content);ns={'a':'http://www.w3.org/2005/Atom'}
+                for item in root.findall('a:entry',ns):
+                    title=' '.join((item.findtext('a:title','',ns)).split());identifier=item.findtext('a:id','',ns)
+                    if not title or title in seen:continue
+                    seen.add(title);links=[]
+                    for link in item.findall('a:link',ns):
+                        href=link.get('href','')
+                        if href.startswith('http://arxiv.org/'):href='https://'+href[len('http://'):]
+                        if href.startswith('https://'):
+                            links.append({'url':href,'content_type':link.get('type',''),'source':'arxiv_original_link'})
+                    pdf=next((link['url']for link in links if link['content_type']=='application/pdf'),None)
+                    results.append({'title':title,'arxiv_id':identifier.rsplit('/',1)[-1],
+                        'authors':', '.join(value.findtext('a:name','',ns)for value in item.findall('a:author',ns)),
+                        'journal':'arXiv','year':item.findtext('a:published','',ns)[:4],
+                        'url':identifier.replace('http://arxiv.org/','https://arxiv.org/'),
+                        'abstract':item.findtext('a:summary','',ns)[:3000],
+                        'source':'arxiv','record_type':'preprint','original_links':links,'pdf_url':pdf,'fulltext_read':False})
+        except Exception as error:diagnostics.append({'provider':'arxiv','error_type':type(error).__name__})
+    return {'ok':bool(results),'source':'web','coverage':['web']if results else[],'results':results[:limit],
+        'bibliographic_only':True,'evidence_complete':False,'fulltext_read':False,'provider_diagnostics':diagnostics,
+        'note':'Metadata/abstracts are discovery leads. Download and read original full text before asserting the paper findings.'}
 
 def _resolve_fs_path(path: str) -> str:
     """Resolve a (possibly relative) path against project root and its parent."""
@@ -2385,78 +2629,33 @@ def _exec_stage_cif_subset(p: Dict[str, Any]) -> Any:
 
 
 def _exec_analyze_gcmc_screening(p: Dict[str, Any]) -> Any:
-    """Extract real mol/kg loadings and uptake ratios from a batch GCMC tree."""
-    from .workspace import resolve_project_path, session_root
-    work = resolve_project_path(p.get("work_dir", ""), get_config().project_root)
+    """Collect owned one/multi-gas native observations without mixing methods."""
+    from .workspace import session_root
+    from .adsorption_summary import collect_adsorption_summary
     root = session_root()
-    output_csv = resolve_project_path(p.get("output_csv", ""), get_config().project_root)
-    output_md = resolve_project_path(p.get("output_markdown", ""), get_config().project_root)
-    if not work.is_dir(): return {"ok": False, "error": f"work_dir not found: {work}"}
-    if not output_csv.is_relative_to(root) or not output_md.is_relative_to(root):
-        return {"ok": False, "error_code": "OUTPUT_OUTSIDE_SESSION",
-                "error": "analysis outputs must be inside the current session workspace"}
-    gases = p.get("gases") or []
-    if len(gases) < 2: return {"ok": False, "error": "at least two gases are required"}
-    pattern = re.compile(r"Average loading absolute \[mol/kg framework\]\s+([-+0-9.eE]+)\s+\+/-\s+([-+0-9.eE]+)")
-    values, evidence, failures = {}, {}, []
-    for gas in gases:
-        gas_root = work / str(gas)
-        for data_file in sorted(gas_root.glob("**/Output/System_0/*.data")):
-            material = data_file.parents[2].name
-            text = data_file.read_text(errors="replace")
-            matches = pattern.findall(text)
-            key = (material, str(gas))
-            if len(matches) != 1:
-                failures.append({"material": material, "gas": gas, "file": str(data_file),
-                                 "reason": f"expected one mol/kg loading, found {len(matches)}"})
-                continue
-            if key in values:
-                failures.append({"material": material, "gas": gas, "file": str(data_file),
-                                 "reason": "ambiguous duplicate result"})
-                continue
-            values[key] = (float(matches[0][0]), float(matches[0][1]))
-            evidence[key] = str(data_file)
-    materials = sorted({material for material, _ in values})
-    rows = []
-    numerator, denominator = map(str, gases[:2])
-    for material in materials:
-        missing = [gas for gas in map(str, gases) if (material, gas) not in values]
-        if missing:
-            failures.append({"material": material, "reason": "missing gas results", "gases": missing})
-            continue
-        num, num_sd = values[(material, numerator)]; den, den_sd = values[(material, denominator)]
-        ratio = None if den <= 0 else num / den
-        row = {"material": material, "loading_unit": "mol/kg_framework",
-               **{f"{gas}_loading_mol_kg": values[(material, str(gas))][0] for gas in gases},
-               **{f"{gas}_std_mol_kg": values[(material, str(gas))][1] for gas in gases},
-               f"{numerator}_{denominator}_uptake_ratio": ratio,
-               "ratio_definition": f"single-component uptake ratio {numerator}/{denominator}; not IAST selectivity",
-               "zero_or_negative_denominator": den <= 0}
-        rows.append(row)
-    if failures or not rows:
-        return {"ok": False, "error_code": "INCOMPLETE_GCMC_EVIDENCE", "failures": failures,
-                "parsed_materials": len(rows), "work_dir": str(work)}
-    rows.sort(key=lambda row: (row[f"{numerator}_{denominator}_uptake_ratio"] is not None,
-                               row[f"{numerator}_{denominator}_uptake_ratio"] or float("-inf")), reverse=True)
-    output_csv.parent.mkdir(parents=True, exist_ok=True)
-    fieldnames = list(rows[0])
-    part_csv = output_csv.with_suffix(output_csv.suffix + ".part")
-    with part_csv.open("w", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fieldnames); writer.writeheader(); writer.writerows(rows)
-    os.replace(part_csv, output_csv)
-    lines = [f"# GCMC screening: {numerator}/{denominator}", "",
-             f"Ratio definition: single-component uptake ratio at the simulated condition; **not IAST selectivity**.", "",
-             "| Rank | Material | " + " | ".join(f"{g} (mol/kg)" for g in gases) + f" | {numerator}/{denominator} ratio |",
-             "|---:|---|" + "---:|" * (len(gases) + 1)]
-    for rank, row in enumerate(rows, 1):
-        lines.append("| " + " | ".join([str(rank), row["material"]] +
-                     [f"{row[f'{g}_loading_mol_kg']:.8g}" for g in gases] +
-                     [f"{row[f'{numerator}_{denominator}_uptake_ratio']:.8g}"]) + " |")
-    part_md = output_md.with_suffix(output_md.suffix + ".part")
-    output_md.parent.mkdir(parents=True, exist_ok=True); part_md.write_text("\n".join(lines) + "\n"); os.replace(part_md, output_md)
-    return {"ok": True, "status": "success", "rows": rows, "row_count": len(rows),
-            "output_csv": str(output_csv), "output_markdown": str(output_md),
-            "source_files": sorted(evidence.values()), "synthetic_data_used": False}
+    project = get_config().project_root
+    def scoped_path(value):
+        path = Path(value).expanduser()
+        return Path(os.path.abspath(path if path.is_absolute() else project / path))
+    try:
+        references = p.get("reference_cdft_csvs") or {}
+        if not isinstance(references, dict):
+            raise ValueError("reference_cdft_csvs must map gas names to canonical CSV paths")
+        return collect_adsorption_summary(
+            scoped_path(p.get("work_dir", "")), p.get("gases") or [],
+            scoped_path(p.get("output_csv", "")),
+            scoped_path(p.get("output_markdown", "")), owned_root=root,
+            reference_cdft_csvs={gas: str(scoped_path(path))
+                for gas, path in references.items()},
+            ranking_policy=p.get("ranking_policy", "separate_methods"),
+            cif_dir=scoped_path(p["cif_dir"]) if p.get("cif_dir") else None,
+            top_n=p.get("top_n"),
+            top_output_dir=scoped_path(p["top_output_dir"]) if p.get("top_output_dir") else None)
+    except (OSError, ValueError, TypeError, KeyError) as error:
+        return {"ok": False, "error_code": "INCOMPLETE_GCMC_EVIDENCE", "error": str(error),
+                "execution_authority": False, "scientific_convergence": None}
+
+
 def _exec_grep_search(p: Dict[str, Any]) -> Any:
     """Search file contents for a regex pattern — Claude Code style grep."""
     import subprocess
@@ -2472,21 +2671,45 @@ def _exec_grep_search(p: Dict[str, Any]) -> Any:
     if not pattern:
         return {"error": "No pattern provided"}
     try:
-        cmd = ["grep", "-rn", "--color=never", "-E", pattern, path]
+        cmd = ["grep", "-rHn", "--color=never", "-E", pattern, path]
         if scoped and not Path(path).resolve().is_relative_to(session_root(context['conv_id'], context['username'])):
             exclusions = ['--exclude-dir=runs', '--exclude-dir=state', '--exclude-dir=logs', '--exclude-dir=.ssh',
-                '--exclude=users.json', '--exclude=tokens.json', '--exclude=conversation_logs.jsonl', '--exclude=.env']
+                '--exclude-dir=.aws', '--exclude-dir=.kube', '--exclude-dir=.codex',
+                '--exclude=users.json', '--exclude=tokens.json', '--exclude=conversation_logs.jsonl',
+                '--exclude=users.json*', '--exclude=tokens.json*', '--exclude=conversation_logs.jsonl*', '--exclude=.env',
+                '--exclude=auth.json', '--exclude=settings.json', '--exclude=settings.local.json', '--exclude=credential_master.key']
+            from .workspace import credential_scope_paths
+            credential_dirs, credential_files = credential_scope_paths()
+            if os.environ.get('BIMEM_AUTH_STATE_DIR'):
+                credential_dirs.add(Path(os.environ['BIMEM_AUTH_STATE_DIR']).expanduser().resolve())
+            project = get_config().project_root.resolve()
+            for directory in sorted(credential_dirs):
+                if directory.name and directory != project:
+                    literal = directory.name.replace('[', '[[]').replace('*', '[*]').replace('?', '[?]')
+                    exclusions.append(f'--exclude-dir={literal}')
+            for credential_file in sorted(credential_files):
+                literal = credential_file.name.replace('[', '[[]').replace('*', '[*]').replace('?', '[?]')
+                exclusions.append(f'--exclude={literal}')
             cmd[1:1] = exclusions
         if include:
             cmd = cmd[:3] + [f"--include={include}"] + cmd[3:]
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         lines = proc.stdout.splitlines()
-        shown = lines[:max_results]
+        # A match can be a multi-megabyte single-line JSON document. Bound
+        # individual excerpts as well as count, preserving grep's file:line
+        # prefix and explicitly reporting that content was not shown.
+        selected = lines[:max(0,min(max_results,200))]
+        shown = [line if len(line)<=2000 else line[:2000]+' … [matching line truncated]' for line in selected]
         return {
             "total_matches": len(lines),
             "results": shown,
-            "truncated": len(lines) > max_results,
-            "exit_code": proc.returncode,  # 0 = found, 1 = none, 2 = error
+            "truncated": len(lines) > len(shown) or any(len(line)>2000 for line in selected),
+            "long_lines_truncated": sum(len(line)>2000 for line in selected),
+            "read_only": True,
+            "status": "no_matches" if proc.returncode == 1 else "matched" if proc.returncode == 0 else "error",
+            "exit_code": 0 if proc.returncode in {0, 1} else proc.returncode,
+            "process_exit_code": proc.returncode,
+            **({'error': proc.stderr[-2000:] or 'grep failed'} if proc.returncode > 1 else {}),
         }
     except subprocess.TimeoutExpired:
         return {"error": "grep timed out after 30s"}
@@ -2499,61 +2722,78 @@ def _exec_inspect_run(p: Dict[str, Any]) -> Any:
         # If run_id looks like a SLURM job id (numeric), fall back to job status
         if str(run_id).strip().isdigit():
             from . import slurm
-            return slurm.check_job_status(str(run_id).strip(), work_dir=p.get("work_dir", ""))
+            job_id = str(run_id).strip()
+            from .job_watch import get_watch
+            from .watch_context import get_context
+            record = get_watch().get(job_id) or {}
+            if record.get('tool') == 'run_md_optimize':
+                context = get_context()
+                if (not context.get('username') or not context.get('conv_id')
+                        or (record.get('username'), record.get('conv_id')) != (context['username'], context['conv_id'])):
+                    return {'blocked': True, 'error': 'MD run does not belong to the current user/conversation'}
+                work_dir = record.get('work_dir')
+                if not work_dir or (p.get('work_dir') and Path(p['work_dir']).resolve() != Path(work_dir).resolve()):
+                    return {'blocked': True, 'error': 'MD work_dir must match the owned job receipt'}
+                from .workspace import tool_scope_issues
+                if tool_scope_issues({'work_dir': work_dir}, context['username'], context['conv_id'], get_config().project_root):
+                    return {'blocked': True, 'error': 'MD result directory is outside the allowed scope'}
+                from bimem_agent.result_inspector import inspect_md_run
+                state = str(record.get('state', '')).upper()
+                known_failure = state in {'FAILED', 'CANCELLED', 'TIMEOUT', 'OUT_OF_MEMORY', 'NODE_FAIL', 'PREEMPTED', 'BOOT_FAIL'}
+                if (record.get('terminal') is True and (
+                        state == 'COMPLETED' and record.get('failed') is False
+                        or known_failure and record.get('failed') is True)):
+                    result = {key: record[key] for key in ('job_id', 'state', 'terminal', 'failed', 'work_dir') if key in record}
+                    result['source'] = 'owned_job_watch_receipt'
+                else:
+                    result = slurm.check_job_status(job_id, work_dir=work_dir)
+                result['md_native'] = inspect_md_run(work_dir)
+                return result
+            if record.get('tool') == 'run_string_tst':
+                context = get_context()
+                if (not context.get('username') or not context.get('conv_id')
+                        or (record.get('username'), record.get('conv_id')) != (context['username'], context['conv_id'])):
+                    return {'blocked': True, 'error': 'String run does not belong to the current user/conversation'}
+                work_dir = record.get('work_dir')
+                if not work_dir or (p.get('work_dir') and Path(p['work_dir']).resolve() != Path(work_dir).resolve()):
+                    return {'blocked': True, 'error': 'String work_dir must match the owned job receipt'}
+                from .workspace import tool_scope_issues
+                if tool_scope_issues({'work_dir': work_dir}, context['username'], context['conv_id'], get_config().project_root):
+                    return {'blocked': True, 'error': 'String result directory is outside the allowed scope'}
+                from .recovery import RecoveryGate
+                ledger_path = Path(get_config().project_root)/'runs'/context['username']/context['conv_id']/'recovery_state.json'
+                entry = RecoveryGate(path=ledger_path).snapshot().get(record.get('recovery_key'), {})
+                bound = (entry.get('tool') == 'run_string_tst' and bool(entry.get('attempt_id'))
+                    and entry.get('attempt_id') == record.get('attempt_id')
+                    and set(map(str, entry.get('job_ids') or [])) == {job_id})
+                arguments = (entry.get('params') or {}) if bound else {}
+                receipt = (entry.get('last_result') or {}) if bound else {}
+                result = slurm.check_job_status(job_id, work_dir=work_dir)
+                if (str(result.get('status') or result.get('state') or '').upper() == 'UNKNOWN'
+                        and record.get('terminal') is True):
+                    result = {key: record[key] for key in ('job_id', 'state', 'terminal', 'failed', 'work_dir') if key in record}
+                    result['source'] = 'owned_job_watch_receipt'
+                from bimem_agent.result_inspector import inspect_string_run
+                result['string_native'] = inspect_string_run(work_dir, receipt_path=receipt.get('result_json_path'),
+                    gas=arguments.get('gas') or record.get('gas'), approved_walltime=arguments.get('walltime'),
+                    approved_walltime_source='owned_dispatch_ledger' if bound else None, scheduler=result)
+                return result
+            return slurm.check_job_status(job_id, work_dir=p.get("work_dir", ""))
         from bimem_agent.result_inspector import inspect_run
         return inspect_run(run_id, project=p.get("project"))
     except Exception as e:
         return {"error": str(e)}
 
 def _exec_find_cif(p: Dict[str, Any]) -> Any:
-    try:
-        func = _lazy("helper", "_resolve_cif")
-        if func is None:
-            return {"error": "helper._resolve_cif not available"}
-        path = func(p["name"])
-        if path is None:
-            return {"error": f"CIF not found: {p['name']}"}
-        return {"cif_path": str(path)}
-    except Exception as e:
-        return {"error": str(e)}
+    from .cif_lookup import find_cif
+    from .watch_context import get_context
+    owner = get_context()
+    return find_cif(p['name'], get_config().project_root,
+                    owner.get('username', ''), owner.get('conv_id', ''))
 
 def _exec_features(p: Dict[str, Any]) -> Any:
-    try:
-        import hashlib
-        import os
-        from dataclasses import asdict
-        from tools import mof_features
-        if bool(p.get("cif_path")) == bool(p.get("cif_dir")):
-            return {"error": "exactly one of cif_path or cif_dir is required"}
-        if p.get("cif_path"):
-            source = Path(_resolve_fs_path(p["cif_path"])).resolve()
-            if not source.is_file():
-                return {"error": f"cif_path is not a file: {source}"}
-            result = asdict(mof_features.extract_features(str(source)))
-            result.update(input_path=str(source), input_sha256=hashlib.sha256(source.read_bytes()).hexdigest())
-            return result
-        source = Path(_resolve_fs_path(p["cif_dir"])).resolve()
-        if not source.is_dir():
-            return {"error": f"cif_dir is not a directory: {source}"}
-        threads = int(p.get("n_threads", 4))
-        if not 1 <= threads <= 32:
-            return {"error": "n_threads must be in [1, 32]"}
-        output = _ml_path(p.get("output_csv", ""), str(Path(_ws("ml")) / "features.csv"), output=True)
-        if output.exists():
-            return {"error": "feature output already exists; choose a fresh output_csv", "output_csv": str(output)}
-        output.parent.mkdir(parents=True, exist_ok=True)
-        partial = output.with_name(output.name + ".part")
-        results = mof_features.extract_features_batch(
-            cif_dir=str(source), output_csv=str(partial), n_threads=threads)
-        os.replace(partial, output)
-        rows = [asdict(result) for result in results]
-        failures = [row for row in rows if row.get("error")]
-        return {"status": "success" if rows and not failures else "partial" if rows else "failed",
-                "input_dir": str(source), "n_inputs": len(list(source.glob("*.cif"))),
-                "n_features": len(rows), "n_failures": len(failures), "failures": failures,
-                "features": rows, "output_csv": str(output), "output_files": [str(output)]}
-    except Exception as e:
-        return {"error": str(e), "traceback": traceback.format_exc()}
+    from .ml_tool_adapter import execute_ml
+    return execute_ml('features', p, get_config())
 
 
 # ── ML Tool executors ────────────────────────────────────────────────
@@ -2807,119 +3047,10 @@ def _ml_path(value: str, default: str, *, output: bool = False) -> Path:
 
 
 def _exec_ml_train(p: Dict[str, Any]) -> Any:
-    """Train only from an explicit real labelled table; never synthesize data."""
-    try:
-        import hashlib
-        import joblib
-        import numpy as np
-        import pandas as pd
-        from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
-        from sklearn.impute import SimpleImputer
-        from sklearn.linear_model import Ridge
-        from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-        from sklearn.model_selection import KFold, cross_validate, train_test_split
-        from sklearn.pipeline import Pipeline
-        from sklearn.preprocessing import StandardScaler
-        from .state_io import write_checkpoint
-
-        data_path = _ml_path(p.get("data_csv", ""), "")
-        if not data_path.is_file():
-            return {"error": "training data_csv does not exist; synthetic labels are forbidden",
-                    "data_csv": str(data_path)}
-        model_type = str(p.get("model_type", "GBR")).upper()
-        if model_type not in {"GBR", "RF", "RIDGE"}:
-            return {"error": "model_type must be GBR, RF, or Ridge"}
-        target = str(p.get("target", "uptake"))
-        frame = pd.read_csv(data_path)
-        if target not in frame.columns:
-            return {"error": f"target column {target!r} is absent", "columns": list(frame.columns)}
-        features = list(p.get("features") or
-                        [name for name in frame.select_dtypes(include="number").columns if name != target])
-        missing = [name for name in features if name not in frame.columns]
-        if missing:
-            return {"error": "requested feature columns are absent", "missing_features": missing}
-        non_numeric = [name for name in features if not pd.api.types.is_numeric_dtype(frame[name])]
-        if non_numeric:
-            return {"error": "ML features must be numeric", "non_numeric_features": non_numeric}
-        clean = frame[features + [target]].replace([np.inf, -np.inf], np.nan)
-        clean[target] = pd.to_numeric(clean[target], errors="coerce")
-        clean = clean.dropna(subset=[target])
-        n_samples = len(clean)
-        if n_samples < 8:
-            return {"error": "at least 8 real labelled rows are required", "n_samples": n_samples}
-        if clean[target].nunique(dropna=True) < 2:
-            return {"error": "target has no variance; regression is undefined", "n_samples": n_samples}
-
-        output_dir = _ml_path(p.get("output_dir", ""), _ws("ml"), output=True)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        model_path = output_dir / "model.joblib"
-        metadata_path = output_dir / "model_metadata.json"
-        predictions_path = output_dir / "test_predictions.csv"
-        outputs = [model_path, metadata_path, predictions_path]
-        if any(path.exists() for path in outputs):
-            return {"error": "model outputs already exist; choose a fresh output_dir to preserve evidence",
-                    "existing": [str(path) for path in outputs if path.exists()]}
-
-        estimator = {
-            "GBR": GradientBoostingRegressor(random_state=42),
-            "RF": RandomForestRegressor(n_estimators=200, random_state=42, n_jobs=1),
-            "RIDGE": Ridge(alpha=1.0),
-        }[model_type]
-        steps = [("imputer", SimpleImputer(strategy="median"))]
-        if model_type == "RIDGE":
-            steps.append(("scaler", StandardScaler()))
-        steps.append(("model", estimator))
-        pipeline = Pipeline(steps)
-        X, y = clean[features], clean[target].astype(float)
-        test_count = max(2, int(round(n_samples * .2)))
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_count, random_state=42)
-        folds = min(5, max(2, len(X_train) // 2))
-        cv = KFold(n_splits=folds, shuffle=True, random_state=42)
-        scores = cross_validate(pipeline, X_train, y_train, cv=cv,
-            scoring={"mae": "neg_mean_absolute_error", "rmse": "neg_root_mean_squared_error", "r2": "r2"})
-        pipeline.fit(X_train, y_train)
-        predicted = pipeline.predict(X_test)
-        baseline = np.repeat(float(y_train.mean()), len(y_test))
-        fitted = pipeline.named_steps["model"]
-        raw_importance = (np.abs(fitted.coef_) if model_type == "RIDGE"
-                          else fitted.feature_importances_)
-        importance = sorted(
-            [{"feature": name, "importance": float(value)} for name, value in zip(features, raw_importance)],
-            key=lambda row: -row["importance"])
-        bundle = {"pipeline": pipeline, "feature_names": features, "target": target,
-                  "model_type": model_type, "format_version": 1}
-        partial_model = output_dir / "model.joblib.part"
-        joblib.dump(bundle, partial_model)
-        os.replace(partial_model, model_path)
-        prediction_frame = pd.DataFrame({"row_index": y_test.index, "observed": y_test.values,
-                                         "predicted": predicted, "baseline_mean": baseline})
-        partial_csv = output_dir / "test_predictions.csv.part"
-        prediction_frame.to_csv(partial_csv, index=False)
-        os.replace(partial_csv, predictions_path)
-        metrics = {
-            "status": "success", "synthetic_data_used": False, "random_seed": 42,
-            "data_csv": str(data_path), "data_sha256": hashlib.sha256(data_path.read_bytes()).hexdigest(),
-            "model_type": model_type, "target": target, "features_used": features,
-            "n_source_rows": len(frame), "n_samples": n_samples,
-            "n_train": len(X_train), "n_test": len(X_test),
-            "rows_dropped_missing_target": len(frame) - n_samples,
-            "duplicate_feature_target_rows": int(clean.duplicated(subset=features + [target]).sum()),
-            "cv_folds": folds, "cv_mae_mean": float(-scores["test_mae"].mean()),
-            "cv_rmse_mean": float(-scores["test_rmse"].mean()),
-            "cv_r2_mean": float(scores["test_r2"].mean()),
-            "test_mae": float(mean_absolute_error(y_test, predicted)),
-            "test_rmse": float(mean_squared_error(y_test, predicted) ** .5),
-            "test_r2": float(r2_score(y_test, predicted)),
-            "baseline_test_mae": float(mean_absolute_error(y_test, baseline)),
-            "baseline_test_rmse": float(mean_squared_error(y_test, baseline) ** .5),
-            "feature_importance": importance, "model_path": str(model_path),
-            "output_files": [str(path) for path in outputs],
-        }
-        write_checkpoint(metadata_path, metrics)
-        return metrics
-    except Exception as error:
-        return {"error": str(error), "traceback": traceback.format_exc()}
+    from .ml_tool_adapter import execute_ml
+    params = dict(p)
+    params.setdefault('model_type', 'GBR')
+    return execute_ml('train', params, get_config())
 
 
 def _cif_feature_frame(cif: Path, features: List[str]):
@@ -2935,104 +3066,18 @@ def _cif_feature_frame(cif: Path, features: List[str]):
 
 
 def _exec_ml_predict(p: Dict[str, Any]) -> Any:
-    """Predict CIFs using the exact persisted training pipeline."""
-    try:
-        import hashlib
-        import joblib
-        import pandas as pd
-        model_dir = _ml_path(p.get("model_dir", ""), _ws("ml"), output=True)
-        model_path = model_dir / "model.joblib"
-        if not model_path.is_file():
-            return {"error": "model.joblib is missing", "model_dir": str(model_dir)}
-        cif_path, cif_dir = p.get("cif_path", ""), p.get("cif_dir", "")
-        if bool(cif_path) == bool(cif_dir):
-            return {"error": "exactly one of cif_path or cif_dir is required"}
-        source = _ml_path(cif_path or cif_dir, "")
-        cifs = [source] if cif_path else sorted(source.glob("*.cif"))
-        if not cifs:
-            return {"error": "no CIF inputs found", "input": str(source)}
-        bundle = joblib.load(model_path)
-        pipeline, features = bundle["pipeline"], bundle["feature_names"]
-        rows, failures = [], []
-        for cif in cifs:
-            try:
-                sample = _cif_feature_frame(cif, features)
-                rows.append({"cif": cif.name, "cif_path": str(cif),
-                             "predicted": float(pipeline.predict(sample)[0])})
-            except Exception as error:
-                failures.append({"cif": str(cif), "error": str(error)})
-        output = _ml_path(p.get("output_csv", ""), str(model_dir / "predictions.csv"), output=True)
-        if output.exists():
-            return {"error": "prediction output already exists; choose a fresh output_csv", "output_csv": str(output)}
-        output.parent.mkdir(parents=True, exist_ok=True)
-        partial = output.with_name(output.name + ".part")
-        pd.DataFrame(rows).to_csv(partial, index=False)
-        os.replace(partial, output)
-        return {"status": "success" if rows else "failed", "n_inputs": len(cifs),
-                "n_predicted": len(rows), "predictions": rows, "failures": failures,
-                "model_path": str(model_path),
-                "model_sha256": hashlib.sha256(model_path.read_bytes()).hexdigest(),
-                "output_csv": str(output), "output_files": [str(output)]}
-    except Exception as error:
-        return {"error": str(error), "traceback": traceback.format_exc()}
+    from .ml_tool_adapter import execute_ml
+    return execute_ml('predict', p, get_config())
 
 
 def _exec_ml_feature_importance(p: Dict[str, Any]) -> Any:
-    try:
-        model_dir = _ml_path(p.get("model_dir", ""), _ws("ml"), output=True)
-        path = model_dir / "model_metadata.json"
-        if not path.is_file():
-            return {"error": "model_metadata.json is missing", "model_dir": str(model_dir)}
-        metadata = json.loads(path.read_text())
-        return {"model_type": metadata.get("model_type"), "target": metadata.get("target"),
-                "feature_importance": metadata.get("feature_importance", []), "evidence_path": str(path)}
-    except Exception as error:
-        return {"error": str(error)}
+    from .ml_tool_adapter import execute_ml
+    return execute_ml('importance', p, get_config())
 
 
 def _exec_ml_active_learning(p: Dict[str, Any]) -> Any:
-    """Select candidates without random fallback or fabricated uncertainty."""
-    try:
-        import joblib
-        import numpy as np
-        model_dir = _ml_path(p.get("model_dir", ""), _ws("ml"), output=True)
-        cif_dir = _ml_path(p.get("cif_dir", ""), "")
-        strategy = p.get("strategy", "uncertainty")
-        if strategy not in {"uncertainty", "max_prediction"}:
-            return {"error": "strategy must be uncertainty or max_prediction; random fallback is forbidden"}
-        bundle = joblib.load(model_dir / "model.joblib")
-        pipeline, features = bundle["pipeline"], bundle["feature_names"]
-        estimator = pipeline.named_steps["model"]
-        rows, failures = [], []
-        for cif in sorted(cif_dir.glob("*.cif")):
-            try:
-                sample = _cif_feature_frame(cif, features)
-                row = {"cif": cif.name, "cif_path": str(cif),
-                       "predicted": float(pipeline.predict(sample)[0])}
-                if strategy == "uncertainty":
-                    if bundle.get("model_type") != "RF" or not hasattr(estimator, "estimators_"):
-                        return {"error": "uncertainty selection requires an RF ensemble; no uncertainty is fabricated"}
-                    transformed = pipeline[:-1].transform(sample)
-                    member_predictions = [float(tree.predict(transformed)[0]) for tree in estimator.estimators_]
-                    row["uncertainty"] = float(np.std(member_predictions, ddof=1))
-                rows.append(row)
-            except Exception as error:
-                failures.append({"cif": str(cif), "error": str(error)})
-        key = "uncertainty" if strategy == "uncertainty" else "predicted"
-        ranked = sorted(rows, key=lambda row: -row[key])
-        selected = ranked[:min(int(p.get("n_select", 5)), len(ranked))]
-        result = {"status": "success" if selected else "failed", "strategy": strategy,
-                  "n_candidates": len(rows), "selected": selected, "failures": failures,
-                  "model_path": str(model_dir / "model.joblib")}
-        output = model_dir / "active_learning_selection.json"
-        if output.exists():
-            return {"error": "selection evidence already exists; use a fresh model_dir", "output_path": str(output)}
-        from .state_io import write_checkpoint
-        write_checkpoint(output, result)
-        result.update(output_path=str(output), output_files=[str(output)])
-        return result
-    except Exception as error:
-        return {"error": str(error), "traceback": traceback.format_exc()}
+    from .ml_tool_adapter import execute_ml
+    return execute_ml('select', p, get_config())
 
 
 # ── Schema definitions ──────────────────────────────────────────────
@@ -3060,6 +3105,9 @@ def _exec_ml_template_plan(p: Dict[str, Any]) -> Dict[str, Any]:
     try:
         declared = p.get("label_source")
         manifest = _read_ml_manifest(p["manifest_path"], declared)
+        mismatch = native_dataset_planner_mismatch(manifest, 'ml_template_plan')
+        if mismatch:
+            return mismatch
         plan = build_ml_template(manifest, scientific_target=p["scientific_target"],
                                  architecture=p.get("architecture", "baseline"))
         if declared:
@@ -3073,6 +3121,9 @@ def _exec_ml_active_learning_plan(p: Dict[str, Any]) -> Dict[str, Any]:
     try:
         declared = p.get("label_source")
         manifest = _read_ml_manifest(p["manifest_path"], declared)
+        mismatch = native_dataset_planner_mismatch(manifest, 'ml_active_learning_plan')
+        if mismatch:
+            return mismatch
         plan = plan_active_learning(manifest, revealed_labels=p["revealed_labels"],
                                     candidate_ids=p["candidate_ids"],
                                     acquisition=p.get("acquisition", "coverage"))
@@ -3084,6 +3135,24 @@ def _exec_ml_active_learning_plan(p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 _SCHEMAS = {
+    'read_result_guidance': {
+        "description":"Read hash-verified local Nature figure/writing guidance on demand. Empty request lists routers; load only needed files, not all references. No execution authority.",
+        "schema":{"type":"object","properties":{"paths":{"type":"array","maxItems":8,"uniqueItems":True,"items":{"type":"string"}}}}},
+    'plot_result_code': {
+        "description": "Execute task-written Python plotting code in a strict OS sandbox. Read actual owned CSV tables (legacy input_tables) or raw CSV/JSON/UTF-8 logs via input_files as /inputs/<input_id>.<format suffix>; /inputs/audit.json records exact mappings and hashes; write 1..8 PNGs under /output. No network/shell/subprocess or host writes. Preserve script, source hashes, unit/method/missing audits, logs and manifest. New output_dir each attempt; inspect PNGs and repair with a new attempt. Not scientific acceptance. For DAG use dependent analyst/communicator node and explicit manifest/PNG expected_outputs. Fail sandbox_unavailable rather than unsandboxed fallback.",
+        "schema": {"type":"object","properties":{
+            "script":{"type":"string","minLength":1,"maxLength":65536},
+            "input_tables":{"type":"array","minItems":1,"maxItems":8,"items":{"type":"object","additionalProperties":False,"properties":{
+                "path":{"type":"string","minLength":1},"units":{"type":"object","additionalProperties":{"type":"string","maxLength":80}},"method_column":{"type":"string"}},"required":["path","units"]}},
+            "input_files":{"type":"array","minItems":1,"maxItems":8,"items":{"type":"object","additionalProperties":False,"properties":{
+                "path":{"type":"string","minLength":1},"input_id":{"type":"string","pattern":"^[A-Za-z][A-Za-z0-9_-]{0,31}$"},
+                "format":{"type":"string","enum":["csv","json","text"]},"expected_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},"units":{"type":"object","additionalProperties":{"type":"string","maxLength":80}},"method_column":{"type":"string"}},"required":["path","input_id","format"]}},
+            "output_dir":{"type":"string","minLength":1},
+            "timeout_seconds":{"type":"integer","minimum":1,"maximum":60,"default":30},
+            "guidance_files":{"type":"array","maxItems":8,"uniqueItems":True,"items":{"type":"string"}}},
+            "required":["script","output_dir"],"oneOf":[{"required":["input_tables"]},{"required":["input_files"]}]},
+    },
+
     "ml_template_plan": {
         "description": "Build an evidence-bound Uni-MOF-family training DAG template from a real manifest. This plans only; it does not train, submit jobs, or claim measured improvement. Requires fixed train/valid/test splits, source hash, and documented target label source. If an older manifest lacks label_source, supply a source declaration based on inspected evidence; it remains unverified until data audit.",
         "schema": {
@@ -3098,7 +3167,7 @@ _SCHEMAS = {
         },
     },
     "ml_active_learning_plan": {
-        "description": "Build a label-blind active-learning round from a real manifest and revealed TRAIN labels only. Plans only; acquisition cannot use validation/test labels or fabricate uncertainty. Like ml_template_plan, an older manifest missing label_source may use an evidence-based declaration; it remains unverified and cannot override existing provenance.",
+        "description": "Legacy template planner only: consumes a top-level split/normalization/source-hash planning manifest, returns template_only data, does not select samples, submit jobs or write acquisition files. For a native dataset manifest with feature_csv/label_csv/schema, train with ml_train and use ml_active_learning with the verified model, explicit user selection count and model dependency. Legacy plans cannot use validation/test labels or fabricate uncertainty; label-source declarations remain unverified.",
         "schema": {
             "type": "object",
             "properties": {
@@ -3122,7 +3191,7 @@ _SCHEMAS = {
                 "pressure_start": {"type": "number", "description": "Start pressure in bar (converted to Pa automatically for RASPA)"},
                 "pressure_end": {"type": "number", "description": "End pressure in bar (converted to Pa automatically for RASPA)"},
                 "n_pressure_points": {"type": "integer", "description": "Number of pressure points"},
-                "unit_cells": {"type": "string", "description": "Unit cell multiplication (2x2x2)"},
+                "unit_cells": {"type": "string", "description": "auto (default) derives minimum multipliers from actual triclinic face heights and cutoff; an explicit three-integer string is preserved with geometry warnings.", "default": "auto"},
                 "electrostatics_method": {"type": "string", "description": "RASPA electrostatics summation for charges already present in the framework/guest model: Ewald (default) or Wolf. This does NOT assign framework charges. If the CIF lacks _atom_site_charge, reuse a verified charged CIF or call run_pacman_charge (PACMOF default; PACMAN for higher-accuracy DDEC6/CM5). Do not switch this field to repair missing charges.", "enum": ["Ewald", "Wolf"], "default": "Ewald"},
                 "force_field": {"type": "string", "description": "Framework (MOF) force field, selected from forcefields/raspa/forcefield/. Options: GenericMOFs (most gases), UFF (CO2/CH4 only), TraPPEForceField, DREIDING, wbao. If omitted, auto-selected per gas."},
                 "guest_ff": {"type": "string", "description": "Guest molecule definition source, from forcefields/raspa/molecules/. Options: TraPPE, ExampleDefinitions. If omitted, auto-selected per gas (e.g. CO2→TraPPE, CH4→ExampleDefinitions)."},
@@ -3132,17 +3201,21 @@ _SCHEMAS = {
         },
     },
     "run_gcmc_batch": {
-        "description": "Run GCMC batch screening for multiple CIFs as ONE SLURM job in LOCAL mode: every (CIF × gas) pair is processed INSIDE the single sbatch script (serial loop). 10 MOFs = exactly 1 job — NEVER loop this tool per-CIF (that would create N separate jobs); always pass the whole cif_dir. Each pair gets the force field, molecule .def and CIF copied into its own working folder (RASPA resolves them locally). Project-local FF mirror: forcefields/raspa/. External RASPA2 share is never modified.",
+        "description": "Run GCMC batch screening for multiple CIFs as ONE SLURM job in LOCAL mode: every (CIF × gas) pair is processed INSIDE the single sbatch script (bounded independent workers under the reviewed CPU/RAM allocation). 10 MOFs = exactly 1 job — NEVER loop this tool per-CIF (that would create N separate jobs); always pass the whole cif_dir. Each pair gets the force field, molecule .def and CIF copied into its own working folder (RASPA resolves them locally). Project-local FF mirror: forcefields/raspa/. External RASPA2 share is never modified.",
         "schema": {
             "type": "object",
             "properties": {
+                "cpus_per_task": {"type": "integer", "minimum": 1, "description": "Planning CPU hint; native final review sizes actual CIF x gas workers and enforces authenticated user/operator caps."},
+                "memory_mb": {"type": "integer", "minimum": 64, "description": "RAM planning budget; final total includes each concurrent worker, never measured RSS."},
+                "resource_review_id": {"type": "string"},
+                "nodelist": {"type": "string"}, "partition": {"type": "string"}, "walltime": {"type": "string"},
                 "cycles": {"type": "integer", "minimum": 1, "description": "MC cycles passed to the batch submitter"},
                 "cif_dir": {"type": "string", "description": "Directory with CIF files"},
                 "gases": {"type": "array", "items": {"type": "string"}, "minItems": 1, "description": "Gas list"},
                 "temperature": {"type": "number", "description": "Temperature in K"},
                 "pressure": {"type": "number", "description": "Pressure in bar"},
                 "force_field": {"type": "string", "description": "Optional force field applied to all (CIF, gas) pairs, from forcefields/raspa/forcefield/ (GenericMOFs, UFF, TraPPEForceField, wbao...). If omitted, per-gas preset default is used."},
-                "unit_cells": {"type": "string", "description": "Unit cell multiplication applied to every (CIF, gas) pair, e.g. '2 2 2'. Use smaller (e.g. '1 1 1') for very large unit cells / memory limits; the actual value is written into each simulation.input UnitCells line."},
+                "unit_cells": {"type": "string", "description": "auto (default) derives each material independently from actual triclinic face heights and cutoff. Explicit three positive integers are preserved and diagnosed; never silently reduced for memory.", "default": "auto"},
                 "electrostatics_method": {"type": "string", "description": "RASPA electrostatics summation for charges already present in every framework/guest model: Ewald (default) or Wolf. It is not a charge assignment method. Missing framework charges require charged CIF inputs or run_pacman_charge, not a solver switch.", "enum": ["Ewald", "Wolf"], "default": "Ewald"},
                 "output_dir": {"type": "string", "description": "Session-scoped branch directory. Give every independent force-field/temperature branch a distinct directory so those branches may run in parallel. Existing scientific results are never overwritten implicitly."},
             },
@@ -3197,16 +3270,20 @@ _SCHEMAS = {
         },
     },
     "run_md_optimize": {
-        "description": "Submit SLURM LAMMPS framework geometry minimization (single) or framework NPT relaxation (md). This wrapper does NOT insert guest molecules and does NOT emit an unwrapped trajectory, so it cannot be used for guest diffusion/MSD. MD requires explicit temperature; unknown arguments such as gas are rejected.",
+        "description": "Submit SLURM LAMMPS framework geometry minimization (single, default) or framework NPT relaxation (md, explicit temperature required). Use optional session-owned output_dir to compile output contracts; default is session/md. An existing nonempty directory is preserved and a fresh attempt_* child is used; the receipt gives the actual output_dir. Expected structure: output_dir/<input_stem>_opt.cif for single or <input_stem>_md.cif for md. output_dir/md_result.json contains success, energy and output_cif; solver.log and interface inputs establish native energy units. Receipt result_json_path and expected_structure_path describe expected locations, not completed artifacts: verify the job and result JSON before delivery. This wrapper does NOT insert guest molecules and does NOT emit an unwrapped trajectory, so it cannot support guest diffusion/MSD. Explicit warmup_steps/equilibration_steps may be zero to skip integration; production_steps is positive and overrides duration-derived production steps. Omitted warmup/equilibration retain 40000/20000 steps. Three preliminary minimizations remain explicit. A short run verifies the interface, not physical equilibration. Actual steps require native stage summaries in md_result.json. Unknown arguments such as gas are rejected.",
         "schema": {
             "type": "object",
             "properties": {
                 "cif_path": {"type": "string", "description": "CIF file path"},
-                "mode": {"type": "string", "enum": ["single", "md"]},
-                "force_field": {"type": "string", "description": "Force field name (auto-selected per gas if omitted). Only specify if you need to override."},
+                "output_dir": {"type": "string", "minLength": 1, "description": "Optional directory inside the current session. Defaults to session/md. If nonempty, preserve its contents and use a fresh attempt_* child; use receipt output_dir for actual artifact paths."},
+                "mode": {"type": "string", "enum": ["single", "md"], "default": "single"},
+                "force_field": {"type": "string", "default": "UFF", "description": "Framework force field; defaults to UFF when omitted."},
                 "cutoff": {"type": "number", "exclusiveMinimum": 0, "description": "Cutoff in Å"},
                 "temperature": {"type": "number", "description": "NPT temperature"},
                 "pressure": {"type": "number", "minimum": 0, "description": "NPT pressure in atm (not bar)"},
+                "warmup_steps": {"type":"integer","minimum":0,"description":"MD-only Langevin/NVE integration steps, default40000; zero disables warmup integration."},
+                "equilibration_steps": {"type":"integer","minimum":0,"description":"MD-only NVT integration steps, default20000; zero disables equilibration integration."},
+                "production_steps": {"type":"integer","minimum":1,"description":"MD-only exact NPT integration step budget; when supplied overrides npt_ps/timestep-derived steps. No hidden warmup is removed unless those phase budgets are explicitly set."},
                 "npt_ps": {"type": "number", "exclusiveMinimum": 0, "description": "NPT production time in ps"},
                 "timestep": {"type": "number", "exclusiveMinimum": 0, "description": "MD timestep in fs"},
             },
@@ -3282,16 +3359,24 @@ _SCHEMAS = {
         "schema": {
             "type": "object",
             "properties": {
-                "action": {"type": "string", "enum": ["pipeline", "submit", "collect", "inputs"]},
+                "action": {"type": "string", "enum": ["pipeline", "submit", "collect", "inputs", "collect_recovery"]},
+                "completion_policy": {"type": "string", "enum": ["strict", "best_effort"], "description": "SDK result acceptance policy only; strict requires every original material. Does not change native scientific inputs."},
+                "min_success_ratio": {"type": "number", "minimum": 0, "maximum": 1, "description": "SDK acceptance floor for explicit best_effort; strict remains 1.0. Not passed to the solver."},
                 "cif_dir": {"type": "string", "description": "Directory of CIF files for cDFT input generation (or cif_path)"},
                 "cif_path": {"type": "string"},
                 "gas": {"type": "string"},
                 "gases": {"type": "array", "items": {"type": "string"}, "minItems": 1},
                 "temperature": {"type": "number"},
+                "ngrid": {"type": "integer", "minimum": 1, "maximum": 1024, "description": "Optional native per-axis grid cap for inputs/pipeline. Omitted preserves 60. A cap may coarsen dl; changing it requires fresh preparation and resource review of actual .dat grid bounds, not an inferred RSS budget."},
+                "dl": {"type": "number", "exclusiveMinimum": 0, "minimum": 0.000001, "maximum": 1000000, "description": "Optional requested spacing in angstrom for inputs/pipeline; omitted preserves 0.5. Native input has six-decimal precision and actual spacing is L/min(ngrid,int(L/dl)+1). Explicit values must match prepared submit inputs. Finer grids require a trusted operator memory profile covering their actual bounds."},
                 "bulk_densities": {"type": "array", "items": {"type": "number"}, "description": "Optional per-component densities, order matching gases. Default unit mol/L; SDK converts to native molecule/angstrom^3 before input generation. gases with multiple entries are SIMULTANEOUS mixture components, not separate pure-gas jobs."},
                 "bulk_density_unit":{"type":"string","enum":["mol/L","molecule/angstrom^3"],"description":"Explicit density unit. Default mol/L for supplied values; native tables/density defaults are molecule/angstrom^3. Never mix these units."},
                 "framework_charge": {"type": "boolean", "description": "Override framework-charge requirement: True=require charged CIFs (polar gases CO2/SO2/CO/N2), False=allow neutral frameworks (apolar gases CH4/H2). Omitted → auto by gas."},
                 "input_dir": {"type": "string", "description": "Directory of generated .dat inputs (submit/collect)"},
+                "partial_recovery_manifest": {"type":"string","description":"Only a genuine recorded prepare_cdft_partial_recovery manifest permits failed-only retry and merge. Scientific input hashes and preserved results are rechecked; an arbitrary JSON file grants no permission."},
+                "retry_step_id": {"type":"string","minLength":1,"description":"collect_recovery only: exact approved retry node whose native job supplies the previously failed materials."},
+                "timeout": {"type":"integer","minimum":1,"description":"Explicit per-material native process timeout in seconds, no greater than approved walltime. A failed-only recovery requires a longer timeout supported by the original native timeout and controller authorization."},
+                "wait_job_ids": {"type":"array","items":{"type":"string","pattern":"^[0-9]+$"},"uniqueItems":True,"description":"Only server-proven same-workflow active jobs from the recorded partial recovery. Native verifier rejects arbitrary external IDs. Slurm afterany preserves the original session concurrency ceiling."},
                 "job_work_dir": {"type": "string", "description": "Explicit isolated preparation workspace for inputs/pipeline/submit; for collect use the actual job work_dir returned by submit. Independent gas branches MUST use disjoint workspaces and match input_dir exactly across inputs and submit."},
                 "output": {"type": "string", "description": "Output CSV path for collect"},
                 "nodelist": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9_.,\\[\\]-]+$", "description": "Optional actual compatible compute node from resource_health.node_inventory, with matching partition; otherwise SDK selects one verified compatible node via env/node_policy.json."},
@@ -3329,17 +3414,26 @@ _SCHEMAS = {
         },
     },
     "run_string_tst": {
-        "description": "Run String method transition state search for diffusion barriers.",
+        "description": "Submit GPU String transition-state path search. Choose cif_path to select exactly one existing CIF through the installed generator's --cif option; otherwise cif_dir processes every CIF in that directory, so do not pass a whole library for a single-material task. Optional directions and iteration/path/grid budgets map directly to generator flags; omitted defaults remain directions [1,2,3], running_steps 10000, n_string 401, nmax 70. Reduced budgets are interface smoke tests, not proof of converged diffusion barriers or transport coefficients. output_dir is session-owned; nonempty output is preserved in a fresh attempt_* child. The receipt predicts manifest_path=output_dir/string_input_<gas>/manifest.csv and result_json_path=output_dir/string_input_<gas>/string_results.json; these are expected locations, not completed artifacts. The result JSON is published only after all manifest rows yield finite seven-column native paths, and records exact paths, hashes, point counts, logs and native convergence flags. Each row's string_path.dat and run.log are beside its input.dat, not in the output_dir root. Submission and finite path output do not establish scientific convergence. GPU resource isolation is unchanged.",
         "schema": {
             "type": "object",
             "properties": {
-                "cif_dir": {"type": "string"},
-                "output_dir": {"type": "string"},
-                "gas": {"type": "string"},
+                "cif_dir": {"type": "string", "minLength": 1, "description": "Batch input directory. Every CIF is selected unless cif_path specifies one input."},
+                "cif_path": {"type": "string", "minLength": 1, "description": "Existing single CIF. Passed as --cif; its parent supplies --cif-dir. Use this for one-material requests."},
+                "output_dir": {"type": "string", "minLength": 1, "description": "Current session output directory. Nonempty directories are retained and a fresh attempt_* child is used; consume receipt output_dir/manifest_path."},
+                "gas": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_+\\-]*$"},
                 "gases": {"type": "array", "items": {"type": "string"}, "minItems": 1},
-                "temperature": {"type": "number"},
+                "temperature": {"type": "number", "exclusiveMinimum": 0, "default": 298.0},
+                "directions": {"type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": True,
+                               "items": {"type": "integer", "enum": [1, 2, 3]}, "default": [1, 2, 3]},
+                "running_steps": {"type": "integer", "minimum": 1, "default": 10000},
+                "n_string": {"type": "integer", "minimum": 2, "default": 401, "description": "Number of String path points; at least two endpoints."},
+                "nmax": {"type": "integer", "minimum": 1, "default": 70, "description": "Generator grid budget (--nmax)."},
+                "walltime": {"type": "string", "pattern": "^(?:[0-9]+-)?[0-9]+:[0-5][0-9]:[0-5][0-9]$", "default": "48:00:00"},
             },
-            "required": ["cif_dir", "output_dir", "gas"],
+            "required": ["output_dir", "gas"],
+            "anyOf": [{"required": ["cif_path"]}, {"required": ["cif_dir"]}],
+            "additionalProperties": False,
         },
     },
     "run_external_potential": {
@@ -3430,13 +3524,30 @@ _SCHEMAS = {
             "required": ["cif_dir", "output_dir", "limit"]},
     },
     "analyze_gcmc_screening": {
-        "description": "Parse completed real run_gcmc_batch RASPA .data evidence, extract absolute loading in mol/kg-framework with uncertainty, calculate a declared single-component uptake ratio for the first two gases, rank materials, and atomically write CSV+Markdown. This ratio is explicitly not IAST selectivity. Fails closed on missing/duplicate/unparseable results; never emits placeholders.",
+        "description": "Collect completed owned native GCMC results for one or multiple gases with absolute mol/kg-framework loading, uncertainty, actual production/initialization cycles and source SHA. Ratios require two gases and are not IAST selectivity. Optional canonical cDFT CSV references remain separate mol/L columns; default no mixed-method ranking or conversion. Explicit within_method_ratio_combined ranks dimensionless within-method gas-pair ratios across the full reference inventory with per-row method/source labels and different-Hamiltonian limitations; never divide GCMC by cDFT. Publish new immutable CSV/Markdown paths; never overwrite source or different existing reports. Unknown convergence stays unknown.",
         "schema": {"type": "object", "properties": {
             "work_dir": {"type": "string", "minLength": 1},
-            "gases": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 2, "uniqueItems": True},
+            "gases": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": True},
+            "cif_dir": {"type": "string", "description": "Optional source charged CIF directory for TOP staging; requires top_n and top_output_dir."},
+            "top_n": {"type": "integer", "minimum": 1, "maximum": 512},
+            "top_output_dir": {"type": "string", "description": "Optional new immutable session-owned TOP CIF directory produced after full combined ranking, with hash/method/rank manifest for downstream GCMC."},
+            "ranking_policy": {"type": "string", "enum": ["separate_methods", "within_method_ratio_combined"], "default": "separate_methods", "description": "Combined exploratory ranking requires two gases, both canonical cDFT references with identical inventories, and GCMC results for a subset. Keep original method/units and label each ratio source."},
+            "reference_cdft_csvs": {"type": "object", "description": "Optional gas-to-owned canonical cDFT CSV paths. Preserve original values, missing densities, method and units; never fill cDFT cells from GCMC.", "additionalProperties": {"type": "string"}},
             "output_csv": {"type": "string", "minLength": 1},
             "output_markdown": {"type": "string", "minLength": 1}},
             "required": ["work_dir", "gases", "output_csv", "output_markdown"]},
+    },
+    "analyze_cdft_screening": {
+        "description": "Rank canonical cDFT CSV density_mol_L rows by their arithmetic density uptake ratio and stage exact TOP N CIFs with a source hash manifest. Aligns material identities across combined or separate gas CSVs; rejects incomplete/invalid evidence and existing outputs. CSV alone does not prove single-component versus mixture mode or temperature/pressure; separate single-component source jobs and condition agreement require verification before that interpretation. This is not IAST or mixture selectivity.",
+        "schema": {"type": "object", "additionalProperties": False, "properties": {
+            "data_csv": {"type": "string", "minLength": 1},
+            "input_path": {"type": "string", "minLength": 1, "description": "Optional second gas CSV; omitted for a combined CSV."},
+            "gases": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 2, "maxItems": 2, "uniqueItems": True},
+            "cif_dir": {"type": "string", "minLength": 1},
+            "top_n": {"type": "integer", "minimum": 1},
+            "output_csv": {"type": "string", "minLength": 1},
+            "output_dir": {"type": "string", "minLength": 1}},
+            "required": ["data_csv", "gases", "cif_dir", "top_n", "output_csv", "output_dir"]},
     },
     "inspect_path": {
         "description": "Inspect a file or directory to understand its contents.",
@@ -3462,11 +3573,11 @@ _SCHEMAS = {
         },
     },
     "find_cif": {
-        "description": "Resolve a CIF file path by name or pattern.",
+        "description": "Read-only scoped CIF discovery in the current session, project/cifs and configured paths.cif_dir. Resolve an exact normalized material name or explicit input path; report ambiguous candidates without guessing a charged or expanded variant. No legacy helper or computation required.",
         "schema": {
             "type": "object",
             "properties": {
-                "name": {"type": "string", "description": "CIF name to search"},
+                "name": {"type": "string", "description": "Exact material name/filename or explicit CIF path"},
             },
             "required": ["name"],
         },
@@ -3739,6 +3850,7 @@ _SCHEMAS = {
             "type": "object",
             "properties": {
                 "line_id": {"type": "string", "description": "任务线ID（默认当前会话线）"},
+                "step_id": {"type": "string", "description": "Optional current owned node ID; returns its full typed arguments/effective inputs/expected outputs instead of unrelated nodes."},
                 "conv_id": {"type": "string", "description": "按会话查所有线"},
             },
         },
@@ -3796,7 +3908,7 @@ _SCHEMAS = {
         "description":"Deliver an evidence-backed resource proposal to main chat, not submission or mutation authorization.",
         "schema":{"type":"object","properties":{"status":{"type":"string","enum":["ready","wait_existing","needs_user","propose_resource_patch"]},
             "reason":{"type":"string","minLength":1},"evidence_call_ids":{"type":"array","items":{"type":"string"},"minItems":1},
-            "suggested_resources":{"type":"object","properties":{"memory_mb":{"type":"integer","minimum":64},"num_processes":{"type":"integer","minimum":1},"nodelist":{"type":"string"},"partition":{"type":"string"},"walltime":{"type":"string"}},"additionalProperties":False}},
+            "suggested_resources":{"type":"object","properties":{"memory_mb":{"type":"integer","minimum":64},"num_processes":{"type":"integer","minimum":1},"per_worker_memory_mb":{"type":"integer","minimum":64},"per_worker_memory_basis":{"type":"string","minLength":1},"nodelist":{"type":"string"},"partition":{"type":"string"},"walltime":{"type":"string"}},"additionalProperties":False}},
             "required":["status","reason","evidence_call_ids"],"additionalProperties":False}},
     "build_project_frontend": {"description":"Fixed maintenance action compiling this project's frontend; no arbitrary command, job submission or file target.","schema":{"type":"object","properties":{},"additionalProperties":False}},
     "cancel_watched_job": {"description": "Main chat only: explicitly user-authorized cancellation of this session's tracked job. Bypasses data-path lease only, serializes scheduler control, verifies termination before marking CANCELLED. Node-change requests are not cancellation authorization.",
@@ -3805,7 +3917,7 @@ _SCHEMAS = {
         "schema":{"type":"object","properties":{"plan_version":{"type":"integer","minimum":1}},"required":["plan_version"],"additionalProperties":False}},
     "discard_workflow_patch": {"description": "Main chat withdraws the exact current candidate proposal after understanding the user or finding it invalid. Does not cancel jobs, reset nodes or change the approved executable chain. Retains the proposal and reason as audit history; this is an operation, not an intent classifier.",
         "schema": {"type": "object", "properties": {"plan_version": {"type": "integer", "minimum": 1}, "reason": {"type": "string", "minLength": 5}}, "required": ["plan_version", "reason"], "additionalProperties": False}},
-    "revalidate_workflow_node_outputs":{"description":"Repair stopped native output contracts without resubmission: generator uses owned completed job and full fresh CIF coverage; cDFT uses the actual scheduler receipt CSV within its approved calculation root, never an arbitrary output. Restoring a historical generator result uses completed_job_id. Does not mark scientific success; prefinish still requires finish_workflow_node evidence.",
+    "revalidate_workflow_node_outputs":{"description":"Revalidate exact unchanged native document-read outputs from the owned original receipt/checkpoint, current source SHA, parser and page anchors without reextracting/downloading; stopped validation failures need no plan/output change. Also repair stopped native output contracts without resubmission: generator uses owned completed job and full fresh CIF coverage; cDFT uses the actual scheduler receipt CSV within its approved calculation root, never an arbitrary output. Restoring a historical generator result uses completed_job_id. Does not mark scientific success; prefinish still requires finish_workflow_node evidence.",
         "schema":{"type":"object","properties":{"step_id":{"type":"string","minLength":1},"expected_outputs":{"type":"array","items":OUTPUT_SCHEMA,"minItems":1},"completed_job_id":{"type":"string","pattern":"^[0-9]+$","description":"Optional restore of an archived verified generator result after all newer attempts are confirmed stopped. Original file identities are frozen from actual historical proof; no replay or inclusion of extra files."}},"required":["step_id","expected_outputs"],"additionalProperties":False}},
     "finish_workflow_node":{"description":"Complete a prefinish node only after the scientific owner has checked actual results/conditions with fresh real tools. Requires scoped evidence IDs and a factual validation conclusion; code rechecks artifacts. This is a completion operation, not a classifier bool. Never treat job exit alone as scientific success.",
         "schema":{"type":"object","properties":{"step_id":{"type":"string","minLength":1},"evidence_call_ids":{"type":"array","items":{"type":"string"},"minItems":1},"conclusion":{"type":"string","minLength":10}},"required":["step_id","evidence_call_ids","conclusion"],"additionalProperties":False}},
@@ -3821,13 +3933,25 @@ _SCHEMAS = {
         "description": "Read a registered tool's real parameter schema before compiling a delegation. No source inspection, no execution, no capability grant.",
         "schema": {"type": "object", "properties": {"tool_name": {"type": "string", "minLength": 1}}, "required": ["tool_name"]},
     },
+    "prepare_cdft_partial_recovery": {
+        "description":"Authorized main/operations preparation of a timeout-only cDFT retry. Uses the exact owned terminal batch, original input SHA, native job log and finite successful outputs. Stages only failed materials to a new immutable directory and records a merge manifest; never submits, resets nodes, changes old results or declares convergence. A formal new retry+merge DAG is still required.",
+        "schema":{"type":"object","properties":{"step_id":{"type":"string","minLength":1},"timeout_seconds":{"type":"integer","minimum":1},"walltime":{"type":"string","pattern":"^[0-9]+:[0-5][0-9]:[0-5][0-9]$"}},"required":["step_id","timeout_seconds","walltime"],"additionalProperties":False},
+    },
+    "inspect_workflow_result": {
+        "description": "Read fresh native facts for this Session's owned terminal workflow step, including GCMC statistical block indices. Does not submit, recalculate, finish, change contracts, or modify the ledger. Currently GCMC is supported; unsupported tools remain explicit. Block count does not establish convergence.",
+        "schema": {"type": "object", "properties": {"step_id": {"type": "string", "minLength": 1, "maxLength": 256}}, "required": ["step_id"], "additionalProperties": False},
+    },
+    "inspect_runtime": {
+        "description": "Read-only verification of operator-configured scientific installations and adapter syntax. Returns executor provenance for repair verification; does not submit jobs or establish scientific success.",
+        "schema": {"type": "object", "properties": {"tool_name": {"type": "string", "minLength": 1}, "arguments": {"type": "object"}}, "required": ["tool_name"], "additionalProperties": False},
+    },
     "validate_framework_charges": {
         "description": "Read-only approved framework CIF charge validation, expanding symmetry and weighting occupancy. Declared expected net charge/source required. Never modifies charges, fills zeros or forces neutrality; mismatch needs diagnosis/user-approved model repair.",
         "schema": {"type":"object","properties": {
             "cif_path":{"type":"string","minLength":1}, "expected_net_charge":{"type":"number"},
             "charge_source":{"type":"string","minLength":1},
             "tolerance":{"type":"number","minimum":0,"maximum":0.0001},
-            "output_path":{"type":"string","minLength":1,"description":"Required for directory batch validation; writes one persistent JSON evidence report without modifying CIF inputs."}
+            "output_path":{"type":"string","minLength":1,"description":"When supplied, single-CIF and directory validation publish immutable JSON evidence with actual CIF hashes and charge results; failures remain explicit. Directory batches require this path. CIF inputs are never modified."}
         },"required":["cif_path","expected_net_charge","charge_source"]},
     },
     "run_project_regressions": {
@@ -3863,13 +3987,32 @@ _SCHEMAS = {
             "max_types": {"type": "integer", "minimum": 1, "maximum": 32}
         }, "required": ["forcefield_name"]},
     },
+    "resolve_preparation_defaults": {
+        "description": "Main chat only: resolve a current decision whose only unresolved issue is selecting an existing native prerequisite default. Requires exact decision identity, authorized unchanged initial draft, schema.default, Goal compatibility, and preparation-validation-computation dependencies. Records source; does not submit, approve a graph, bypass validation, choose scientific T/P, or resolve missing inputs. Other user scientific choices must remain pending.",
+        "schema": {"type":"object","properties":{
+            "decision_id":{"type":"string","minLength":1},
+            "tool_name":{"type":"string","minLength":1},
+            "parameter":{"type":"string","minLength":1}
+        },"required":["decision_id","tool_name","parameter"],"additionalProperties":False},
+    },
     "request_user_decision": {
         "description": "Main chat only: ask for an external/plan/dispatch decision with structured related-node and recovery identity. Stores the genuine user's answer; does not submit or rewrite the plan.",
         "schema": {"type": "object", "properties": {
             "question": {"type": "string", "minLength": 10}, "reason": {"type": "string", "minLength": 5},
             "related_nodes": {"type": "array", "items": {"type": "string"}},
             "recovery_key": {"type": "string"}, "candidate_job_id": {"type": "string"},
+            "withdrawn_plan_version": {"type":"integer","minimum":1,
+                "description":"Only when the actual user explicitly asks to reconsider a withdrawn candidate: bind a real user discussion question to that exact withdrawal. Never use this automatically after a duplicate rejection or a generic continue request. This records discussion only. Plain text, including a nonempty answer, does not grant permission to recreate a withdrawn candidate; typed goal changes or an authenticated owner structured command remain required."},
         }, "required": ["question", "reason", "related_nodes"]},
+    },
+    "requeue_local_preparation": {
+        "description": "Authorized controller: requeue an unchanged failed local preparation node after a real returned failure and fresh matching installation verification. Requires the current node token and native call IDs. Never marks success or submits a job; the approved workflow executes normally afterward.",
+        "schema": {"type": "object", "properties": {
+            "step_id": {"type": "string", "minLength": 1},
+            "expected_token": {"type": "string", "minLength": 1},
+            "failed_call_id": {"type": "string", "minLength": 1},
+            "verification_call_id": {"type": "string", "minLength": 1},
+        }, "required": ["step_id", "expected_token", "failed_call_id", "verification_call_id"]},
     },
     "reconcile_watched_job": {
         "description": "Main chat only: bind an unresolved dispatch to an EXISTING, same-user/same-conversation watched job. Requires genuine user identity decision ID plus an actual matching diagnostic call. Never submits or cancels jobs.",
@@ -3964,27 +4107,7 @@ _SCHEMAS = {
             "required": ["material", "gas", "pressures", "temperature"],
         },
     },
-    "generate_scientific_report": {
-        "description": "Generate a Markdown report. Generic DAG mode reads persisted evidence from completed direct dependency source_steps and writes one auditable report to output_path. GCMC work_dir mode remains supported. Use this for dynamic reports instead of write_file with empty or pre-invented content.",
-        "schema": {
-            "type": "object",
-            "properties": {
-                "work_dir": {"type": "string", "description": "GCMC计算工作目录"},
-                "material": {"type": "string", "description": "材料名称"},
-                "gas": {"type": "string", "description": "气体分子", "default": "CO2"},
-                "temperature": {"type": "number", "description": "温度(K)", "default": 298.0},
-                "source_steps": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": True, "description": "Completed direct dependency step IDs"},
-                "output_path": {"type": "string", "minLength": 1, "description": "Session-owned Markdown output path"},
-                "title": {"type": "string", "minLength": 1},
-                "instructions": {"type": "string", "description": "Reporting scope; cannot override or invent tool evidence"},
-                "report_mode": {"type": "string", "enum": ["fragment", "assembly"], "description": "Compiler-owned parallel report role"},
-            },
-            "anyOf": [
-                {"required": ["work_dir"]},
-                {"required": ["source_steps", "output_path", "title"]},
-            ],
-        },
-    },
+    "generate_scientific_report": {'description': 'Author an evidence-grounded scientific Markdown report with an isolated communicator and lightweight source/numeric checks; use an independent model reviewer only when the approved task explicitly requires it. Completed owned source_steps supply actual CSV/table/document/figure artifacts, never only a submission receipt. Keep methods, units, uncertainty and unknown convergence; retain source tables. Do not introduce unrelated literature comparisons or unnecessary denial statements. A reference list may retain relevant sources actually obtained in this task. If the user explicitly requests literature, query_literature can obtain titles and DOI/links; already obtained task-scoped records need no extra verification or PDF download for bibliography. Claims about findings, numeric comparison or agreement require actual supporting source content. New immutable output only. Figure requirements need ordinary approved plot dependencies. No workflow completion or scientific execution authority.', 'schema': {'type': 'object', 'properties': {'work_dir': {'type': 'string', 'description': 'GCMC计算工作目录'}, 'material': {'type': 'string', 'description': '材料名称'}, 'gas': {'type': 'string', 'description': '气体分子', 'default': 'CO2'}, 'temperature': {'type': 'number', 'description': '温度(K)', 'default': 298.0}, 'source_steps': {'type': 'array', 'items': {'type': 'string', 'minLength': 1}, 'minItems': 1, 'uniqueItems': True, 'description': 'Completed direct dependency step IDs'}, 'output_path': {'type': 'string', 'minLength': 1, 'description': 'Session-owned Markdown output path'}, 'title': {'type': 'string', 'minLength': 1}, 'instructions': {'type': 'string', 'description': 'Reporting scope; cannot override or invent tool evidence'}, 'report_mode': {'type': 'string', 'enum': ['fragment', 'assembly'], 'description': 'Compiler-owned parallel report role'}, 'report_requirements': {'type': 'object', 'additionalProperties': False, 'properties': {'minimum_figures': {'type': 'integer', 'minimum': 0}, 'minimum_citations': {'type': 'integer', 'minimum': 0, 'description': 'Only when the user explicitly requests literature: minimum citation blocks drawn from literature already retrieved/read in this task; DOI/link is sufficient without extra verification or PDF for bibliography.'}, 'independent_review': {'type': 'boolean', 'default': False, 'description': 'Enable independent model review only when the user explicitly requests strict review.'}, 'require_explanatory_narrative': {'type':'boolean', 'default':False, 'description':'Set when the user explicitly requires explanatory prose or discussion; missing source-supported explanation leaves the report incomplete.'}, 'source_only': {'type':'boolean', 'default':False, 'description':'Only when the user explicitly requests solely source data/tables; permits omission of unsupported model narrative.'}, 'section_titles': {'type':'array','uniqueItems':True,'items':{'type':'string','minLength':1},'description':'Explicitly requested report section titles.'}}}}, 'anyOf': [{'required': ['work_dir']}, {'required': ['source_steps', 'output_path', 'title']}]}},
     "validate_gcmc_results": {
         "description": "验证GCMC计算结果的正确性。检查电荷定义、loading数据、CIF文件等。",
         "schema": {
@@ -4094,174 +4217,37 @@ def _exec_isotherm_chain(p: Dict[str, Any]) -> Any:
         return {"error": str(e), "traceback": traceback.format_exc()}
 
 
+def _exec_read_result_guidance(p):
+    from .result_guidance import read_result_guidance
+    return read_result_guidance(**p)
+
+def _exec_plot_result_code(p):
+    from .plot_sandbox import plot_result_code
+    from .watch_context import get_context
+    from .workspace import session_root
+    ctx=get_context()
+    if not ctx.get('username') or not ctx.get('conv_id'):
+        return {'error':'plotting requires an authenticated owned session'}
+    return plot_result_code(**p,owned_root=session_root())
+
+def _exec_run_analysis_sandbox(p):
+    from .plot_sandbox import plot_result_code
+    from .watch_context import get_context
+    from .workspace import session_root
+    ctx=get_context();owner={'username':ctx.get('username'),'conv_id':ctx.get('conv_id')}
+    if not all(owner.values()):return {'error':'analysis requires an authenticated owned session','executed':False}
+    values=dict(p);outputs=values.pop('declared_outputs')
+    producer={'step_id':ctx.get('step_id',''),'runtime_token':ctx.get('runtime_token','')}
+    return plot_result_code(**values,owned_root=session_root(),_mode='data',_declared_outputs=outputs,_owner=owner,_producer=producer)
+
 def _exec_generate_report(p: Dict[str, Any]) -> Any:
     """自动生成科学验证报告"""
     import time
     from pathlib import Path
 
-    if p.get("source_steps"):
-        import hashlib
-        import json
-        import os
-        import tempfile
-        from .watch_context import get_context
-        from .parallel_workflow import WorkflowStore
-        context = get_context()
-        username, conv_id = context.get('username', ''), context.get('conv_id', '')
-        current_step = context.get('step_id', '')
-        if not username or not conv_id or not current_step:
-            return {"error": "generic evidence report requires an owned workflow node context"}
-        recovery_path = Path(context.get('recovery_path') or '')
-        owned_session_root = recovery_path.parent.resolve() if recovery_path.name else None
-        project_root = (owned_session_root.parents[2] if owned_session_root and
-                        len(owned_session_root.parents) >= 3 else
-                        Path(get_config().project_root).resolve())
-        store = WorkflowStore(project_root / 'data/state/parallel_workflows.json')
-        state = store.snapshot(store.identity(username, conv_id))
-        current = state.get('nodes', {}).get(current_step, {})
-        dependencies = set(current.get('contract', {}).get('depends_on', []))
-        source_steps = list(p['source_steps'])
-        if not set(source_steps) <= dependencies:
-            return {"error": "source_steps must be completed direct dependencies of this report node"}
-        own_root = owned_session_root or (project_root / 'runs' / username / conv_id).resolve()
-        if own_root.name != conv_id or own_root.parent.name != username:
-            return {"error": "report execution context does not match the owned session root"}
-
-        def publish(text, immutable=False):
-            output = Path(p['output_path']).resolve()
-            if not output.is_relative_to(own_root):
-                return None, {"error": "report output_path must stay inside the current user/session root",
-                              "session_root": str(own_root)}
-            output.parent.mkdir(parents=True, exist_ok=True)
-            if immutable and output.exists():
-                existing = output.read_text(encoding='utf-8')
-                if existing != text:
-                    return None, {"error": "immutable report fragment already exists with different content",
-                                  "output_path": str(output)}
-                return output, None
-            fd, temporary = tempfile.mkstemp(prefix=output.name + '.', dir=str(output.parent))
-            try:
-                with os.fdopen(fd, 'w', encoding='utf-8') as stream:
-                    stream.write(text)
-                    stream.flush()
-                    os.fsync(stream.fileno())
-                os.replace(temporary, output)
-            finally:
-                if os.path.exists(temporary):
-                    os.unlink(temporary)
-            return output, None
-
-        report_mode = p.get('report_mode') or current.get('contract', {}).get('report_role') or 'fragment'
-        if report_mode == 'assembly':
-            fragments = []
-            for step_id in source_steps:
-                node = state.get('nodes', {}).get(step_id, {})
-                if node.get('status') != 'succeeded':
-                    return {"error": f"report fragment is not succeeded: {step_id}"}
-                contract = node.get('contract', {})
-                if (contract.get('report_role') or contract.get('arguments', {}).get('report_mode')) != 'fragment':
-                    return {"error": f"assembly dependency is not a report fragment: {step_id}"}
-                receipt = node.get('result') or {}
-                fragment_path = Path(receipt.get('report_file') or receipt.get('output_path') or '')
-                try:
-                    resolved = fragment_path.resolve()
-                except Exception:
-                    return {"error": f"invalid report fragment path: {step_id}"}
-                if not fragment_path.is_file() or not resolved.is_relative_to(own_root):
-                    return {"error": f"owned report fragment missing: {step_id}"}
-                source_step = receipt.get('source_step')
-                source = state.get('nodes', {}).get(source_step, {})
-                if not source_step or source.get('status') != 'succeeded':
-                    return {"error": f"report fragment source is unavailable: {step_id}"}
-                if receipt.get('source_attempt_fingerprint') != source.get('execution_fingerprint'):
-                    return {"error": f"report fragment references a stale source attempt: {step_id}"}
-                content = resolved.read_text(encoding='utf-8')
-                if receipt.get('fragment_fingerprint') != hashlib.sha256(content.encode()).hexdigest():
-                    return {"error": f"report fragment content fingerprint mismatch: {step_id}"}
-                fragments.append({
-                    'step_id': step_id, 'source_step': source_step,
-                    'source_attempt_fingerprint': receipt['source_attempt_fingerprint'],
-                    'fragment_fingerprint': receipt['fragment_fingerprint'],
-                    'report_file': str(resolved), 'content': content,
-                })
-            title = p['title'].strip()
-            sections = [f'# {title}', '', p.get('instructions',
-                'This live report is assembled from completed, evidence-scoped workflow branches.'), '']
-            for fragment in fragments:
-                sections.extend([fragment['content'].strip(), ''])
-            text = '\n'.join(sections).rstrip() + '\n'
-            output, error = publish(text)
-            if error:
-                return error
-            return {
-                "status": "success", "report_file": str(output), "output_path": str(output),
-                "output_files": [str(output)], "source_steps": source_steps,
-                "fragment_manifest": [{k: value for k, value in fragment.items() if k != 'content'}
-                                      for fragment in fragments],
-                "report_preview": text[:24000],
-            }
-
-        if report_mode == 'fragment' and len(source_steps) != 1:
-            return {"error": "report fragments require exactly one direct source step"}
-        evidence_rows = []
-        for step_id in source_steps:
-            node = state.get('nodes', {}).get(step_id, {})
-            if node.get('status') != 'succeeded':
-                return {"error": f"source step is not succeeded: {step_id}"}
-            reference = node.get('result_ref') or {}
-            evidence_path = Path(reference.get('evidence_path') or '')
-            try:
-                resolved = evidence_path.resolve()
-            except Exception:
-                return {"error": f"invalid evidence path for {step_id}"}
-            if not evidence_path.is_file() or not resolved.is_relative_to(own_root):
-                return {"error": f"owned evidence file missing for {step_id}"}
-            evidence = json.loads(evidence_path.read_text(encoding='utf-8'))
-            raw_result = evidence.get('result', evidence.get('result_preview', ''))
-            try:
-                parsed = json.loads(raw_result) if isinstance(raw_result, str) else raw_result
-                rendered = json.dumps(parsed, ensure_ascii=False, indent=2, default=str)
-            except (ValueError, TypeError):
-                rendered = str(raw_result)
-            evidence_rows.append({
-                'step_id': step_id,
-                'tool': evidence.get('tool') or node.get('contract', {}).get('tool', ''),
-                'agent': evidence.get('agent') or node.get('contract', {}).get('agent', ''),
-                'call_id': evidence.get('call_id') or reference.get('call_id', ''),
-                'params': evidence.get('params', {}),
-                'result': rendered[:12000],
-                'evidence_path': str(resolved),
-                'evidence_fingerprint': hashlib.sha256(evidence_path.read_bytes()).hexdigest(),
-            })
-        title = p['title'].strip()
-        lines = [f"# {title}", "", "## 验收范围", "",
-                 p.get('instructions', '依据本会话已完成 DAG 节点的持久化工具证据生成；未添加证据外结论。'), "",
-                 "## DAG 证据索引", "", "| 节点 | Agent | Tool | Call ID |", "|---|---|---|---|"]
-        for row in evidence_rows:
-            lines.append(f"| {row['step_id']} | {row['agent']} | {row['tool']} | {row['call_id']} |")
-        for row in evidence_rows:
-            lines.extend(["", f"## {row['step_id']} · {row['tool']}", "",
-                          f"- 证据：`{row['evidence_path']}`", "- 参数：", "```json",
-                          json.dumps(row['params'], ensure_ascii=False, indent=2, default=str), "```",
-                          "- 工具结果：", "```json", row['result'], "```"])
-        lines.extend(["", "## 结论边界", "",
-                      f"已汇总 {len(evidence_rows)} 个成功节点的原始证据。科学解释与最终结论须与上述工具结果一致；无证据项不视为通过。", ""])
-        text = '\n'.join(lines)
-        output, error = publish(text, immutable=report_mode == 'fragment')
-        if error:
-            return error
-        receipt = {"status": "success", "report_file": str(output), "output_path": str(output),
-                   "output_files": [str(output)], "source_steps": source_steps,
-                   "evidence_count": len(evidence_rows), "report_preview": text[:24000]}
-        if report_mode == 'fragment':
-            source = state['nodes'][source_steps[0]]
-            receipt.update(
-                source_step=source_steps[0],
-                source_attempt_fingerprint=source.get('execution_fingerprint'),
-                evidence_fingerprint=evidence_rows[0]['evidence_fingerprint'],
-                fragment_fingerprint=hashlib.sha256(text.encode()).hexdigest(),
-            )
-        return receipt
+    if p.get('source_steps'):
+        from .report_execution import execute_context_report
+        return execute_context_report(p)
 
     work_dir = p.get("work_dir", "")
     material = p.get("material", "Unknown")
@@ -4800,124 +4786,9 @@ def _exec_verify_data_authenticity(p: Dict[str, Any]) -> Any:
 
 
 def _exec_download_scientific_file(p: Dict[str, Any]) -> Any:
-    """Download one HTTPS scientific artifact into the current session safely."""
-    import hashlib
-    import ipaddress
-    import socket
-    from urllib.parse import urljoin, urlparse
-
-    import requests
-
-    from .watch_context import get_context
-    from .workspace import session_root
-
-    url = str(p.get("url") or "").strip()
-    output_path = str(p.get("output_path") or "").strip()
-    expected_sha256 = str(p.get("expected_sha256") or "").strip().lower()
-    max_bytes = int(p.get("max_bytes", 20 * 1024 * 1024))
-    timeout = float(p.get("timeout_seconds", 30))
-    ctx = get_context()
-    if not ctx.get("username") or not ctx.get("conv_id"):
-        return {"error": "download requires an authenticated user/session context"}
-    root = session_root(ctx["conv_id"], ctx["username"]).resolve()
-    target = Path(output_path).expanduser()
-    target = (target if target.is_absolute() else get_config().project_root / target).resolve()
-    if not target.is_relative_to(root):
-        return {"error": "output_path must be inside the current session root", "session_root": str(root)}
-    if expected_sha256 and not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
-        return {"error": "expected_sha256 must contain exactly 64 lowercase/uppercase hex characters"}
-
-    def validate_address(address: str) -> None:
-        ip = ipaddress.ip_address(address)
-        if (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast
-                or ip.is_reserved or ip.is_unspecified):
-            raise ValueError(f"URL resolves/connects to a forbidden network address: {address}")
-
-    def validate_remote(candidate: str) -> None:
-        parsed = urlparse(candidate)
-        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
-            raise ValueError("only credential-free HTTPS URLs are allowed")
-        try:
-            addresses = {item[4][0] for item in socket.getaddrinfo(parsed.hostname, parsed.port or 443, type=socket.SOCK_STREAM)}
-        except socket.gaierror as error:
-            raise ValueError(f"hostname resolution failed: {parsed.hostname}") from error
-        if not addresses:
-            raise ValueError("hostname resolved to no address")
-        for address in addresses:
-            validate_address(address)
-
-    def validate_connected_peer(download_response) -> None:
-        raw = getattr(download_response, "raw", None)
-        connection = getattr(raw, "_connection", None) or getattr(raw, "connection", None)
-        sock = getattr(connection, "sock", None)
-        if sock is None:
-            raise ValueError("unable to verify the download TCP peer address")
-        validate_address(sock.getpeername()[0])
-
-    current = url
-    response = None
-    redirects = []
-    try:
-        for _ in range(6):
-            validate_remote(current)
-            response = requests.get(current, stream=True, allow_redirects=False, timeout=timeout,
-                                    headers={"User-Agent": "BiMemAgent-scientific-downloader/1.0"})
-            validate_connected_peer(response)
-            if response.status_code in {301, 302, 303, 307, 308}:
-                location = response.headers.get("Location")
-                response.close()
-                if not location:
-                    raise ValueError("redirect response omitted Location")
-                current = urljoin(current, location)
-                redirects.append(current)
-                continue
-            break
-        else:
-            raise ValueError("too many redirects")
-        if response is None or response.status_code != 200:
-            status = response.status_code if response is not None else None
-            return {"error": f"download failed with HTTP {status}", "url": current, "redirects": redirects}
-        declared = response.headers.get("Content-Length")
-        if declared and int(declared) > max_bytes:
-            response.close()
-            return {"error": "declared content length exceeds max_bytes", "content_length": int(declared), "max_bytes": max_bytes}
-        target.parent.mkdir(parents=True, exist_ok=True)
-        partial = target.with_name(target.name + ".part")
-        digest = hashlib.sha256()
-        size = 0
-        try:
-            with partial.open("wb") as handle:
-                for chunk in response.iter_content(chunk_size=65536):
-                    if not chunk:
-                        continue
-                    size += len(chunk)
-                    if size > max_bytes:
-                        raise ValueError("download exceeded max_bytes")
-                    digest.update(chunk)
-                    handle.write(chunk)
-            actual = digest.hexdigest()
-            if expected_sha256 and actual != expected_sha256:
-                partial.unlink(missing_ok=True)
-                return {"error": "SHA256 mismatch", "expected_sha256": expected_sha256,
-                        "actual_sha256": actual, "bytes": size}
-            partial.replace(target)
-        except Exception:
-            partial.unlink(missing_ok=True)
-            raise
-        return {
-            "status": "success", "source_url": url, "final_url": current,
-            "redirects": redirects, "http_status": response.status_code,
-            "content_type": response.headers.get("Content-Type", ""),
-            "etag": response.headers.get("ETag", ""),
-            "last_modified": response.headers.get("Last-Modified", ""),
-            "bytes": size, "sha256": digest.hexdigest(),
-            "output_path": str(target), "output_files": [str(target)],
-        }
-    except (requests.RequestException, ValueError, OSError) as error:
-        return {"error": str(error), "url": current, "redirects": redirects}
-    finally:
-        if response is not None:
-            response.close()
+    """Owned immutable HTTPS retrieval under the operator's network policy."""
+    from .scientific_documents import download_scientific_file
+    return download_scientific_file(p,get_config())
 
 
 def _exec_analyze_diffusion_msd(p: Dict[str, Any]) -> Any:
@@ -5063,7 +4934,35 @@ def _exec_analyze_diffusion_msd(p: Dict[str, Any]) -> Any:
     }
 
 
+def _exec_generate_result_figures(p):
+    from .report_execution import execute_context_report
+    return execute_context_report(p)
+
+_SCHEMAS['generate_result_figures'] = {'description': 'Generate scientific figures from completed owned source_steps using a real analyst at execution time. The analyst reads actual tables and Nature guidance, chooses design and writes Python code then runs the existing OS sandbox with bounded correction. The planner supplies only data dependencies/brief/new output_dir, never a guessed script or submit_job. Retain actual code, inputs, methods/units/uncertainty, manifests and pending visual review. No unsandboxed fallback or scientific recalculation.', 'schema': {'type': 'object', 'additionalProperties': False, 'properties': {'source_steps': {'type': 'array', 'minItems': 1, 'maxItems': 16, 'uniqueItems': True, 'items': {'type': 'string', 'minLength': 1}}, 'instructions': {'type': 'string', 'minLength': 1, 'maxLength': 8000}, 'title': {'type': 'string', 'maxLength': 500}, 'output_dir': {'type': 'string', 'minLength': 1}, 'backend': {'type': 'string', 'enum': ['python'], 'default': 'python'}}, 'required': ['source_steps', 'instructions', 'output_dir']}}
+
+_SCHEMAS['run_analysis_sandbox']={
+    'description':'Run task-authored Python in the owned isolated sandbox with read-only source files and guidance. Code reads /inputs/<input_id>.csv, .json or .log according to the declared format and can inspect /inputs/audit.json and /inputs/guidance_index.json. Write each declared file directly as /output/<name>; choose format file for a report or arbitrary artifact, and CSV/JSON only when structured validation is requested; do not create /output/artifacts. The host atomically publishes each file as <output_dir>/artifacts/<name>, and the DAG expected_outputs must list those exact file paths. For a downstream scalar, declare a required typed property in the JSON output schema and bind the consumer argument with {step_id, output_index, json_pointer, value_type}; omit any duplicate literal value. The source, target tool schema and user scientific constraints are rechecked before dispatch. This is derived evidence, not scientific acceptance; preserve code, receipts and failures and never bypass sandbox isolation.',
+    'schema':{'type':'object','additionalProperties':False,'properties':{
+        'script':{'type':'string','minLength':1,'maxLength':65536},
+        'input_files':copy.deepcopy(_SCHEMAS['plot_result_code']['schema']['properties']['input_files']),
+        'output_dir':{'type':'string','minLength':1},'timeout_seconds':{'type':'integer','minimum':1,'maximum':60},
+        'guidance_files':{'type':'array','maxItems':8,'uniqueItems':True,'items':{'type':'string'}},
+        'declared_outputs':{'type':'array','minItems':1,'items':{'type':'object','additionalProperties':False,
+            'properties':{'name':{'type':'string'},'format':{'enum':['csv','json','txt','file']},
+                'json_schema':{'type':'object'},'required_columns':{'type':'array','items':{'type':'string'}},
+                'min_rows':{'type':'integer','minimum':0,'maximum':50000}},'required':['name','format']}}},
+        'required':['script','input_files','output_dir','declared_outputs']}}
+
+_SCHEMAS['run_analysis_sandbox']['schema']['properties']['input_files']['items']['properties']['format']['enum'].append('png')
+_SCHEMAS['run_analysis_sandbox']['schema']['properties']['input_files'].pop('maxItems',None)
+_SCHEMAS['run_analysis_sandbox']['description'] += ' Existing owned PNG images can be read as /inputs/<input_id>.png and inserted into a directly authored PDF; declare it with format file and write it to /output/<name>.pdf. Generic file output accepts any format; the server preserves ownership and bytes, not academic style.'
+
 _EXECUTORS = {
+    'run_analysis_sandbox': _exec_run_analysis_sandbox,
+    'generate_result_figures': _exec_generate_result_figures,
+    'plot_result_code': _exec_plot_result_code,
+    'read_result_guidance': _exec_read_result_guidance,
+
     "ml_template_plan": lambda p: _exec_ml_template_plan(p),
     "ml_active_learning_plan": lambda p: _exec_ml_active_learning_plan(p),
     "run_gcmc_isotherm": _exec_gcmc_isotherm,
@@ -5090,6 +4989,7 @@ _EXECUTORS = {
     "inspect_path": _exec_inspect,
     "stage_cif_subset": _exec_stage_cif_subset,
     "analyze_gcmc_screening": _exec_analyze_gcmc_screening,
+    "analyze_cdft_screening": lambda p: __import__('agents.cdft_screening', fromlist=['analyze_screening']).analyze_screening(p, __import__('agents.workspace', fromlist=['session_root']).session_root()),
     "inspect_run": _exec_inspect_run,
     "find_cif": _exec_find_cif,
     "extract_features": _exec_features,
@@ -5118,7 +5018,10 @@ _EXECUTORS = {
     "revalidate_workflow_node_outputs": lambda p: {"blocked":True,"executed":False,"error":"owned main chat Session must verify runtime artifacts"},
     "finish_workflow_node": lambda p: {"blocked":True,"executed":False,"error":"owned runtime must verify node completion"},
     "repair_workflow_runtime_inputs": lambda p: {"blocked":True,"executed":False,"error":"owned main chat Session must repair runtime inputs"},
+    "resolve_preparation_defaults": lambda p: {"blocked":True,"executed":False,"error":"owned main Session must resolve native prerequisite defaults"},
     "request_user_decision": lambda p: {"error": "main chat Session must handle user negotiation"},
+    "requeue_local_preparation": lambda p: {"error": "owned Session must handle local preparation recovery"},
+    "prepare_cdft_partial_recovery": lambda p: {"blocked":True,"executed":False,"error":"owned Session must authorize native cDFT failed-only preparation"},
     "reconcile_watched_job": lambda p: {"error": "main chat Session must handle dispatch reconciliation"},
     "supervisor_decision": lambda p: p,
     "record_workflow_draft": lambda p: {"error": "record_workflow_draft must run inside agents.Session"},
@@ -5126,6 +5029,8 @@ _EXECUTORS = {
     "execute_workflow": lambda p: {"error": "execute_workflow requires the main chat runtime"},
     "message_workflow_node": lambda p: {"error": "message_workflow_node requires the main chat runtime"},
     "get_tool_schema": lambda p: {"error": "schema discovery must bind to the current registry"},
+    "inspect_workflow_result": lambda p: {"blocked": True, "executed": False, "error": "owned Session must bind native workflow result inspection"},
+    "inspect_runtime": lambda p: __import__('agents.installations', fromlist=['inspect_installation']).inspect_installation(p['tool_name'], p.get('arguments', {}), get_config()),
     "discover_forcefield": _exec_discover_forcefield,
     "inspect_forcefield": _exec_inspect_forcefield,
     "validate_framework_charges": _exec_validate_framework_charges,
@@ -5170,3 +5075,78 @@ def _build_default_registry() -> ToolRegistry:
             execute=executor,
         ))
     return registry
+
+
+# Fixed document reader: read-only content extraction, never a shell/code tool.
+def _exec_read_scientific_document(p):
+    from .scientific_documents import read_scientific_document
+    return read_scientific_document(p,get_config())
+
+_SCHEMAS['read_scientific_document']={'description':'Read an actual owned PDF/HTML from a downloaded or uploaded file. Extract bounded text using a fixed resource-limited parser, with PDF page or HTML block anchors and exact source SHA. Does not execute PDF actions/scripts, follow links, OCR or invent contents. Use source text to check abstracts/results/references; metadata alone is not a verified paper claim. Truncation/image-only/unsupported inputs remain explicit.',
+ 'schema':{'type':'object','additionalProperties':False,'properties':{
+  'path':{'type':'string'},'expected_sha256':{'type':'string','pattern':'^[a-fA-F0-9]{64}$'},
+  'source_url':{'type':'string','description':'Declared original source URL, not independent origin proof.'},
+  'format':{'type':'string','enum':['auto','pdf','html'],'default':'auto'},
+  'start_page':{'type':'integer','minimum':1,'maximum':10000,'default':1,'description':'PDF page or HTML block ordinal.'},
+  'max_pages':{'type':'integer','minimum':1,'maximum':100,'default':20},
+  'max_chars':{'type':'integer','minimum':100,'maximum':200000,'default':60000}},'required':['path']}}
+_EXECUTORS['read_scientific_document']=_exec_read_scientific_document
+_SCHEMAS['query_literature']['schema']['properties']['web_only']={'type':'boolean','default':False,
+ 'description':'Explicit web discovery without loading local embedding/FAISS models. Results are metadata/abstract leads plus original publisher/PDF links; read full text before scientific claims. Cannot combine with require_both.'}
+
+def _exec_ml_inspect_result(p: Dict[str, Any]) -> Any:
+    from .ml_tool_adapter import execute_ml
+    return execute_ml('inspect', p, get_config())
+
+
+def _exec_ml_append_labels(p: Dict[str, Any]) -> Any:
+    from .ml_tool_adapter import execute_ml
+    return execute_ml('append', p, get_config())
+
+
+_ML_PATH = {'type': 'string', 'minLength': 1}
+_ML_LABEL_KINDS = ['external_measurement', 'native_calculation', 'synthetic_fixture', 'user_supplied_unverified']
+_SCHEMAS['ml_train'] = {
+    'description': 'Submit a source-bound GBR (default), RF or Ridge training job to reviewed Slurm resources. Use an explicit labelled CSV or dataset manifest; no labels are generated or fabricated. A user-supplied engineering fixture must retain synthetic_fixture provenance and is not scientific validation. Returns a submission receipt; inspect its actual terminal native result with ml_inspect_result before predicting or selecting.',
+    'schema': {'type': 'object', 'properties': {
+        'data_csv': dict(_ML_PATH), 'dataset_manifest': dict(_ML_PATH), 'manifest_path': dict(_ML_PATH),
+        'model_type': {'type': 'string', 'enum': ['GBR', 'RF', 'Ridge', 'RIDGE'], 'default': 'GBR'},
+        'target': {'type': 'string', 'minLength': 1, 'default': 'uptake'},
+        'features': {'type': 'array', 'minItems': 1, 'uniqueItems': True, 'items': {'type': 'string', 'minLength': 1}},
+        'output_dir': dict(_ML_PATH), 'target_unit': {'type': 'string'}, 'label_source': {'type': 'string'},
+        'synthetic_fixture': {'type': 'boolean', 'default': False}, 'conditions': {'type': 'object'}, 'split': {'type': 'object'}},
+        'oneOf': [{'required': [name]} for name in ('data_csv', 'dataset_manifest', 'manifest_path')]}}
+_SCHEMAS['ml_predict'] = {
+    'description': 'Submit prediction using the exact owned native GBR/RF/Ridge JSON model. Exactly one input mode: cif_path, cif_dir or a feature data_csv (feature_csv alias). CIF feature extraction runs inside its Slurm worker, uses trained feature names/order and reports per-CIF failures and source hashes. No host joblib loading or invented fallback values. Choose a fresh output_csv/output_dir and inspect the native job result.',
+    'schema': {'type': 'object', 'properties': {'model_dir': dict(_ML_PATH),
+        'cif_path': dict(_ML_PATH), 'cif_dir': dict(_ML_PATH), 'data_csv': dict(_ML_PATH), 'feature_csv': dict(_ML_PATH),
+        'output_csv': dict(_ML_PATH), 'output_dir': dict(_ML_PATH)}, 'required': ['model_dir'],
+        'oneOf': [{'required': [name]} for name in ('cif_path', 'cif_dir', 'data_csv', 'feature_csv')]}}
+_SCHEMAS['ml_feature_importance'] = {
+    'description': 'Read verified model metadata and its declared RF/GBR impurity importance or Ridge absolute standardized coefficients. Read-only metadata: no model fit, prediction, Slurm submission or joblib deserialization. Importance is an association, not causal evidence.',
+    'schema': {'type': 'object', 'properties': {'model_dir': dict(_ML_PATH)}, 'required': ['model_dir']}}
+_SCHEMAS['ml_active_learning'] = {
+    'description': 'Submit candidate acquisition from an owned verified model. RF uncertainty is ensemble spread, not calibrated physical uncertainty; max_prediction supports GBR/RF/Ridge. Use candidate_csv/data_csv or cif_path/cif_dir, or omit candidate input to use eligible unlabelled TRAIN records in the current native dataset. Preserve held-out VALID/TEST and in-flight selections; no random fallback or generated labels. Inspect selection, append genuinely supplied labels, then retrain.',
+    'schema': {'type': 'object', 'properties': {'model_dir': dict(_ML_PATH),
+        'cif_path': dict(_ML_PATH), 'cif_dir': dict(_ML_PATH), 'candidate_csv': dict(_ML_PATH), 'data_csv': dict(_ML_PATH),
+        'n_select': {'type': 'integer', 'minimum': 1, 'default': 5},
+        'strategy': {'type': 'string', 'enum': ['uncertainty', 'max_prediction'], 'default': 'uncertainty'},
+        'output_dir': dict(_ML_PATH), 'output_csv': dict(_ML_PATH)}, 'required': ['model_dir'],
+        'oneOf': [{'not': {'anyOf': [{'required': [name]} for name in ('cif_path', 'cif_dir', 'candidate_csv', 'data_csv')]}}]
+            + [{'required': [name]} for name in ('cif_path', 'cif_dir', 'candidate_csv', 'data_csv')]}}
+_SCHEMAS['ml_inspect_result'] = {
+    'description': 'Read and verify one exact owned native ML job: match scheduler owner/attempt/request/dataset/model/artifact hashes. Supply numeric job_id or its native work_dir; does not fit, submit or approve scientific truth. Use the returned immutable model/data paths instead of guessing filenames.',
+    'schema': {'type': 'object', 'properties': {'job_id': {'type': 'string', 'pattern': '^[0-9]+$'}, 'work_dir': dict(_ML_PATH)},
+        'oneOf': [{'required': ['job_id']}, {'required': ['work_dir']}]}}
+_SCHEMAS['ml_append_labels'] = {
+    'description': 'Append externally supplied labels for verified selected unlabelled TRAIN IDs. Supply a selected native selection_job_id or work_dir and labels_csv/data_csv; original VALID/TEST and provenance remain immutable. expected_dataset_version may explicitly pin the current head; native compare-and-swap is always required. Label kind inherits the actual initial declaration when omitted; never invent labels or reclassify fixture data as science. This mutates the native dataset journal but never submits a job.',
+    'schema': {'type': 'object', 'properties': {'selection_job_id': {'type': 'string', 'pattern': '^[0-9]+$'},
+        'work_dir': dict(_ML_PATH), 'labels_csv': dict(_ML_PATH), 'data_csv': dict(_ML_PATH),
+        'expected_dataset_version': {'type': 'string', 'pattern': '^[a-f0-9]{64}$'},
+        'label_source_kind': {'type': 'string', 'enum': _ML_LABEL_KINDS}},
+        'allOf': [{'oneOf': [{'required': ['selection_job_id']}, {'required': ['work_dir']}]},
+                  {'oneOf': [{'required': ['labels_csv']}, {'required': ['data_csv']}]}]}}
+_SCHEMAS['extract_features']['description'] = 'Read bounded deterministic CIF composition/cell descriptors using the native ASE/site and full triclinic metric adapter. Keep the existing cif_path/cif_dir/output_csv/n_threads interface and report exact per-CIF source hashes/failures. No model fitting or fabricated descriptors. Unsupported occupancy/symmetry is explicit; originals are never rewritten.'
+_SCHEMAS['extract_features']['schema']['oneOf'] = [{'required': ['cif_path']}, {'required': ['cif_dir']}]
+_SCHEMAS['extract_features']['schema']['properties']['n_threads'].update(minimum=1)
+_EXECUTORS.update(ml_inspect_result=_exec_ml_inspect_result, ml_append_labels=_exec_ml_append_labels)

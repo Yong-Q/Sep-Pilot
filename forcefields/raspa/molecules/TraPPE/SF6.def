@@ -1,0 +1,19 @@
+# critical constants: Temperature [T], Pressure [Pa], and Acentric factor [-]
+318.69
+3759998.4975
+0.215146
+#Number Of Atoms
+ 1
+# Number of groups
+1
+# Kr-group
+rigid
+# number of atoms
+1
+# atomic positions
+0 SF6     0.0           0.0          0.0
+# Chiral centers Bond  BondDipoles Bend  UrayBradley InvBend  Torsion Imp. Torsion Bond/Bond Stretch/Bend Bend/Bend Stretch/Torsion Bend/Torsion IntraVDW IntraCoulomb
+               0    0            0    0            0       0        0            0         0            0         0               0            0        0            0
+# Bond stretch: atom n1-n2, type, parameters
+# Number of config moves   Molecular force field investigation for Sulfur Hexafluoride: A computer simulation study
+0

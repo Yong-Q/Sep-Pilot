@@ -1,0 +1,36 @@
+#number of pseudo atoms
+27
+#type       print   as    chem  oxidation   mass        charge   polarization B-factor radii  connectivity anisotropic anisotropic-type   tinker-type
+C_co2        yes     C     C     0       12.0107        0.700    0.0          1.0      0.7000   0            0           relative           0
+O_co2        yes     O     O     0       15.9994       -0.350    0.0          1.0      0.7000   0            0           relative           0
+N_n2         yes     N     N     0       14.0067       -0.482    0.0          1.0      0.7000   0            0           relative           0
+N_com        no      N     N     0        0.0000        0.964    0.0          1.0      0.7000   0            0           relative           0
+CH4         yes     CH4     CH4     0       16.04       0.   0.0          1.0      0.7000   0            0           relative           0
+O001         yes     O     O     0       15.9994       -0.834    0.0          1.0      0.7000   0            0           relative           0
+H002         yes     H     H     0       1.007941       0.417    0.0          1.0      0.7000   0            0           relative           0
+N_cncl         yes     N     N     0       14.0067       -0.091    0.0          1.0      0.7000   0            0           relative           0
+Cl_cncl         yes     N     N     0       35.45      -0.233    0.0          1.0      0.7000   0            0           relative           0
+C_cncl       yes     C     C     0       12.0107        0.324    0.0          1.0      0.7000   0            0           relative           0
+H         yes     H     H     0       2.016       0.0    0.0          1.0      0.7000   0            0           relative           0
+D         yes     H     H     0       4.028       0.0    0.0          1.0      0.7000   0            0           relative           0
+Ag_         yes     Ag     Ag     0       107.9       0.0    0.0          1.0      0.7000   0            0           relative           0
+SF6         yes     SF6     SF6     0       146.06       0.0    0.0          1.0      0.7000   0            0           relative           0
+CH2         yes     CH2     CH2     0       14       0.0    0.0          1.0      0.7000   0            0           relative           0
+S_so2        yes     S     S     0       32        0.470    0.0          1.0      0.7000   0            0           relative           0
+O_so2        yes     O     O     0       15.999        -0.235    0.0          1.0      0.7000   0            0           relative           0
+CH         yes     CH     CH     0       13       0.0    0.0          1.0      0.7000   0            0           relative
+CH1         yes     CH1     CH1     0       12       -0.2780     0.0          1.0      0.7000   0            0           relative
+H_CH1         yes     H_CH1     H_CH1     0       1       0.2780     0.0          1.0      0.7000   0            0           relative
+CH2_cyclohex         yes     CH2_cyclohex    CH2_cyclohex     0       14       0.0    0.0          1.0      0.7000   0            0           relative
+C_benz         yes     C_benz     C_benz     0       12       -0.115    0.0          1.0      0.7000   0            0           relative
+H_benz         yes     H_benz     H_benz     0       1       0.115    0.0          1.0      0.7000   0            0           relative
+C_CO        yes     C     C     0       12.0107        0.107    0.0          1.0      0.7000   0            0           relative           0
+O_CO        yes     O     O     0       15.9994       -0.107    0.0          1.0      0.7000   0            0           relative           0
+CH3         yes     CH3     CH3     0       15       0.0    0.0          1.0      0.7000   0            0           relative           0
+H_CH4         yes     H     H     0       0       0.     0.0          1.0      0.7000   0            0           relative
+
+
+
+
+
+

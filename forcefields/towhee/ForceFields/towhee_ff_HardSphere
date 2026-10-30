@@ -1,0 +1,533 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+          16
+Potential Type
+Hard Sphere                   
+Classical Mixrule
+Arithmetic                    
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.1000000000E+01
+Mass
+    0.6022045700E+00
+Element
+hs
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+hs1.0     
+hs-fix-1.0
+hs        
+hs        
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.0000000000E+00
+Mass
+    0.6022045700E+00
+Element
+hs
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+hs0.0     
+hs-flex   
+hs        
+hs        
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.5000000000E+00
+Mass
+    0.6022045700E+00
+Element
+hs
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+hs-fix-0.5
+hs        
+hs        
+hs        
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.2250000000E+01
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+O         
+O         
+O         
+O         
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.6500000000E+00
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+H         
+H         
+H         
+H         
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.4400000000E+01
+Mass
+    0.3545300000E+02
+Element
+Cl
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+Cl        
+null      
+null      
+null      
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.2350000000E+01
+Mass
+    0.2299000000E+02
+Element
+Na
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+Na        
+null      
+null      
+null      
+Atom Type Number
+           8
+Nonbond Coefficients
+    0.2250000000E+01
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+FJ-O      
+FJ-O      
+FJ-O      
+null      
+Atom Type Number
+           9
+Nonbond Coefficients
+    0.6500000000E+00
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+FJ-H      
+FJ-H      
+FJ-H      
+null      
+Atom Type Number
+          10
+Nonbond Coefficients
+    0.1000000000E+01
+Mass
+    0.6022045700E+00
+Element
+tr
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+trimer    
+trimer    
+trimer    
+null      
+Atom Type Number
+          11
+Nonbond Coefficients
+    0.2250000000E+01
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+R-tan-O   
+R-tan-O   
+R-tan-O   
+null      
+Atom Type Number
+          12
+Nonbond Coefficients
+    0.6500000000E+00
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+R-tan-H   
+R-tan-H   
+R-tan-H   
+null      
+Atom Type Number
+          13
+Nonbond Coefficients
+    0.2250000000E+01
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+FJ-tan-O  
+FJ-tan-O  
+FJ-tan-O  
+null      
+Atom Type Number
+          14
+Nonbond Coefficients
+    0.6500000000E+00
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+FJ-tan-H  
+FJ-tan-H  
+FJ-tan-H  
+null      
+Atom Type Number
+          15
+Nonbond Coefficients
+    0.1000000000E+01
+Mass
+    0.3545300000E+02
+Element
+Cl
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+Cl-bond   
+nonbond   
+nonbond   
+nonbond   
+Atom Type Number
+          16
+Nonbond Coefficients
+    0.1000000000E+01
+Mass
+    0.2299000000E+02
+Element
+Na
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+HardSphere
+Atom Names
+Na-bond   
+nonbond   
+nonbond   
+nonbond   
+Number of Bonded Terms
+           7
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+hs-fix-1.0 hs-fix-1.0
+trimer     trimer    
+Bond Type Number
+           2
+Bond Style
+           1
+Bond Coefficients
+    0.7500000000E+00
+Vibration Order
+wild      
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+hs-fix-1.0 hs-fix-0.5
+Bond Type Number
+           3
+Bond Style
+           1
+Bond Coefficients
+    0.5000000000E+00
+Vibration Order
+wild      
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+hs-fix-0.5 hs-fix-0.5
+Bond Type Number
+           4
+Bond Style
+           2
+Bond Coefficients
+    0.1000000000E+01
+    0.1006433230E+06
+Vibration Order
+wild      
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+hs-flex    hs-flex   
+Bond Type Number
+           5
+Bond Style
+           1
+Bond Coefficients
+    0.9572000000E+00
+Vibration Order
+wild      
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+O          H         
+FJ-O       FJ-H      
+Bond Type Number
+           6
+Bond Style
+           1
+Bond Coefficients
+    0.1450000000E+01
+Vibration Order
+wild      
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+R-tan-O    R-tan-H   
+FJ-tan-O   FJ-tan-H  
+Bond Type Number
+           7
+Bond Style
+           7
+Bond Coefficients
+Vibration Order
+wild      
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+nonbond    nonbond   
+Number of Angle Terms
+           4
+Angle Type Number
+           1
+Angle Style
+           6
+Angle Coefficients
+Angle Order
+wild           
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+hs         hs         hs        
+Angle Type Number
+           2
+Angle Style
+           6
+Angle Coefficients
+Angle Order
+wild           
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+FJ-H       FJ-O       FJ-H      
+Angle Type Number
+           3
+Angle Style
+           0
+Angle Coefficients
+    0.1045200000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+H          O          H         
+R-tan-H    R-tan-O    R-tan-H   
+Angle Type Number
+           4
+Angle Style
+           0
+Angle Coefficients
+    0.6000000000E+02
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+trimer     trimer     trimer    
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+           8
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Torsion Coefficients
+Torsion Order
+wild           
+Force Field Name
+HardSphere
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+hs         hs         hs         hs        
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

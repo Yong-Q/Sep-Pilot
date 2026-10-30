@@ -3,6 +3,7 @@ Token-based auth with persistent tokens + multi-conversation sessions.
 Each user has multiple conversations; each conversation has its own memory.
 """
 import hashlib
+import copy
 import hmac
 import secrets
 import json
@@ -17,10 +18,14 @@ from pathlib import Path
 from typing import Optional, Dict
 from dataclasses import dataclass, field
 
-USER_DB = Path(__file__).parent / "users.json"
-TOKEN_DB = Path(__file__).parent / "tokens.json"
-CONVERSATION_LOG = Path(__file__).parent / "conversation_logs.jsonl"
-CREDENTIAL_KEY_FILE = Path(__file__).parent / "data" / "state" / "credential_master.key"
+# Resolve before constructing UserSessionManager: deployments and tests can
+# select a private state directory without ever loading another site's tokens.
+_AUTH_ROOT = (Path(os.environ['BIMEM_AUTH_STATE_DIR']).expanduser().resolve()
+              if os.environ.get('BIMEM_AUTH_STATE_DIR') else Path(__file__).parent)
+USER_DB = _AUTH_ROOT / "users.json"
+TOKEN_DB = _AUTH_ROOT / "tokens.json"
+CONVERSATION_LOG = _AUTH_ROOT / "conversation_logs.jsonl"
+CREDENTIAL_KEY_FILE = _AUTH_ROOT / "data" / "state" / "credential_master.key"
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]{2,64}$")
 MAX_LOGIN_FAILURES = int(os.environ.get("BIMEM_MAX_LOGIN_FAILURES", "5"))
@@ -34,20 +39,131 @@ def _avatar_url(entry: dict) -> str:
     return "/avatars/" + avatar_id if avatar_id in AVATAR_IDS else ""
 
 _IO_LOCK = threading.RLock()
+_FILE_IO_LOCKS = {}
+_FILE_LOCK_STATE = threading.local()
+_USER_METADATA_LOCK = threading.Lock()
+_USER_METADATA_CACHE = None
+
+
+def _user_metadata_identity(value):
+    return (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns,
+            value.st_ctime_ns, value.st_mode)
+
+
+def _cached_user_metadata(path, identity):
+    with _USER_METADATA_LOCK:
+        cached = _USER_METADATA_CACHE
+        if (cached is not None and cached['path'] == os.path.abspath(path)
+                and cached['identity'] == identity):
+            return cached
+    return None
+
+
+def _remember_user_metadata(path, data, written_identity=None):
+    """Retain account metadata and identity, excluding conversation history.
+
+    Native writers call this while their original transaction lock is held.
+    If another publisher replaced the file, its identity cannot bless our count.
+    """
+    global _USER_METADATA_CACHE
+    if os.path.abspath(path) != os.path.abspath(USER_DB) or not isinstance(data, dict):
+        return
+    try:
+        observed = _user_metadata_identity(Path(path).stat())
+    except FileNotFoundError:
+        return
+    if written_identity is not None and observed != written_identity:
+        return
+    metadata = {name: {key: copy.deepcopy(value) for key, value in entry.items()
+                       if key != 'conversations'}
+                for name, entry in data.items() if isinstance(entry, dict)}
+    with _USER_METADATA_LOCK:
+        _USER_METADATA_CACHE = {'path': os.path.abspath(path), 'identity': observed,
+                                'count': len(data), 'users': metadata}
+
+
+def _registered_user_metadata():
+    """Fresh lightweight account metadata without conversation-history copies.
+
+    Every hit validates dev/inode/size/mtime/ctime/mode. Native atomic writes
+    publish the new count under the existing transaction; foreign mutations
+    invalidate it and get one guarded cold read. No TTL or active-user estimate.
+    """
+    path = Path(USER_DB)
+    try:
+        identity = _user_metadata_identity(path.stat())
+    except FileNotFoundError:
+        return {'count': 0, 'users': {}}
+    cached = _cached_user_metadata(path, identity)
+    if cached is not None:
+        return cached
+    # Acquire the storage lock before the cache lock, as native writers do.
+    # Concurrent cold readers recheck after the first reader fills the cache.
+    with _file_guard(path, exclusive=False):
+        try:
+            identity = _user_metadata_identity(path.stat())
+        except FileNotFoundError:
+            return {'count': 0, 'users': {}}
+        cached = _cached_user_metadata(path, identity)
+        if cached is not None:
+            return cached
+        users = _read_json_unlocked(path)
+        if _user_metadata_identity(path.stat()) != identity:
+            raise RuntimeError('registered-user storage changed during summary read')
+        _remember_user_metadata(path, users, identity)
+        cached = _cached_user_metadata(path, identity)
+        if cached is None:
+            raise RuntimeError('registered-user storage changed during summary publication')
+        return cached
+
+
+def registered_user_count():
+    """Count registered accounts, including inactive accounts, from fresh metadata."""
+    return _registered_user_metadata()['count']
+
+
+def user_metadata_snapshot(username):
+    """Detached private account metadata; never return conversation histories.
+
+    Credential material remains private process memory, as in load_users.
+    Public endpoints still apply their existing explicit output projections.
+    """
+    return copy.deepcopy(_registered_user_metadata()['users'].get(username, {}))
 
 
 @contextmanager
 def _file_guard(path: Path, exclusive: bool = True):
-    """Thread + process guard for JSON state files."""
-    lock_path = Path(str(path) + ".lock")
+    """Per-file thread/process transaction; unrelated auth files do not block.
+
+    Same-thread exclusive leases can be nested without opening a second flock.
+    Cross-file nesting follows absolute path order. Shared leases are never
+    silently upgraded to writers.
+    """
+    key = os.path.abspath(path)
+    lock_path = Path(key + ".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with _IO_LOCK:
+        mutex = _FILE_IO_LOCKS.setdefault(key, threading.RLock())
+    held = getattr(_FILE_LOCK_STATE, 'held', None)
+    if held is None:
+        held = _FILE_LOCK_STATE.held = {}
+    if key not in held and held and key < max(held):
+        raise RuntimeError('nested auth transactions must acquire absolute paths in order')
+    with mutex:
+        previous = held.get(key)
+        if previous is not None:
+            if exclusive and not previous['exclusive']:
+                raise RuntimeError('shared auth transaction cannot be silently upgraded')
+            yield
+            return
         fh = open(lock_path, "a+")
         try:
             import fcntl
             fcntl.flock(fh.fileno(), fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
+            held[key] = {'exclusive': exclusive, 'handle': fh}
             yield
         finally:
+            held.pop(key, None)
             try:
                 import fcntl
                 fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
@@ -77,7 +193,8 @@ def _atomic_write_json_unlocked(path: Path, data: dict) -> None:
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp, path)
+            os.replace(tmp, path)
+            _remember_user_metadata(path, data, _user_metadata_identity(os.fstat(f.fileno())))
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
@@ -270,7 +387,7 @@ def migrate_auth_storage() -> dict:
 
 def public_model_connection(username: str) -> dict:
     from agents.config import get_config
-    entry = load_users().get(username, {})
+    entry = user_metadata_snapshot(username)
     connection = entry.get("model_connection", {}) if isinstance(entry, dict) else {}
     default = get_config()
     if connection.get("mode") != "custom":
@@ -324,7 +441,7 @@ def config_for_user(username: str):
     import copy
     from agents.config import get_config
     config = copy.copy(get_config())
-    entry = load_users().get(username, {})
+    entry = user_metadata_snapshot(username)
     connection = entry.get("model_connection", {}) if isinstance(entry, dict) else {}
     if connection.get("mode") == "custom":
         config.model_provider = "anthropic"
@@ -339,7 +456,7 @@ def config_for_user(username: str):
 
 def is_admin(username):
     # Roles are operator-controlled database/environment fields, never signup input.
-    entry = load_users().get(username, {})
+    entry = user_metadata_snapshot(username)
     allowlist = {name.strip() for name in os.environ.get('BIMEM_ADMIN_USERS', '').split(',') if name.strip()}
     return entry.get('is_admin') is True or username in allowlist
 
@@ -597,7 +714,7 @@ class UserSessionManager:
         return user
 
     def persist_conversations(self, username: str, conv_id: str = "",
-                              delete_conv_id: str = ""):
+                              delete_conv_id: str = "", *, completed_turn_uid: Optional[str] = None):
         """Persist one dirty conversation transactionally.
 
         Passing ``conv_id`` is important when different conversations of the
@@ -614,15 +731,46 @@ class UserSessionManager:
                 snapshot = {conv_id: _conv_to_dict(conv)} if conv else {}
             else:
                 snapshot = {cid: _conv_to_dict(conv) for cid, conv in user.conversations.items()}
+            if completed_turn_uid is not None:
+                # Keep live admission reserved until this writer stops. Only
+                # the exact finished owner's durable snapshot becomes idle;
+                # a newer UID must retain its own processing flag.
+                current = user.conversations.get(conv_id) if conv_id else None
+                saved = snapshot.get(conv_id) if conv_id else None
+                if (current is not None and saved is not None
+                        and (current.username, current.conv_id) == (username, conv_id)
+                        and current.current_uid == completed_turn_uid
+                        and saved.get('current_uid') == completed_turn_uid):
+                    saved['is_processing'] = False
             # The read-modify-write is held under one process-level file lock;
             # concurrent conversations/workers can no longer overwrite each
             # other's newly persisted state with a stale users.json snapshot.
             with _file_guard(USER_DB, exclusive=True):
                 users = _read_json_unlocked(USER_DB)
                 entry = users.get(username)
+                existed = isinstance(entry, dict)
                 if not isinstance(entry, dict):
                     entry = {"display_name": user.display_name or username}
                     users[username] = entry
+                # Compare only the fields this operation can change while the
+                # original cross-process lock is held. JSON comparison keeps
+                # booleans, integers and floats distinct. Differences in key
+                # order may cause an extra safe write rather than a missed one.
+                # Never drop a new checkpoint timestamp or other changed data.
+                def changed_projection(value):
+                    convs=value.get('conversations')
+                    if not isinstance(convs,dict):convs={}
+                    touched=set(snapshot)
+                    if delete_conv_id:touched.add(delete_conv_id)
+                    return json.dumps({'display_name':value.get('display_name'),
+                        'display_name_present':'display_name' in value,
+                        'current_conv_id':value.get('current_conv_id'),
+                        'current_conv_id_present':'current_conv_id' in value,
+                        'conversation_field_present':'conversations' in value,
+                        'conversation_field_valid':isinstance(value.get('conversations'),dict),
+                        'conversations':{key:convs[key]for key in touched if key in convs}},
+                        ensure_ascii=False,separators=(',',':'))
+                before=changed_projection(entry) if existed else None
                 entry["display_name"] = user.display_name or entry.get("display_name", "")
                 entry["current_conv_id"] = user.current_conv_id
                 disk_convs = entry.get("conversations")
@@ -632,6 +780,8 @@ class UserSessionManager:
                     disk_convs.pop(delete_conv_id, None)
                 disk_convs.update(snapshot)
                 entry["conversations"] = disk_convs
+                if existed and changed_projection(entry)==before:
+                    return
                 _atomic_write_json_unlocked(USER_DB, users)
 
     def get_user(self, username: str) -> UserData:

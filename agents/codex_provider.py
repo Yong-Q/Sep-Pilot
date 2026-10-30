@@ -7,12 +7,14 @@ No account credential is read, copied, or written by this module.
 from __future__ import annotations
 
 import json
+import math
 import os
 import shutil
 import subprocess
 import tempfile
 import time
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable
@@ -24,6 +26,35 @@ from anthropic.types import TextBlock, ToolUseBlock
 
 class CodexProviderError(RuntimeError):
     """A safe-to-display provider failure without prompt or credential content."""
+
+
+@dataclass(frozen=True)
+class CodexToolCallError:
+    """Safe identity and feedback for a proposal that was never dispatched."""
+
+    call_id: str
+    name: str
+    error: str
+
+
+class CodexToolArgumentError(CodexProviderError):
+    """An entirely unexecuted proposal batch needing model correction.
+
+    The Session must consume this separately from provider outages: append
+    paired failed tool observations for every item, without dispatching them.
+    Only tool names, generated call IDs and fixed error text cross this
+    boundary. Neither raw argument strings nor parser exceptions are retained.
+    """
+
+    executed = False
+
+    def __init__(self, tool_errors: tuple[CodexToolCallError, ...]):
+        super().__init__("Codex returned invalid tool argument JSON; no proposed tools were executed")
+        self._tool_errors = tuple(tool_errors)
+
+    @property
+    def tool_errors(self) -> tuple[CodexToolCallError, ...]:
+        return self._tool_errors
 
 
 class _CodexInterrupted(Exception):
@@ -144,6 +175,17 @@ def _isolated_command(root: Path, model: str) -> list[str]:
         "--chdir", "/work",
         "/opt/node/bin/codex", "exec", "--ephemeral", "--ignore-user-config",
         "--ignore-rules", "--sandbox", "read-only", "--skip-git-repo-check",
+        # ShellTool gates registration of exec_command/write_stdin in CLI
+        # 0.163.0. UnifiedExec opt-outs are ignored, so disable the parent gate.
+        # Other native utilities (notably apply_patch) may remain registered.
+        "--disable", "shell_tool", "--disable", "shell_snapshot",
+        "--disable", "apps", "--disable", "plugins", "--disable", "hooks",
+        "--disable", "multi_agent", "--disable", "code_mode",
+        "--disable", "view_image", "--disable", "image_generation",
+        "--disable", "browser_use", "--disable", "computer_use",
+        "--disable", "sleep_tool", "--disable", "tool_suggest",
+        "-c", 'mcp_servers={}', "-c", 'web_search="disabled"',
+        "-c", 'agents.enabled=false',
         "--cd", "/work", "--model", model,
         "-c", 'model_reasoning_effort="medium"',
         "--output-schema", "/work/reply.schema.json",
@@ -160,32 +202,66 @@ def _validate_reply(payload: Any, tools: list[dict], tool_choice: dict | None) -
     allowed = {tool["name"]: tool for tool in tools}
     if payload["tool_calls"] and not tools:
         raise CodexProviderError("Codex proposed an unavailable tool")
-    blocks: list[Any] = []
-    if payload["text"].strip():
-        blocks.append(TextBlock(type="text", text=payload["text"]))
+    # Validate the entire batch's authority before reporting recoverable wire
+    # errors. A malformed earlier proposal cannot hide a forbidden later one.
     for call in payload["tool_calls"]:
         name = call["name"]
         if name not in allowed:
             raise CodexProviderError("Codex proposed an unavailable tool")
         if tool_choice and tool_choice.get("type") == "tool" and name != tool_choice.get("name"):
             raise CodexProviderError("Codex selected a tool outside the required choice")
+    if tool_choice and tool_choice.get("type") == "tool" and not payload["tool_calls"]:
+        raise CodexProviderError("Codex omitted the required tool call")
+
+    parsed = []
+    for call in payload["tool_calls"]:
         try:
-            arguments = json.loads(call["arguments_json"])
+            arguments = json.loads(call["arguments_json"],
+                                   parse_constant=_reject_json_constant,
+                                   parse_float=_finite_json_float)
             if not isinstance(arguments, dict):
                 raise ValueError("arguments must be object")
-        except ValueError:
-            raise CodexProviderError("Codex returned malformed tool argument JSON") from None
+        except (ValueError, RecursionError):
+            arguments = None
+        parsed.append(arguments)
+
+    call_ids = ["toolu_" + uuid.uuid4().hex for _ in payload["tool_calls"]]
+    if any(arguments is None for arguments in parsed):
+        # Raise outside the parser's except block so __context__ cannot retain
+        # a JSONDecodeError containing the original argument string. No blocks
+        # from this response are returned, even for otherwise-valid proposals.
+        errors = tuple(CodexToolCallError(call_id=call_id, name=call["name"], error=(
+            "Invalid JSON tool argument object; not executed. Return a complete JSON object."
+            if arguments is None else
+            "Tool not executed because another proposal in this response had invalid JSON arguments. Regenerate the complete intended batch."
+        )) for call, arguments, call_id in zip(payload["tool_calls"], parsed, call_ids))
+        raise CodexToolArgumentError(errors)
+
+    blocks: list[Any] = []
+    if payload["text"].strip():
+        blocks.append(TextBlock(type="text", text=payload["text"]))
+    for call, arguments, call_id in zip(payload["tool_calls"], parsed, call_ids):
         # Keep semantic parameter validation in the host Session/registry. It
         # blocks invalid execution and returns structured issues to the model,
         # so a missing parameter can be repaired instead of counted as an API
         # outage. Only the provider's wire format belongs at this boundary.
-        blocks.append(ToolUseBlock(type="tool_use", id="toolu_" + uuid.uuid4().hex,
-                                   name=name, input=arguments))
-    if tool_choice and tool_choice.get("type") == "tool" and not payload["tool_calls"]:
-        raise CodexProviderError("Codex omitted the required tool call")
+        blocks.append(ToolUseBlock(type="tool_use", id=call_id,
+                                   name=call["name"], input=arguments))
     if not blocks:
         raise CodexProviderError("Codex returned an empty response")
     return blocks
+
+
+def _reject_json_constant(value: str) -> None:
+    """Python accepts NaN/Infinity by default; the tool wire protocol does not."""
+    raise ValueError("Non-finite JSON constant")
+
+
+def _finite_json_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("Non-finite JSON number")
+    return number
 
 
 def call_codex_model(
@@ -218,9 +294,11 @@ def call_codex_model(
         raise CodexProviderError("Conversation could not be serialized") from None
 
     contract = {
+        # Keep stable definitions ahead of changing context. Cache benefit is
+        # provider-dependent and must be measured, not inferred from ordering.
+        "available_tools": tools,
         "system": system,
         "conversation": transcript,
-        "available_tools": tools,
         "tool_choice": tool_choice or {"type": "auto"},
     }
     prompt = (

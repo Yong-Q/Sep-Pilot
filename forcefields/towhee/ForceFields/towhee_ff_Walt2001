@@ -1,0 +1,206 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           3
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Explicit                      
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3851000000E+01
+    0.5287143932E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.3190000000E+01
+    0.3759693342E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.1000000000E+01
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Walt2001  
+Atom Names
+C         
+C         
+C         
+C         
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3166000000E+01
+    0.7820065934E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Nonbond Coefficients
+    0.1000000000E+01
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Walt2001  
+Atom Names
+O         
+O         
+O         
+O         
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.1000000000E+01
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Walt2001  
+Atom Names
+H         
+H         
+H         
+H         
+Number of Bonded Terms
+           2
+Bond Type Number
+           1
+Bond Style
+           9
+Bond Coefficients
+    0.1418000000E+01
+    0.5759811713E+05
+   -0.2186700000E+01
+Vibration Order
+wild      
+Force Field Name
+Walt2001  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C         
+Bond Type Number
+           2
+Bond Style
+           2
+Bond Coefficients
+    0.1000000000E+01
+    0.2788499364E+06
+Vibration Order
+wild      
+Force Field Name
+Walt2001  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+O          H         
+Number of Angle Terms
+           2
+Angle Type Number
+           1
+Angle Style
+           3
+Angle Coefficients
+    0.1200000000E+03
+    0.3380837487E+05
+Angle Order
+wild           
+Force Field Name
+Walt2001  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C          C         
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1094700000E+03
+    0.2303203055E+05
+Angle Order
+wild           
+Force Field Name
+Walt2001  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H          O          H         
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+          16
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.1510612552E+04
+Torsion Order
+wild           
+Force Field Name
+Walt2001  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C          C          C         
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           2
+Bond Increment Type Number
+           1
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Walt2001  
+Atom Names
+C          C         
+Bond Increment Type Number
+           2
+Bond Increment Value
+   -0.4100000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Walt2001  
+Atom Names
+O          H         

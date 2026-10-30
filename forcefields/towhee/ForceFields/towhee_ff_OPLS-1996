@@ -1,0 +1,11805 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+         372
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Geometric                     
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -1      
+C -1      
+C -1      
+C -1      
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.5000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -2      
+O -2      
+O -2      
+O -2      
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N -3      
+N -3      
+N -3      
+N -3      
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -4      
+H -4      
+H -4      
+H -4      
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.3800000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-5      
+C2-5      
+C2-5      
+C2-5      
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.3800000000E+01
+    0.4025732800E+02
+    0.3800000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CH-6      
+CH-6      
+CH-6      
+CH-6      
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.3910000000E+01
+    0.8051465600E+02
+    0.3910000000E+01
+    0.4025732800E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-7      
+C3-7      
+C3-7      
+C3-7      
+Atom Type Number
+           8
+Nonbond Coefficients
+    0.3850000000E+01
+    0.4025732800E+02
+    0.3850000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CH-8      
+CH-8      
+CH-8      
+CH-8      
+Atom Type Number
+           9
+Nonbond Coefficients
+    0.3905000000E+01
+    0.5937955880E+02
+    0.3905000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-9      
+C2-9      
+C2-9      
+C2-9      
+Atom Type Number
+          10
+Nonbond Coefficients
+    0.3905000000E+01
+    0.8806290500E+02
+    0.3905000000E+01
+    0.4403145250E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-10     
+C3-10     
+C3-10     
+C3-10     
+Atom Type Number
+          11
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5535382600E+02
+    0.3750000000E+01
+    0.2767691300E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CD-11     
+CD-11     
+CD-11     
+CD-11     
+Atom Type Number
+          12
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.8500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N -12     
+N -12     
+N -12     
+N -12     
+Atom Type Number
+          13
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4250000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -13     
+H -13     
+H -13     
+H -13     
+Atom Type Number
+          14
+Nonbond Coefficients
+    0.3800000000E+01
+    0.4025732800E+02
+    0.3800000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2850000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CH-14     
+CH-14     
+CH-14     
+CH-14     
+Atom Type Number
+          15
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.3800000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2850000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-15     
+C2-15     
+C2-15     
+C2-15     
+Atom Type Number
+          16
+Nonbond Coefficients
+    0.3905000000E+01
+    0.5937955880E+02
+    0.3905000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-16     
+C2-16     
+C2-16     
+C2-16     
+Atom Type Number
+          17
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.7000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -17     
+C -17     
+C -17     
+C -17     
+Atom Type Number
+          18
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.8000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O2-18     
+O2-18     
+O2-18     
+O2-18     
+Atom Type Number
+          19
+Nonbond Coefficients
+    0.3905000000E+01
+    0.5937955880E+02
+    0.3905000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-19     
+C2-19     
+C2-19     
+C2-19     
+Atom Type Number
+          20
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N3-20     
+N3-20     
+N3-20     
+N3-20     
+Atom Type Number
+          21
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H3-21     
+H3-21     
+H3-21     
+H3-21     
+Atom Type Number
+          22
+Nonbond Coefficients
+    0.3905000000E+01
+    0.5937955880E+02
+    0.3905000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2650000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-22     
+C2-22     
+C2-22     
+C2-22     
+Atom Type Number
+          23
+Nonbond Coefficients
+    0.3070000000E+01
+    0.8554682200E+02
+    0.3070000000E+01
+    0.4277341100E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.7000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OH-23     
+OH-23     
+OH-23     
+OH-23     
+Atom Type Number
+          24
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HO-24     
+HO-24     
+HO-24     
+HO-24     
+Atom Type Number
+          25
+Nonbond Coefficients
+    0.3850000000E+01
+    0.4025732800E+02
+    0.3850000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2650000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CH-25     
+CH-25     
+CH-25     
+CH-25     
+Atom Type Number
+          26
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5535382600E+02
+    0.3750000000E+01
+    0.2767691300E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2650000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -26     
+C -26     
+C -26     
+C -26     
+Atom Type Number
+          27
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.3800000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-27     
+C2-27     
+C2-27     
+C2-27     
+Atom Type Number
+          28
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.3800000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-28     
+C2-28     
+C2-28     
+C2-28     
+Atom Type Number
+          29
+Nonbond Coefficients
+    0.3800000000E+01
+    0.4025732800E+02
+    0.3800000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CH-29     
+CH-29     
+CH-29     
+CH-29     
+Atom Type Number
+          30
+Nonbond Coefficients
+    0.3800000000E+01
+    0.4025732800E+02
+    0.3800000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CH-30     
+CH-30     
+CH-30     
+CH-30     
+Atom Type Number
+          31
+Nonbond Coefficients
+    0.3905000000E+01
+    0.5937955880E+02
+    0.3905000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-31     
+C2-31     
+C2-31     
+C2-31     
+Atom Type Number
+          32
+Nonbond Coefficients
+    0.3550000000E+01
+    0.1258041500E+03
+    0.3550000000E+01
+    0.6290207500E+02
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+   -0.4500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+SH-32     
+SH-32     
+SH-32     
+SH-32     
+Atom Type Number
+          33
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.2700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HS-33     
+HS-33     
+HS-33     
+HS-33     
+Atom Type Number
+          34
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.3800000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-34     
+C2-34     
+C2-34     
+C2-34     
+Atom Type Number
+          35
+Nonbond Coefficients
+    0.3550000000E+01
+    0.1258041500E+03
+    0.3550000000E+01
+    0.6290207500E+02
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+   -0.4700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+S -35     
+S -35     
+S -35     
+S -35     
+Atom Type Number
+          36
+Nonbond Coefficients
+    0.3800000000E+01
+    0.8554682200E+02
+    0.3800000000E+01
+    0.4277341100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-36     
+C3-36     
+C3-36     
+C3-36     
+Atom Type Number
+          37
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.3800000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-37     
+C2-37     
+C2-37     
+C2-37     
+Atom Type Number
+          38
+Nonbond Coefficients
+    0.3550000000E+01
+    0.1258041500E+03
+    0.3550000000E+01
+    0.6290207500E+02
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+   -0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+S -38     
+S -38     
+S -38     
+S -38     
+Atom Type Number
+          39
+Nonbond Coefficients
+    0.3800000000E+01
+    0.8554682200E+02
+    0.3800000000E+01
+    0.4277341100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-39     
+C3-39     
+C3-39     
+C3-39     
+Atom Type Number
+          40
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-40     
+NA-40     
+NA-40     
+NA-40     
+Atom Type Number
+          41
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -41     
+H -41     
+H -41     
+H -41     
+Atom Type Number
+          42
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.4900000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NB-42     
+NB-42     
+NB-42     
+NB-42     
+Atom Type Number
+          43
+Nonbond Coefficients
+    0.3750000000E+01
+    0.7296640700E+02
+    0.3750000000E+01
+    0.3648320350E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CP-43     
+CP-43     
+CP-43     
+CP-43     
+Atom Type Number
+          44
+Nonbond Coefficients
+    0.3750000000E+01
+    0.7296640700E+02
+    0.3750000000E+01
+    0.3648320350E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CF-44     
+CF-44     
+CF-44     
+CF-44     
+Atom Type Number
+          45
+Nonbond Coefficients
+    0.3750000000E+01
+    0.7296640700E+02
+    0.3750000000E+01
+    0.3648320350E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CC-45     
+CC-45     
+CC-45     
+CC-45     
+Atom Type Number
+          46
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-46     
+NA-46     
+NA-46     
+NA-46     
+Atom Type Number
+          47
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -47     
+H -47     
+H -47     
+H -47     
+Atom Type Number
+          48
+Nonbond Coefficients
+    0.3750000000E+01
+    0.7296640700E+02
+    0.3750000000E+01
+    0.3648320350E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CP-48     
+CP-48     
+CP-48     
+CP-48     
+Atom Type Number
+          49
+Nonbond Coefficients
+    0.3750000000E+01
+    0.7296640700E+02
+    0.3750000000E+01
+    0.3648320350E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CG-49     
+CG-49     
+CG-49     
+CG-49     
+Atom Type Number
+          50
+Nonbond Coefficients
+    0.3750000000E+01
+    0.7296640700E+02
+    0.3750000000E+01
+    0.3648320350E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.5500000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CB-50     
+CB-50     
+CB-50     
+CB-50     
+Atom Type Number
+          51
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.8000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N2-51     
+N2-51     
+N2-51     
+N2-51     
+Atom Type Number
+          52
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H3-52     
+H3-52     
+H3-52     
+H3-52     
+Atom Type Number
+          53
+Nonbond Coefficients
+    0.2250000000E+01
+    0.2516083000E+02
+    0.2250000000E+01
+    0.1258041500E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.6400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-53     
+CA-53     
+CA-53     
+CA-53     
+Atom Type Number
+          54
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.7000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N2-54     
+N2-54     
+N2-54     
+N2-54     
+Atom Type Number
+          55
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H3-55     
+H3-55     
+H3-55     
+H3-55     
+Atom Type Number
+          56
+Nonbond Coefficients
+    0.3905000000E+01
+    0.5937955880E+02
+    0.3905000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-56     
+C2-56     
+C2-56     
+C2-56     
+Atom Type Number
+          57
+Nonbond Coefficients
+    0.3905000000E+01
+    0.5937955880E+02
+    0.3905000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.7000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-57     
+C2-57     
+C2-57     
+C2-57     
+Atom Type Number
+          58
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -58     
+C -58     
+C -58     
+C -58     
+Atom Type Number
+          59
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -59     
+O -59     
+O -59     
+O -59     
+Atom Type Number
+          60
+Nonbond Coefficients
+    0.3800000000E+01
+    0.4025732800E+02
+    0.3800000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CH-60     
+CH-60     
+CH-60     
+CH-60     
+Atom Type Number
+          61
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.3800000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-61     
+C2-61     
+C2-61     
+C2-61     
+Atom Type Number
+          62
+Nonbond Coefficients
+    0.3000000000E+01
+    0.8554682200E+02
+    0.3000000000E+01
+    0.4277341100E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OS-62     
+OS-62     
+OS-62     
+OS-62     
+Atom Type Number
+          63
+Nonbond Coefficients
+    0.3800000000E+01
+    0.8554682200E+02
+    0.3800000000E+01
+    0.4277341100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-63     
+C3-63     
+C3-63     
+C3-63     
+Atom Type Number
+          64
+Nonbond Coefficients
+    0.3800000000E+01
+    0.2516083000E+02
+    0.3800000000E+01
+    0.1258041500E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-64     
+CT-64     
+CT-64     
+CT-64     
+Atom Type Number
+          65
+Nonbond Coefficients
+    0.3960000000E+01
+    0.7296640700E+02
+    0.3960000000E+01
+    0.3648320350E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-65     
+C3-65     
+C3-65     
+C3-65     
+Atom Type Number
+          66
+Nonbond Coefficients
+    0.3730000000E+01
+    0.1479456804E+03
+    0.3730000000E+01
+    0.7397284020E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C4-66     
+C4-66     
+C4-66     
+C4-66     
+Atom Type Number
+          67
+Nonbond Coefficients
+    0.3775000000E+01
+    0.1041658362E+03
+    0.3775000000E+01
+    0.5208291810E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-67     
+C3-67     
+C3-67     
+C3-67     
+Atom Type Number
+          68
+Nonbond Coefficients
+    0.3905000000E+01
+    0.8806290500E+02
+    0.3905000000E+01
+    0.4403145250E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-68     
+C3-68     
+C3-68     
+C3-68     
+Atom Type Number
+          69
+Nonbond Coefficients
+    0.3910000000E+01
+    0.8051465600E+02
+    0.3910000000E+01
+    0.4025732800E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-69     
+C3-69     
+C3-69     
+C3-69     
+Atom Type Number
+          70
+Nonbond Coefficients
+    0.3960000000E+01
+    0.7296640700E+02
+    0.3960000000E+01
+    0.3648320350E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-70     
+C3-70     
+C3-70     
+C3-70     
+Atom Type Number
+          71
+Nonbond Coefficients
+    0.3905000000E+01
+    0.5937955880E+02
+    0.3905000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-71     
+C2-71     
+C2-71     
+C2-71     
+Atom Type Number
+          72
+Nonbond Coefficients
+    0.3850000000E+01
+    0.7045032400E+02
+    0.3850000000E+01
+    0.3522516200E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C9-72     
+C9-72     
+C9-72     
+C9-72     
+Atom Type Number
+          73
+Nonbond Coefficients
+    0.3850000000E+01
+    0.4025732800E+02
+    0.3850000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CH-73     
+CH-73     
+CH-73     
+CH-73     
+Atom Type Number
+          74
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5786990900E+02
+    0.3800000000E+01
+    0.2893495450E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C8        
+C8        
+C8        
+C8        
+Atom Type Number
+          75
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5535382600E+02
+    0.3750000000E+01
+    0.2767691300E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CD-75     
+CD-75     
+CD-75     
+CD-75     
+Atom Type Number
+          76
+Nonbond Coefficients
+    0.3800000000E+01
+    0.2516083000E+02
+    0.3800000000E+01
+    0.1258041500E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-76     
+CT-76     
+CT-76     
+CT-76     
+Atom Type Number
+          77
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C7-77     
+C7-77     
+C7-77     
+C7-77     
+Atom Type Number
+          78
+Nonbond Coefficients
+    0.3070000000E+01
+    0.8554682200E+02
+    0.3070000000E+01
+    0.4277341100E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.7000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OH-78     
+OH-78     
+OH-78     
+OH-78     
+Atom Type Number
+          79
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HO-79     
+HO-79     
+HO-79     
+HO-79     
+Atom Type Number
+          80
+Nonbond Coefficients
+    0.3775000000E+01
+    0.1041658362E+03
+    0.3775000000E+01
+    0.5208291810E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2650000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-80     
+C3-80     
+C3-80     
+C3-80     
+Atom Type Number
+          81
+Nonbond Coefficients
+    0.3905000000E+01
+    0.5937955880E+02
+    0.3905000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2650000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-81     
+C2-81     
+C2-81     
+C2-81     
+Atom Type Number
+          82
+Nonbond Coefficients
+    0.3700000000E+01
+    0.1258041500E+03
+    0.3700000000E+01
+    0.6290207500E+02
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+   -0.4700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+SH-82     
+SH-82     
+SH-82     
+SH-82     
+Atom Type Number
+          83
+Nonbond Coefficients
+    0.3550000000E+01
+    0.1258041500E+03
+    0.3550000000E+01
+    0.6290207500E+02
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+   -0.4500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+SH-83     
+SH-83     
+SH-83     
+SH-83     
+Atom Type Number
+          84
+Nonbond Coefficients
+    0.3550000000E+01
+    0.1258041500E+03
+    0.3550000000E+01
+    0.6290207500E+02
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+   -0.4700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+S -84     
+S -84     
+S -84     
+S -84     
+Atom Type Number
+          85
+Nonbond Coefficients
+    0.3550000000E+01
+    0.1258041500E+03
+    0.3550000000E+01
+    0.6290207500E+02
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+   -0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+S -85     
+S -85     
+S -85     
+S -85     
+Atom Type Number
+          86
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.2350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HS-86     
+HS-86     
+HS-86     
+HS-86     
+Atom Type Number
+          87
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.2700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HS-87     
+HS-87     
+HS-87     
+HS-87     
+Atom Type Number
+          88
+Nonbond Coefficients
+    0.3775000000E+01
+    0.1041658362E+03
+    0.3775000000E+01
+    0.5208291810E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-88     
+C3-88     
+C3-88     
+C3-88     
+Atom Type Number
+          89
+Nonbond Coefficients
+    0.3905000000E+01
+    0.5937955880E+02
+    0.3905000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-89     
+C2-89     
+C2-89     
+C2-89     
+Atom Type Number
+          90
+Nonbond Coefficients
+    0.3800000000E+01
+    0.8554682200E+02
+    0.3800000000E+01
+    0.4277341100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-90     
+C3-90     
+C3-90     
+C3-90     
+Atom Type Number
+          91
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.3800000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-91     
+C2-91     
+C2-91     
+C2-91     
+Atom Type Number
+          92
+Nonbond Coefficients
+    0.3800000000E+01
+    0.8554682200E+02
+    0.3800000000E+01
+    0.4277341100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-92     
+C3-92     
+C3-92     
+C3-92     
+Atom Type Number
+          93
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.3800000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-93     
+C2-93     
+C2-93     
+C2-93     
+Atom Type Number
+          94
+Nonbond Coefficients
+    0.3775000000E+01
+    0.1041658362E+03
+    0.3775000000E+01
+    0.5208291810E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-96     
+C3-96     
+C3-96     
+C3-96     
+Atom Type Number
+          95
+Nonbond Coefficients
+    0.3401000000E+01
+    0.1177023627E+03
+    0.3401000000E+01
+    0.5885118137E+02
+Mass
+    0.3994800000E+02
+Element
+Ar
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Ar-97     
+Ar-97     
+Ar-97     
+Ar-97     
+Atom Type Number
+          96
+Nonbond Coefficients
+    0.3624000000E+01
+    0.1595196622E+03
+    0.3624000000E+01
+    0.7975983110E+02
+Mass
+    0.8380000000E+02
+Element
+Kr
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Kr-98     
+Kr-98     
+Kr-98     
+Kr-98     
+Atom Type Number
+          97
+Nonbond Coefficients
+    0.3935000000E+01
+    0.2178927878E+03
+    0.3935000000E+01
+    0.1089463939E+03
+Mass
+    0.1312930000E+03
+Element
+Xe
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Xe-99     
+Xe-99     
+Xe-99     
+Xe-99     
+Atom Type Number
+          98
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.4000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N3-101    
+N3-101    
+N3-101    
+N3-101    
+Atom Type Number
+          99
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N3-102    
+N3-102    
+N3-102    
+N3-102    
+Atom Type Number
+         100
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H3-104    
+H3-104    
+H3-104    
+H3-104    
+Atom Type Number
+         101
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H3-105    
+H3-105    
+H3-105    
+H3-105    
+Atom Type Number
+         102
+Nonbond Coefficients
+    0.3775000000E+01
+    0.1041658362E+03
+    0.3775000000E+01
+    0.5208291810E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-106    
+C3-106    
+C3-106    
+C3-106    
+Atom Type Number
+         103
+Nonbond Coefficients
+    0.3960000000E+01
+    0.7296640700E+02
+    0.3960000000E+01
+    0.3648320350E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-107    
+C3-107    
+C3-107    
+C3-107    
+Atom Type Number
+         104
+Nonbond Coefficients
+    0.3000000000E+01
+    0.8554682200E+02
+    0.3000000000E+01
+    0.4277341100E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.5000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OS-108    
+OS-108    
+OS-108    
+OS-108    
+Atom Type Number
+         105
+Nonbond Coefficients
+    0.3800000000E+01
+    0.8554682200E+02
+    0.3800000000E+01
+    0.4277341100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-109    
+C3-109    
+C3-109    
+C3-109    
+Atom Type Number
+         106
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.3800000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-110    
+C2-110    
+C2-110    
+C2-110    
+Atom Type Number
+         107
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5937955880E+02
+    0.3800000000E+01
+    0.2968977940E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C2-118    
+C2-118    
+C2-118    
+C2-118    
+Atom Type Number
+         108
+Nonbond Coefficients
+    0.3400000000E+01
+    0.1509649800E+03
+    0.3400000000E+01
+    0.7548249000E+02
+Mass
+    0.3545300000E+02
+Element
+Cl
+Bond Pattern
+null 
+Base Charge 
+   -0.2500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Cl-119    
+Cl-119    
+Cl-119    
+Cl-119    
+Atom Type Number
+         109
+Nonbond Coefficients
+    0.3800000000E+01
+    0.4025732800E+02
+    0.3800000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CH-120    
+CH-120    
+CH-120    
+CH-120    
+Atom Type Number
+         110
+Nonbond Coefficients
+    0.3470000000E+01
+    0.1509649800E+03
+    0.3470000000E+01
+    0.7548249000E+02
+Mass
+    0.3545300000E+02
+Element
+Cl
+Bond Pattern
+null 
+Base Charge 
+   -0.1400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Cl-121    
+Cl-121    
+Cl-121    
+Cl-121    
+Atom Type Number
+         111
+Nonbond Coefficients
+    0.3800000000E+01
+    0.2516083000E+02
+    0.3800000000E+01
+    0.1258041500E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2480000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-122    
+CT-122    
+CT-122    
+CT-122    
+Atom Type Number
+         112
+Nonbond Coefficients
+    0.3470000000E+01
+    0.1338556156E+03
+    0.3470000000E+01
+    0.6692780780E+02
+Mass
+    0.3545300000E+02
+Element
+Cl
+Bond Pattern
+null 
+Base Charge 
+   -0.6200000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Cl-123    
+Cl-123    
+Cl-123    
+Cl-123    
+Atom Type Number
+         113
+Nonbond Coefficients
+    0.2780000000E+01
+    0.3472194540E+02
+    0.2780000000E+01
+    0.1736097270E+02
+Mass
+    0.2017970000E+02
+Element
+Ne
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Ne-129    
+Ne-129    
+Ne-129    
+Ne-129    
+Atom Type Number
+         114
+Nonbond Coefficients
+    0.2556000000E+01
+    0.1006433200E+02
+    0.2556000000E+01
+    0.5032166000E+01
+Mass
+    0.4002602000E+01
+Element
+He
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+He-130    
+He-130    
+He-130    
+He-130    
+Atom Type Number
+         115
+Nonbond Coefficients
+    0.3800000000E+01
+    0.5786990900E+02
+    0.3800000000E+01
+    0.2893495450E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -131    
+C -131    
+C -131    
+C -131    
+Atom Type Number
+         116
+Nonbond Coefficients
+    0.3800000000E+01
+    0.8554682200E+02
+    0.3800000000E+01
+    0.4277341100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2850000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C3-132    
+C3-132    
+C3-132    
+C3-132    
+Atom Type Number
+         117
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-135    
+CT-135    
+CT-135    
+CT-135    
+Atom Type Number
+         118
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-136    
+CT-136    
+CT-136    
+CT-136    
+Atom Type Number
+         119
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.6000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-137    
+CT-137    
+CT-137    
+CT-137    
+Atom Type Number
+         120
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.2400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-138    
+CT-138    
+CT-138    
+CT-138    
+Atom Type Number
+         121
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-139    
+CT-139    
+CT-139    
+CT-139    
+Atom Type Number
+         122
+Nonbond Coefficients
+    0.2500000000E+01
+    0.1509649800E+02
+    0.2500000000E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.6000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-140    
+HC-140    
+HC-140    
+HC-140    
+Atom Type Number
+         123
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3824446160E+02
+    0.3550000000E+01
+    0.1912223080E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CM-141    
+CM-141    
+CM-141    
+CM-141    
+Atom Type Number
+         124
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3824446160E+02
+    0.3550000000E+01
+    0.1912223080E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1150000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CM-142    
+CM-142    
+CM-142    
+CM-142    
+Atom Type Number
+         125
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3824446160E+02
+    0.3550000000E+01
+    0.1912223080E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.2300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CM-143    
+CM-143    
+CM-143    
+CM-143    
+Atom Type Number
+         126
+Nonbond Coefficients
+    0.2420000000E+01
+    0.1509649800E+02
+    0.2420000000E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1150000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-144    
+HC-144    
+HC-144    
+HC-144    
+Atom Type Number
+         127
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1150000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-145    
+CA-145    
+CA-145    
+CA-145    
+Atom Type Number
+         128
+Nonbond Coefficients
+    0.2420000000E+01
+    0.1509649800E+02
+    0.2420000000E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1150000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HA-146    
+HA-146    
+HA-146    
+HA-146    
+Atom Type Number
+         129
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-147    
+CA-147    
+CA-147    
+CA-147    
+Atom Type Number
+         130
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.6500000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-148    
+CT-148    
+CT-148    
+CT-148    
+Atom Type Number
+         131
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.5000000000E-02
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-149    
+CT-149    
+CT-149    
+CT-149    
+Atom Type Number
+         132
+Nonbond Coefficients
+    0.3120000000E+01
+    0.8554682200E+02
+    0.3120000000E+01
+    0.4277341100E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.6830000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OH-154    
+OH-154    
+OH-154    
+OH-154    
+Atom Type Number
+         133
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4180000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HO-155    
+HO-155    
+HO-155    
+HO-155    
+Atom Type Number
+         134
+Nonbond Coefficients
+    0.2500000000E+01
+    0.1509649800E+02
+    0.2500000000E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-156    
+HC-156    
+HC-156    
+HC-156    
+Atom Type Number
+         135
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1450000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-157    
+CT-157    
+CT-157    
+CT-157    
+Atom Type Number
+         136
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2050000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-158    
+CT-158    
+CT-158    
+CT-158    
+Atom Type Number
+         137
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2650000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-159    
+CT-159    
+CT-159    
+CT-159    
+Atom Type Number
+         138
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1263000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-160    
+CT-160    
+CT-160    
+CT-160    
+Atom Type Number
+         139
+Nonbond Coefficients
+    0.3250000000E+01
+    0.3119942920E+02
+    0.3250000000E+01
+    0.1559971460E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5323000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-161    
+CT-161    
+CT-161    
+CT-161    
+Atom Type Number
+         140
+Nonbond Coefficients
+    0.3070000000E+01
+    0.8554682200E+02
+    0.3070000000E+01
+    0.4277341100E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.6351000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OH-162    
+OH-162    
+OH-162    
+OH-162    
+Atom Type Number
+         141
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4286000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HO-163    
+HO-163    
+HO-163    
+HO-163    
+Atom Type Number
+         142
+Nonbond Coefficients
+    0.2940000000E+01
+    0.3069621260E+02
+    0.2940000000E+01
+    0.1534810630E+02
+Mass
+    0.1899840320E+02
+Element
+ F
+Bond Pattern
+null 
+Base Charge 
+   -0.2057000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+F -164    
+F -164    
+F -164    
+F -164    
+Atom Type Number
+         143
+Nonbond Coefficients
+    0.2500000000E+01
+    0.1509649800E+02
+    0.2500000000E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.8250000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-165    
+HC-165    
+HC-165    
+HC-165    
+Atom Type Number
+         144
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-166    
+CA-166    
+CA-166    
+CA-166    
+Atom Type Number
+         145
+Nonbond Coefficients
+    0.3070000000E+01
+    0.8554682200E+02
+    0.3070000000E+01
+    0.4277341100E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.5850000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OH-167    
+OH-167    
+OH-167    
+OH-167    
+Atom Type Number
+         146
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HO-168    
+HO-168    
+HO-168    
+HO-168    
+Atom Type Number
+         147
+Nonbond Coefficients
+    0.3070000000E+01
+    0.8554682200E+02
+    0.3070000000E+01
+    0.4277341100E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.7000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OH-169    
+OH-169    
+OH-169    
+OH-169    
+Atom Type Number
+         148
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HO-170    
+HO-170    
+HO-170    
+HO-170    
+Atom Type Number
+         149
+Nonbond Coefficients
+    0.2900000000E+01
+    0.7045032400E+02
+    0.2900000000E+01
+    0.3522516200E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OS-180    
+OS-180    
+OS-180    
+OS-180    
+Atom Type Number
+         150
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-181    
+CT-181    
+CT-181    
+CT-181    
+Atom Type Number
+         151
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-182    
+CT-182    
+CT-182    
+CT-182    
+Atom Type Number
+         152
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-183    
+CT-183    
+CT-183    
+CT-183    
+Atom Type Number
+         153
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-184    
+CT-184    
+CT-184    
+CT-184    
+Atom Type Number
+         154
+Nonbond Coefficients
+    0.2500000000E+01
+    0.1509649800E+02
+    0.2500000000E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-185    
+HC-185    
+HC-185    
+HC-185    
+Atom Type Number
+         155
+Nonbond Coefficients
+    0.3000000000E+01
+    0.7045032400E+02
+    0.3000000000E+01
+    0.3522516200E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OS-186    
+OS-186    
+OS-186    
+OS-186    
+Atom Type Number
+         156
+Nonbond Coefficients
+    0.3070000000E+01
+    0.8554682200E+02
+    0.3070000000E+01
+    0.4277341100E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.7000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OH-187    
+OH-187    
+OH-187    
+OH-187    
+Atom Type Number
+         157
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HO-188    
+HO-188    
+HO-188    
+HO-188    
+Atom Type Number
+         158
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CO-189    
+CO-189    
+CO-189    
+CO-189    
+Atom Type Number
+         159
+Nonbond Coefficients
+    0.2500000000E+01
+    0.1509649800E+02
+    0.2500000000E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-190    
+HC-190    
+HC-190    
+HC-190    
+Atom Type Number
+         160
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2650000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CO-191    
+CO-191    
+CO-191    
+CO-191    
+Atom Type Number
+         161
+Nonbond Coefficients
+    0.2500000000E+01
+    0.1509649800E+02
+    0.2500000000E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-192    
+HC-192    
+HC-192    
+HC-192    
+Atom Type Number
+         162
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CO-193    
+CO-193    
+CO-193    
+CO-193    
+Atom Type Number
+         163
+Nonbond Coefficients
+    0.2500000000E+01
+    0.1509649800E+02
+    0.2500000000E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-194    
+HC-194    
+HC-194    
+HC-194    
+Atom Type Number
+         164
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3650000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CO-195    
+CO-195    
+CO-195    
+CO-195    
+Atom Type Number
+         165
+Nonbond Coefficients
+    0.2500000000E+01
+    0.1509649800E+02
+    0.2500000000E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-196    
+HC-196    
+HC-196    
+HC-196    
+Atom Type Number
+         166
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CO-197    
+CO-197    
+CO-197    
+CO-197    
+Atom Type Number
+         167
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4650000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CO-198    
+CO-198    
+CO-198    
+CO-198    
+Atom Type Number
+         168
+Nonbond Coefficients
+    0.3550000000E+01
+    0.1258041500E+03
+    0.3550000000E+01
+    0.6290207500E+02
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+   -0.4350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+SH-200    
+SH-200    
+SH-200    
+SH-200    
+Atom Type Number
+         169
+Nonbond Coefficients
+    0.3700000000E+01
+    0.1258041500E+03
+    0.3700000000E+01
+    0.6290207500E+02
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+   -0.4700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+SH-201    
+SH-201    
+SH-201    
+SH-201    
+Atom Type Number
+         170
+Nonbond Coefficients
+    0.3550000000E+01
+    0.1258041500E+03
+    0.3550000000E+01
+    0.6290207500E+02
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+   -0.4350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+S -202    
+S -202    
+S -202    
+S -202    
+Atom Type Number
+         171
+Nonbond Coefficients
+    0.3550000000E+01
+    0.1258041500E+03
+    0.3550000000E+01
+    0.6290207500E+02
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+null 
+Base Charge 
+   -0.2175000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+S -203    
+S -203    
+S -203    
+S -203    
+Atom Type Number
+         172
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.2550000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HS-204    
+HS-204    
+HS-204    
+HS-204    
+Atom Type Number
+         173
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.2350000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HS-205    
+HS-205    
+HS-205    
+HS-205    
+Atom Type Number
+         174
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.6000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-206    
+CT-206    
+CT-206    
+CT-206    
+Atom Type Number
+         175
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-207    
+CT-207    
+CT-207    
+CT-207    
+Atom Type Number
+         176
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-208    
+CT-208    
+CT-208    
+CT-208    
+Atom Type Number
+         177
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3750000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-209    
+CT-209    
+CT-209    
+CT-209    
+Atom Type Number
+         178
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.9750000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-210    
+CT-210    
+CT-210    
+CT-210    
+Atom Type Number
+         179
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1575000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-211    
+CT-211    
+CT-211    
+CT-211    
+Atom Type Number
+         180
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2175000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-212    
+CT-212    
+CT-212    
+CT-212    
+Atom Type Number
+         181
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3750000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-213    
+CT-213    
+CT-213    
+CT-213    
+Atom Type Number
+         182
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.9750000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-214    
+CT-214    
+CT-214    
+CT-214    
+Atom Type Number
+         183
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1575000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-215    
+CT-215    
+CT-215    
+CT-215    
+Atom Type Number
+         184
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2175000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-216    
+CT-216    
+CT-216    
+CT-216    
+Atom Type Number
+         185
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.9000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NT-220    
+NT-220    
+NT-220    
+NT-220    
+Atom Type Number
+         186
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H2-221    
+H2-221    
+H2-221    
+H2-221    
+Atom Type Number
+         187
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-222    
+CT-222    
+CT-222    
+CT-222    
+Atom Type Number
+         188
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.8000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-223    
+CT-223    
+CT-223    
+CT-223    
+Atom Type Number
+         189
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-224    
+CT-224    
+CT-224    
+CT-224    
+Atom Type Number
+         190
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-225    
+CT-225    
+CT-225    
+CT-225    
+Atom Type Number
+         191
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-226    
+CA-226    
+CA-226    
+CA-226    
+Atom Type Number
+         192
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.9000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NT-227    
+NT-227    
+NT-227    
+NT-227    
+Atom Type Number
+         193
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H2-228    
+H2-228    
+H2-228    
+H2-228    
+Atom Type Number
+         194
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.6600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NT-229    
+NT-229    
+NT-229    
+NT-229    
+Atom Type Number
+         195
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+03
+    0.3500000000E+01
+    0.1660614780E+03
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-230    
+CT-230    
+CT-230    
+CT-230    
+Atom Type Number
+         196
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-231    
+CT-231    
+CT-231    
+CT-231    
+Atom Type Number
+         197
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -235    
+C -235    
+C -235    
+C -235    
+Atom Type Number
+         198
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.5000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -236    
+O -236    
+O -236    
+O -236    
+Atom Type Number
+         199
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.7600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N -237    
+N -237    
+N -237    
+N -237    
+Atom Type Number
+         200
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N -238    
+N -238    
+N -238    
+N -238    
+Atom Type Number
+         201
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.1400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N -239    
+N -239    
+N -239    
+N -239    
+Atom Type Number
+         202
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -240    
+H -240    
+H -240    
+H -240    
+Atom Type Number
+         203
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -241    
+H -241    
+H -241    
+H -241    
+Atom Type Number
+         204
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-242    
+CT-242    
+CT-242    
+CT-242    
+Atom Type Number
+         205
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-243    
+CT-243    
+CT-243    
+CT-243    
+Atom Type Number
+         206
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.8000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-244    
+CT-244    
+CT-244    
+CT-244    
+Atom Type Number
+         207
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.5000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-245    
+CT-245    
+CT-245    
+CT-245    
+Atom Type Number
+         208
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-246    
+CT-246    
+CT-246    
+CT-246    
+Atom Type Number
+         209
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1420000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -247    
+C -247    
+C -247    
+C -247    
+Atom Type Number
+         210
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.3900000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -248    
+O -248    
+O -248    
+O -248    
+Atom Type Number
+         211
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5420000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N -249    
+N -249    
+N -249    
+N -249    
+Atom Type Number
+         212
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3330000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -250    
+H -250    
+H -250    
+H -250    
+Atom Type Number
+         213
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.4900000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N -251    
+N -251    
+N -251    
+N -251    
+Atom Type Number
+         214
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -252    
+C -252    
+C -252    
+C -252    
+Atom Type Number
+         215
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -253    
+O -253    
+O -253    
+O -253    
+Atom Type Number
+         216
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -254    
+H -254    
+H -254    
+H -254    
+Atom Type Number
+         217
+Nonbond Coefficients
+    0.2500000000E+01
+    0.1006433200E+02
+    0.2500000000E+01
+    0.5032166000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.6000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-255    
+HC-255    
+HC-255    
+HC-255    
+Atom Type Number
+         218
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-256    
+CT-256    
+CT-256    
+CT-256    
+Atom Type Number
+         219
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.6000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-257    
+CT-257    
+CT-257    
+CT-257    
+Atom Type Number
+         220
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-258    
+CT-258    
+CT-258    
+CT-258    
+Atom Type Number
+         221
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.6000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-259    
+CT-259    
+CT-259    
+CT-259    
+Atom Type Number
+         222
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -267    
+C -267    
+C -267    
+C -267    
+Atom Type Number
+         223
+Nonbond Coefficients
+    0.3000000000E+01
+    0.8554682200E+02
+    0.3000000000E+01
+    0.4277341100E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.5300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OH-268    
+OH-268    
+OH-268    
+OH-268    
+Atom Type Number
+         224
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -269    
+O -269    
+O -269    
+O -269    
+Atom Type Number
+         225
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HO-270    
+HO-270    
+HO-270    
+HO-270    
+Atom Type Number
+         226
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.7000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -271    
+C -271    
+C -271    
+C -271    
+Atom Type Number
+         227
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.8000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O2-272    
+O2-272    
+O2-272    
+O2-272    
+Atom Type Number
+         228
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.2800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-273    
+CT-273    
+CT-273    
+CT-273    
+Atom Type Number
+         229
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.2200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-274    
+CT-274    
+CT-274    
+CT-274    
+Atom Type Number
+         230
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-275    
+CT-275    
+CT-275    
+CT-275    
+Atom Type Number
+         231
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-276    
+CT-276    
+CT-276    
+CT-276    
+Atom Type Number
+         232
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -277    
+C -277    
+C -277    
+C -277    
+Atom Type Number
+         233
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -278    
+O -278    
+O -278    
+O -278    
+Atom Type Number
+         234
+Nonbond Coefficients
+    0.2420000000E+01
+    0.7548249000E+01
+    0.2420000000E+01
+    0.3774124500E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-279    
+HC-279    
+HC-279    
+HC-279    
+Atom Type Number
+         235
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -280    
+C -280    
+C -280    
+C -280    
+Atom Type Number
+         236
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -281    
+O -281    
+O -281    
+O -281    
+Atom Type Number
+         237
+Nonbond Coefficients
+    0.2420000000E+01
+    0.7548249000E+01
+    0.2420000000E+01
+    0.3774124500E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.6000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-282    
+HC-282    
+HC-282    
+HC-282    
+Atom Type Number
+         238
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.4000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N3-286    
+N3-286    
+N3-286    
+N3-286    
+Atom Type Number
+         239
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N3-287    
+N3-287    
+N3-287    
+N3-287    
+Atom Type Number
+         240
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H3-289    
+H3-289    
+H3-289    
+H3-289    
+Atom Type Number
+         241
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H3-290    
+H3-290    
+H3-290    
+H3-290    
+Atom Type Number
+         242
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-291    
+CT-291    
+CT-291    
+CT-291    
+Atom Type Number
+         243
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1900000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-292    
+CT-292    
+CT-292    
+CT-292    
+Atom Type Number
+         244
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-293    
+CT-293    
+CT-293    
+CT-293    
+Atom Type Number
+         245
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-294    
+CT-294    
+CT-294    
+CT-294    
+Atom Type Number
+         246
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.8000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N2-300    
+N2-300    
+N2-300    
+N2-300    
+Atom Type Number
+         247
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H3-301    
+H3-301    
+H3-301    
+H3-301    
+Atom Type Number
+         248
+Nonbond Coefficients
+    0.2250000000E+01
+    0.2516083000E+02
+    0.2250000000E+01
+    0.1258041500E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.6400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-302    
+CA-302    
+CA-302    
+CA-302    
+Atom Type Number
+         249
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.7000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N2-303    
+N2-303    
+N2-303    
+N2-303    
+Atom Type Number
+         250
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H3-304    
+H3-304    
+H3-304    
+H3-304    
+Atom Type Number
+         251
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-305    
+CT-305    
+CT-305    
+CT-305    
+Atom Type Number
+         252
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-306    
+CT-306    
+CT-306    
+CT-306    
+Atom Type Number
+         253
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1900000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-307    
+CT-307    
+CT-307    
+CT-307    
+Atom Type Number
+         254
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.5000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-308    
+CT-308    
+CT-308    
+CT-308    
+Atom Type Number
+         255
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.4600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-311    
+NA-311    
+NA-311    
+NA-311    
+Atom Type Number
+         256
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-312    
+CA-312    
+CA-312    
+CA-312    
+Atom Type Number
+         257
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.8500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N2-313    
+N2-313    
+N2-313    
+N2-313    
+Atom Type Number
+         258
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H2-314    
+H2-314    
+H2-314    
+H2-314    
+Atom Type Number
+         259
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-315    
+CA-315    
+CA-315    
+CA-315    
+Atom Type Number
+         260
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-316    
+HC-316    
+HC-316    
+HC-316    
+Atom Type Number
+         261
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.4000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-317    
+CA-317    
+CA-317    
+CA-317    
+Atom Type Number
+         262
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-318    
+HC-318    
+HC-318    
+HC-318    
+Atom Type Number
+         263
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.6000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-319    
+NA-319    
+NA-319    
+NA-319    
+Atom Type Number
+         264
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -320    
+C -320    
+C -320    
+C -320    
+Atom Type Number
+         265
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-321    
+NA-321    
+NA-321    
+NA-321    
+Atom Type Number
+         266
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -322    
+C -322    
+C -322    
+C -322    
+Atom Type Number
+         267
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.7000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CM-323    
+CM-323    
+CM-323    
+CM-323    
+Atom Type Number
+         268
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.8000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CM-324    
+CM-324    
+CM-324    
+CM-324    
+Atom Type Number
+         269
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -325    
+H -325    
+H -325    
+H -325    
+Atom Type Number
+         270
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -326    
+O -326    
+O -326    
+O -326    
+Atom Type Number
+         271
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -327    
+H -327    
+H -327    
+H -327    
+Atom Type Number
+         272
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -328    
+O -328    
+O -328    
+O -328    
+Atom Type Number
+         273
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-329    
+HC-329    
+HC-329    
+HC-329    
+Atom Type Number
+         274
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-330    
+HC-330    
+HC-330    
+HC-330    
+Atom Type Number
+         275
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-331    
+CT-331    
+CT-331    
+CT-331    
+Atom Type Number
+         276
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.8000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-332    
+HC-332    
+HC-332    
+HC-332    
+Atom Type Number
+         277
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-333    
+NA-333    
+NA-333    
+NA-333    
+Atom Type Number
+         278
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -334    
+C -334    
+C -334    
+C -334    
+Atom Type Number
+         279
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NC-335    
+NC-335    
+NC-335    
+NC-335    
+Atom Type Number
+         280
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-336    
+CA-336    
+CA-336    
+CA-336    
+Atom Type Number
+         281
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.6000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CM-337    
+CM-337    
+CM-337    
+CM-337    
+Atom Type Number
+         282
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CM-338    
+CM-338    
+CM-338    
+CM-338    
+Atom Type Number
+         283
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -339    
+H -339    
+H -339    
+H -339    
+Atom Type Number
+         284
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -340    
+O -340    
+O -340    
+O -340    
+Atom Type Number
+         285
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.7900000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N2-341    
+N2-341    
+N2-341    
+N2-341    
+Atom Type Number
+         286
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3850000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H2-342    
+H2-342    
+H2-342    
+H2-342    
+Atom Type Number
+         287
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3550000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H2-343    
+H2-343    
+H2-343    
+H2-343    
+Atom Type Number
+         288
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-344    
+HC-344    
+HC-344    
+HC-344    
+Atom Type Number
+         289
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-345    
+HC-345    
+HC-345    
+HC-345    
+Atom Type Number
+         290
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NC-346    
+NC-346    
+NC-346    
+NC-346    
+Atom Type Number
+         291
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CQ-347    
+CQ-347    
+CQ-347    
+CQ-347    
+Atom Type Number
+         292
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NC-348    
+NC-348    
+NC-348    
+NC-348    
+Atom Type Number
+         293
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CB-349    
+CB-349    
+CB-349    
+CB-349    
+Atom Type Number
+         294
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CB-350    
+CB-350    
+CB-350    
+CB-350    
+Atom Type Number
+         295
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-351    
+CA-351    
+CA-351    
+CA-351    
+Atom Type Number
+         296
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.4900000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NB-352    
+NB-352    
+NB-352    
+NB-352    
+Atom Type Number
+         297
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CK-353    
+CK-353    
+CK-353    
+CK-353    
+Atom Type Number
+         298
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-354    
+NA-354    
+NA-354    
+NA-354    
+Atom Type Number
+         299
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-355    
+HC-355    
+HC-355    
+HC-355    
+Atom Type Number
+         300
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.8100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N2-356    
+N2-356    
+N2-356    
+N2-356    
+Atom Type Number
+         301
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3850000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H2-357    
+H2-357    
+H2-357    
+H2-357    
+Atom Type Number
+         302
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3550000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H2-358    
+H2-358    
+H2-358    
+H2-358    
+Atom Type Number
+         303
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-359    
+HC-359    
+HC-359    
+HC-359    
+Atom Type Number
+         304
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -360    
+H -360    
+H -360    
+H -360    
+Atom Type Number
+         305
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-361    
+NA-361    
+NA-361    
+NA-361    
+Atom Type Number
+         306
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.4600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-362    
+CA-362    
+CA-362    
+CA-362    
+Atom Type Number
+         307
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NC-363    
+NC-363    
+NC-363    
+NC-363    
+Atom Type Number
+         308
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CB-364    
+CB-364    
+CB-364    
+CB-364    
+Atom Type Number
+         309
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CB-365    
+CB-365    
+CB-365    
+CB-365    
+Atom Type Number
+         310
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -366    
+C -366    
+C -366    
+C -366    
+Atom Type Number
+         311
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -367    
+H -367    
+H -367    
+H -367    
+Atom Type Number
+         312
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.8000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N2-368    
+N2-368    
+N2-368    
+N2-368    
+Atom Type Number
+         313
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H2-369    
+H2-369    
+H2-369    
+H2-369    
+Atom Type Number
+         314
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.5100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -370    
+O -370    
+O -370    
+O -370    
+Atom Type Number
+         315
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-371    
+CT-371    
+CT-371    
+CT-371    
+Atom Type Number
+         316
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-372    
+HC-372    
+HC-372    
+HC-372    
+Atom Type Number
+         317
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-373    
+CT-373    
+CT-373    
+CT-373    
+Atom Type Number
+         318
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-374    
+HC-374    
+HC-374    
+HC-374    
+Atom Type Number
+         319
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-375    
+CT-375    
+CT-375    
+CT-375    
+Atom Type Number
+         320
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-376    
+HC-376    
+HC-376    
+HC-376    
+Atom Type Number
+         321
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.6400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-377    
+NA-377    
+NA-377    
+NA-377    
+Atom Type Number
+         322
+Nonbond Coefficients
+    0.3750000000E+01
+    0.5283774300E+02
+    0.3750000000E+01
+    0.2641887150E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.6500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+C -378    
+C -378    
+C -378    
+C -378    
+Atom Type Number
+         323
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.7400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-379    
+NA-379    
+NA-379    
+NA-379    
+Atom Type Number
+         324
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.6600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-380    
+CA-380    
+CA-380    
+CA-380    
+Atom Type Number
+         325
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.6000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CM-381    
+CM-381    
+CM-381    
+CM-381    
+Atom Type Number
+         326
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CM-382    
+CM-382    
+CM-382    
+CM-382    
+Atom Type Number
+         327
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4900000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -383    
+H -383    
+H -383    
+H -383    
+Atom Type Number
+         328
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -384    
+O -384    
+O -384    
+O -384    
+Atom Type Number
+         329
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -385    
+H -385    
+H -385    
+H -385    
+Atom Type Number
+         330
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.8100000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+N2-386    
+N2-386    
+N2-386    
+N2-386    
+Atom Type Number
+         331
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H2-387    
+H2-387    
+H2-387    
+H2-387    
+Atom Type Number
+         332
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H2-388    
+H2-388    
+H2-388    
+H2-388    
+Atom Type Number
+         333
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-389    
+HC-389    
+HC-389    
+HC-389    
+Atom Type Number
+         334
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-390    
+HC-390    
+HC-390    
+HC-390    
+Atom Type Number
+         335
+Nonbond Coefficients
+    0.3500000000E+01
+    0.4025732800E+02
+    0.3500000000E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-391    
+CT-391    
+CT-391    
+CT-391    
+Atom Type Number
+         336
+Nonbond Coefficients
+    0.2500000000E+01
+    0.2516083000E+02
+    0.2500000000E+01
+    0.1258041500E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HC-392    
+HC-392    
+HC-392    
+HC-392    
+Atom Type Number
+         337
+Nonbond Coefficients
+    0.3740000000E+01
+    0.1006433200E+03
+    0.3740000000E+01
+    0.5032166000E+02
+Mass
+    0.3097376100E+02
+Element
+ P
+Bond Pattern
+null 
+Base Charge 
+    0.7800000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+P -393    
+P -393    
+P -393    
+P -393    
+Atom Type Number
+         338
+Nonbond Coefficients
+    0.2960000000E+01
+    0.1056754860E+03
+    0.2960000000E+01
+    0.5283774300E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.6600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O2-393    
+O2-393    
+O2-393    
+O2-393    
+Atom Type Number
+         339
+Nonbond Coefficients
+    0.3000000000E+01
+    0.8554682200E+02
+    0.3000000000E+01
+    0.4277341100E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.4300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OS-395    
+OS-395    
+OS-395    
+OS-395    
+Atom Type Number
+         340
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3321229560E+02
+    0.3550000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-396    
+CT-396    
+CT-396    
+CT-396    
+Atom Type Number
+         341
+Nonbond Coefficients
+    0.2732950000E+01
+    0.3623159520E+03
+    0.2732950000E+01
+    0.1811579760E+03
+Mass
+    0.1899840320E+02
+Element
+ F
+Bond Pattern
+null 
+Base Charge 
+   -0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+F -400    
+F -400    
+F -400    
+F -400    
+Atom Type Number
+         342
+Nonbond Coefficients
+    0.4417240000E+01
+    0.5927388331E+02
+    0.4417240000E+01
+    0.2963694166E+02
+Mass
+    0.3545300000E+02
+Element
+Cl
+Bond Pattern
+null 
+Base Charge 
+   -0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Cl-401    
+Cl-401    
+Cl-401    
+Cl-401    
+Atom Type Number
+         343
+Nonbond Coefficients
+    0.4623760000E+01
+    0.4528949400E+02
+    0.4623760000E+01
+    0.2264474700E+02
+Mass
+    0.7990400000E+02
+Element
+Br
+Bond Pattern
+null 
+Base Charge 
+   -0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Br-402    
+Br-402    
+Br-402    
+Br-402    
+Atom Type Number
+         344
+Nonbond Coefficients
+    0.1259920000E+01
+    0.3145103750E+04
+    0.1259920000E+01
+    0.1572551875E+04
+Mass
+    0.6941000000E+01
+Element
+Li
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Li-404    
+Li-404    
+Li-404    
+Li-404    
+Atom Type Number
+         345
+Nonbond Coefficients
+    0.1897440000E+01
+    0.8087395265E+03
+    0.1897440000E+01
+    0.4043697633E+03
+Mass
+    0.2298977000E+02
+Element
+Na
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Na-405    
+Na-405    
+Na-405    
+Na-405    
+Atom Type Number
+         346
+Nonbond Coefficients
+    0.2126452000E+01
+    0.9198296231E+01
+    0.2126452000E+01
+    0.4599148116E+01
+Mass
+    0.6941000000E+01
+Element
+Li
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Li-406    
+Li-406    
+Li-406    
+Li-406    
+Atom Type Number
+         347
+Nonbond Coefficients
+    0.3330445000E+01
+    0.1394916415E+01
+    0.3330445000E+01
+    0.6974582076E+00
+Mass
+    0.2298977000E+02
+Element
+Na
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Na-407    
+Na-407    
+Na-407    
+Na-407    
+Atom Type Number
+         348
+Nonbond Coefficients
+    0.4934628000E+01
+    0.1650550448E+00
+    0.4934628000E+01
+    0.8252752240E-01
+Mass
+    0.3909830000E+02
+Element
+ K
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+K -408    
+K -408    
+K -408    
+K -408    
+Atom Type Number
+         349
+Nonbond Coefficients
+    0.5621773000E+01
+    0.8605003860E-01
+    0.5621773000E+01
+    0.4302501930E-01
+Mass
+    0.8546780000E+02
+Element
+Rb
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Rb-409    
+Rb-409    
+Rb-409    
+Rb-409    
+Atom Type Number
+         350
+Nonbond Coefficients
+    0.6715999000E+01
+    0.4076054460E-01
+    0.6715999000E+01
+    0.2038027230E-01
+Mass
+    0.1329054500E+03
+Element
+Cs
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Cs-410    
+Cs-410    
+Cs-410    
+Cs-410    
+Atom Type Number
+         351
+Nonbond Coefficients
+    0.1644471000E+01
+    0.4403366665E+03
+    0.1644471000E+01
+    0.2201683333E+03
+Mass
+    0.2430500000E+02
+Element
+Mg
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Mg-411    
+Mg-411    
+Mg-411    
+Mg-411    
+Atom Type Number
+         352
+Nonbond Coefficients
+    0.2412031000E+01
+    0.2262748667E+03
+    0.2412031000E+01
+    0.1131374334E+03
+Mass
+    0.4007800000E+02
+Element
+Ca
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Ca-412    
+Ca-412    
+Ca-412    
+Ca-412    
+Atom Type Number
+         353
+Nonbond Coefficients
+    0.3102688000E+01
+    0.5949328575E+02
+    0.3102688000E+01
+    0.2974664288E+02
+Mass
+    0.8762000000E+02
+Element
+Sr
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Sr-413    
+Sr-413    
+Sr-413    
+Sr-413    
+Atom Type Number
+         354
+Nonbond Coefficients
+    0.3816610000E+01
+    0.2369948899E+02
+    0.3816610000E+01
+    0.1184974450E+02
+Mass
+    0.1373270000E+03
+Element
+Ba
+Bond Pattern
+null 
+Base Charge 
+    0.2000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+Ba-414    
+Ba-414    
+Ba-414    
+Ba-414    
+Atom Type Number
+         355
+Nonbond Coefficients
+    0.3200000000E+01
+    0.1258041500E+03
+    0.3200000000E+01
+    0.6290207500E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.1300000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+O -434    
+O -434    
+O -434    
+O -434    
+Atom Type Number
+         356
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.3000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+HO-435    
+HO-435    
+HO-435    
+HO-435    
+Atom Type Number
+         357
+Nonbond Coefficients
+    0.2815240000E+01
+    0.2012866400E+03
+    0.2815240000E+01
+    0.1006433200E+03
+Mass
+    0.2380289100E+03
+Element
+ U
+Bond Pattern
+null 
+Base Charge 
+    0.2500000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+U -436    
+U -436    
+U -436    
+U -436    
+Atom Type Number
+         358
+Nonbond Coefficients
+    0.3118150000E+01
+    0.1006433200E+03
+    0.3118150000E+01
+    0.5032166000E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+null 
+Base Charge 
+   -0.2500000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+OU-437    
+OU-437    
+OU-437    
+OU-437    
+Atom Type Number
+         359
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.7500000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-500    
+CA-500    
+CA-500    
+CA-500    
+Atom Type Number
+         360
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.5500000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-501    
+CA-501    
+CA-501    
+CA-501    
+Atom Type Number
+         361
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1300000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-502    
+CA-502    
+CA-502    
+CA-502    
+Atom Type Number
+         362
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5700000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-503    
+NA-503    
+NA-503    
+NA-503    
+Atom Type Number
+         363
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4200000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -504    
+H -504    
+H -504    
+H -504    
+Atom Type Number
+         364
+Nonbond Coefficients
+    0.3500000000E+01
+    0.3321229560E+02
+    0.3500000000E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.5000000000E-02
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CT-505    
+CT-505    
+CT-505    
+CT-505    
+Atom Type Number
+         365
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2950000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-506    
+CA-506    
+CA-506    
+CA-506    
+Atom Type Number
+         366
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1500000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-507    
+CA-507    
+CA-507    
+CA-507    
+Atom Type Number
+         367
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.1500000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-508    
+CA-508    
+CA-508    
+CA-508    
+Atom Type Number
+         368
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.3850000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-509    
+CA-509    
+CA-509    
+CA-509    
+Atom Type Number
+         369
+Nonbond Coefficients
+    0.3550000000E+01
+    0.3522516200E+02
+    0.3550000000E+01
+    0.1761258100E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2150000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+CA-510    
+CA-510    
+CA-510    
+CA-510    
+Atom Type Number
+         370
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.4900000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NB-511    
+NB-511    
+NB-511    
+NB-511    
+Atom Type Number
+         371
+Nonbond Coefficients
+    0.3250000000E+01
+    0.8554682200E+02
+    0.3250000000E+01
+    0.4277341100E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+   -0.5400000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+NA-512    
+NA-512    
+NA-512    
+NA-512    
+Atom Type Number
+         372
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4600000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+OPLS-1996 
+Atom Names
+H -513    
+H -513    
+H -513    
+H -513    
+Number of Bonded Terms
+         188
+Bond Type Number
+           1
+Bond Style
+           2
+Bond Coefficients
+    0.9572000000E+00
+    0.2665035114E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+OW-wild    HW-wild   
+Bond Type Number
+           2
+Bond Style
+           2
+Bond Coefficients
+    0.1513900000E+01
+    0.1924803495E+05
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HW-wild    HW-wild   
+Bond Type Number
+           3
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1710936440E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C*-wild    HC-wild   
+Bond Type Number
+           4
+Bond Style
+           2
+Bond Coefficients
+    0.1522000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    C2-wild   
+Bond Type Number
+           5
+Bond Style
+           2
+Bond Coefficients
+    0.1522000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    C3-wild   
+Bond Type Number
+           6
+Bond Style
+           2
+Bond Coefficients
+    0.1400000000E+01
+    0.2360085854E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    CA-wild   
+Bond Type Number
+           7
+Bond Style
+           2
+Bond Coefficients
+    0.1419000000E+01
+    0.2249378202E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    CB-wild   
+Bond Type Number
+           8
+Bond Style
+           2
+Bond Coefficients
+    0.1400000000E+01
+    0.2360085854E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    CD-wild   
+Bond Type Number
+           9
+Bond Style
+           2
+Bond Coefficients
+    0.1522000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    CH-wild   
+Bond Type Number
+          10
+Bond Style
+           2
+Bond Coefficients
+    0.1444000000E+01
+    0.2063188060E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    CJ-wild   
+Bond Type Number
+          11
+Bond Style
+           2
+Bond Coefficients
+    0.1444000000E+01
+    0.2063188060E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    CM-wild   
+Bond Type Number
+          12
+Bond Style
+           2
+Bond Coefficients
+    0.1522000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    CT-wild   
+Bond Type Number
+          13
+Bond Style
+           2
+Bond Coefficients
+    0.1335000000E+01
+    0.2465761340E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    N -wild   
+Bond Type Number
+          14
+Bond Style
+           2
+Bond Coefficients
+    0.1383000000E+01
+    0.2133638384E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    N*-wild   
+Bond Type Number
+          15
+Bond Style
+           2
+Bond Coefficients
+    0.1388000000E+01
+    0.2103445388E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    NA-wild   
+Bond Type Number
+          16
+Bond Style
+           2
+Bond Coefficients
+    0.1358000000E+01
+    0.2299699862E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    NC-wild   
+Bond Type Number
+          17
+Bond Style
+           2
+Bond Coefficients
+    0.1229000000E+01
+    0.2868334620E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    O -wild   
+Bond Type Number
+          18
+Bond Style
+           2
+Bond Coefficients
+    0.1250000000E+01
+    0.3301100896E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    O2-wild   
+Bond Type Number
+          19
+Bond Style
+           2
+Bond Coefficients
+    0.1364000000E+01
+    0.2264474700E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    OH-wild   
+Bond Type Number
+          20
+Bond Style
+           2
+Bond Coefficients
+    0.1327000000E+01
+    0.1076883524E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C -wild    OS-wild   
+Bond Type Number
+          21
+Bond Style
+           2
+Bond Coefficients
+    0.1495000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C*-wild    C2-wild   
+Bond Type Number
+          22
+Bond Style
+           2
+Bond Coefficients
+    0.1459000000E+01
+    0.1952480408E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C*-wild    CB-wild   
+Bond Type Number
+          23
+Bond Style
+           2
+Bond Coefficients
+    0.1352000000E+01
+    0.2747562636E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C*-wild    CG-wild   
+Bond Type Number
+          24
+Bond Style
+           2
+Bond Coefficients
+    0.1352000000E+01
+    0.2747562636E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C*-wild    CC-wild   
+Bond Type Number
+          25
+Bond Style
+           2
+Bond Coefficients
+    0.1495000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C*-wild    CT-wild   
+Bond Type Number
+          26
+Bond Style
+           2
+Bond Coefficients
+    0.1352000000E+01
+    0.2747562636E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C*-wild    CW-wild   
+Bond Type Number
+          27
+Bond Style
+           2
+Bond Coefficients
+    0.1382000000E+01
+    0.2747562636E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    CW-wild   
+Bond Type Number
+          28
+Bond Style
+           2
+Bond Coefficients
+    0.1526000000E+01
+    0.1308363160E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    C2-wild   
+Bond Type Number
+          29
+Bond Style
+           2
+Bond Coefficients
+    0.1526000000E+01
+    0.1308363160E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    C3-wild   
+Bond Type Number
+          30
+Bond Style
+           2
+Bond Coefficients
+    0.1526000000E+01
+    0.1308363160E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C3-wild    C3-wild   
+Bond Type Number
+          31
+Bond Style
+           2
+Bond Coefficients
+    0.1510000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    CA-wild   
+Bond Type Number
+          32
+Bond Style
+           2
+Bond Coefficients
+    0.1510000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    CD-wild   
+Bond Type Number
+          33
+Bond Style
+           2
+Bond Coefficients
+    0.1504000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    CC-wild   
+Bond Type Number
+          34
+Bond Style
+           2
+Bond Coefficients
+    0.1526000000E+01
+    0.1308363160E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    CH-wild   
+Bond Type Number
+          35
+Bond Style
+           2
+Bond Coefficients
+    0.1449000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    N -wild   
+Bond Type Number
+          36
+Bond Style
+           2
+Bond Coefficients
+    0.1463000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    N2-wild   
+Bond Type Number
+          37
+Bond Style
+           2
+Bond Coefficients
+    0.1471000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    N3-wild   
+Bond Type Number
+          38
+Bond Style
+           2
+Bond Coefficients
+    0.1448000000E+01
+    0.1922287412E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH-wild    NT-wild   
+Bond Type Number
+          39
+Bond Style
+           2
+Bond Coefficients
+    0.1448000000E+01
+    0.1922287412E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    NT-wild   
+Bond Type Number
+          40
+Bond Style
+           2
+Bond Coefficients
+    0.1448000000E+01
+    0.1922287412E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C3-wild    NT-wild   
+Bond Type Number
+          41
+Bond Style
+           2
+Bond Coefficients
+    0.1448000000E+01
+    0.1922287412E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    NT-wild   
+Bond Type Number
+          42
+Bond Style
+           2
+Bond Coefficients
+    0.1471000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    NT-wild   
+Bond Type Number
+          43
+Bond Style
+           2
+Bond Coefficients
+    0.1425000000E+01
+    0.1942416076E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    OH-wild   
+Bond Type Number
+          44
+Bond Style
+           2
+Bond Coefficients
+    0.1425000000E+01
+    0.1610293120E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    OS-wild   
+Bond Type Number
+          45
+Bond Style
+           2
+Bond Coefficients
+    0.1380000000E+01
+    0.1610293120E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CO-wild    OS-wild   
+Bond Type Number
+          46
+Bond Style
+           2
+Bond Coefficients
+    0.1526000000E+01
+    0.1308363160E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CO-wild    C2-wild   
+Bond Type Number
+          47
+Bond Style
+           2
+Bond Coefficients
+    0.1526000000E+01
+    0.1308363160E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CO-wild    C3-wild   
+Bond Type Number
+          48
+Bond Style
+           2
+Bond Coefficients
+    0.1810000000E+01
+    0.1117140852E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    S -wild   
+Bond Type Number
+          49
+Bond Style
+           2
+Bond Coefficients
+    0.1810000000E+01
+    0.1117140852E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    SH-wild   
+Bond Type Number
+          50
+Bond Style
+           2
+Bond Coefficients
+    0.1526000000E+01
+    0.1308363160E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C3-wild    CH-wild   
+Bond Type Number
+          51
+Bond Style
+           2
+Bond Coefficients
+    0.1510000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C3-wild    CM-wild   
+Bond Type Number
+          52
+Bond Style
+           2
+Bond Coefficients
+    0.1449000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C3-wild    N -wild   
+Bond Type Number
+          53
+Bond Style
+           2
+Bond Coefficients
+    0.1475000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C3-wild    N*-wild   
+Bond Type Number
+          54
+Bond Style
+           2
+Bond Coefficients
+    0.1463000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C3-wild    N2-wild   
+Bond Type Number
+          55
+Bond Style
+           2
+Bond Coefficients
+    0.1471000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C3-wild    N3-wild   
+Bond Type Number
+          56
+Bond Style
+           2
+Bond Coefficients
+    0.1425000000E+01
+    0.1942416076E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C3-wild    OH-wild   
+Bond Type Number
+          57
+Bond Style
+           2
+Bond Coefficients
+    0.1425000000E+01
+    0.1610293120E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C3-wild    OS-wild   
+Bond Type Number
+          58
+Bond Style
+           2
+Bond Coefficients
+    0.1810000000E+01
+    0.1117140852E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C3-wild    S -wild   
+Bond Type Number
+          59
+Bond Style
+           2
+Bond Coefficients
+    0.1810000000E+01
+    0.1117140852E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2-wild    SH-wild   
+Bond Type Number
+          60
+Bond Style
+           2
+Bond Coefficients
+    0.1400000000E+01
+    0.2360085854E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    CA-wild   
+Bond Type Number
+          61
+Bond Style
+           2
+Bond Coefficients
+    0.1404000000E+01
+    0.2360085854E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    CB-wild   
+Bond Type Number
+          62
+Bond Style
+           2
+Bond Coefficients
+    0.1400000000E+01
+    0.2360085854E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    CD-wild   
+Bond Type Number
+          63
+Bond Style
+           2
+Bond Coefficients
+    0.1433000000E+01
+    0.2148734882E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    CJ-wild   
+Bond Type Number
+          64
+Bond Style
+           2
+Bond Coefficients
+    0.1433000000E+01
+    0.2148734882E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    CM-wild   
+Bond Type Number
+          65
+Bond Style
+           2
+Bond Coefficients
+    0.1400000000E+01
+    0.2360085854E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    CN-wild   
+Bond Type Number
+          66
+Bond Style
+           2
+Bond Coefficients
+    0.1510000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    CT-wild   
+Bond Type Number
+          67
+Bond Style
+           2
+Bond Coefficients
+    0.1340000000E+01
+    0.2420471846E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    N2-wild   
+Bond Type Number
+          68
+Bond Style
+           2
+Bond Coefficients
+    0.1381000000E+01
+    0.2148734882E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    NA-wild   
+Bond Type Number
+          69
+Bond Style
+           2
+Bond Coefficients
+    0.1339000000E+01
+    0.2430536178E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    NC-wild   
+Bond Type Number
+          70
+Bond Style
+           2
+Bond Coefficients
+    0.1320000000E+01
+    0.2516083000E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NC-wild    NC-wild   
+Bond Type Number
+          71
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    HA-wild   
+Bond Type Number
+          72
+Bond Style
+           2
+Bond Coefficients
+    0.1370000000E+01
+    0.2616726320E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CB-wild    CB-wild   
+Bond Type Number
+          73
+Bond Style
+           2
+Bond Coefficients
+    0.1370000000E+01
+    0.2616726320E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CV-wild    CW-wild   
+Bond Type Number
+          74
+Bond Style
+           2
+Bond Coefficients
+    0.1400000000E+01
+    0.2360085854E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CB-wild    CD-wild   
+Bond Type Number
+          75
+Bond Style
+           2
+Bond Coefficients
+    0.1419000000E+01
+    0.2249378202E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CB-wild    CN-wild   
+Bond Type Number
+          76
+Bond Style
+           2
+Bond Coefficients
+    0.1374000000E+01
+    0.2194024376E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CB-wild    N*-wild   
+Bond Type Number
+          77
+Bond Style
+           2
+Bond Coefficients
+    0.1391000000E+01
+    0.2083316724E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CB-wild    NB-wild   
+Bond Type Number
+          78
+Bond Style
+           2
+Bond Coefficients
+    0.1354000000E+01
+    0.2319828526E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CB-wild    NC-wild   
+Bond Type Number
+          79
+Bond Style
+           2
+Bond Coefficients
+    0.1375000000E+01
+    0.2576468992E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CC-wild    CF-wild   
+Bond Type Number
+          80
+Bond Style
+           2
+Bond Coefficients
+    0.1371000000E+01
+    0.2606661988E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CC-wild    CG-wild   
+Bond Type Number
+          81
+Bond Style
+           2
+Bond Coefficients
+    0.1504000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CC-wild    CT-wild   
+Bond Type Number
+          82
+Bond Style
+           2
+Bond Coefficients
+    0.1375000000E+01
+    0.2576468992E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CC-wild    CV-wild   
+Bond Type Number
+          83
+Bond Style
+           2
+Bond Coefficients
+    0.1371000000E+01
+    0.2606661988E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CC-wild    CW-wild   
+Bond Type Number
+          84
+Bond Style
+           2
+Bond Coefficients
+    0.1385000000E+01
+    0.2123574052E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CC-wild    NA-wild   
+Bond Type Number
+          85
+Bond Style
+           2
+Bond Coefficients
+    0.1394000000E+01
+    0.2063188060E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CC-wild    NB-wild   
+Bond Type Number
+          86
+Bond Style
+           2
+Bond Coefficients
+    0.1400000000E+01
+    0.2360085854E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CD-wild    CD-wild   
+Bond Type Number
+          87
+Bond Style
+           2
+Bond Coefficients
+    0.1400000000E+01
+    0.2360085854E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CD-wild    CN-wild   
+Bond Type Number
+          88
+Bond Style
+           2
+Bond Coefficients
+    0.1400000000E+01
+    0.2360085854E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    CC-wild   
+Bond Type Number
+          89
+Bond Style
+           2
+Bond Coefficients
+    0.1400000000E+01
+    0.2360085854E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CD-wild    CC-wild   
+Bond Type Number
+          90
+Bond Style
+           2
+Bond Coefficients
+    0.1371000000E+01
+    0.2214153040E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CE-wild    N*-wild   
+Bond Type Number
+          91
+Bond Style
+           2
+Bond Coefficients
+    0.1304000000E+01
+    0.2662015814E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CE-wild    NB-wild   
+Bond Type Number
+          92
+Bond Style
+           2
+Bond Coefficients
+    0.1394000000E+01
+    0.2063188060E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CF-wild    NB-wild   
+Bond Type Number
+          93
+Bond Style
+           2
+Bond Coefficients
+    0.1381000000E+01
+    0.2148734882E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CG-wild    NA-wild   
+Bond Type Number
+          94
+Bond Style
+           2
+Bond Coefficients
+    0.1526000000E+01
+    0.1308363160E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH-wild    CH-wild   
+Bond Type Number
+          95
+Bond Style
+           2
+Bond Coefficients
+    0.1449000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH-wild    N -wild   
+Bond Type Number
+          96
+Bond Style
+           2
+Bond Coefficients
+    0.1475000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH-wild    N*-wild   
+Bond Type Number
+          97
+Bond Style
+           2
+Bond Coefficients
+    0.1471000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH-wild    NT-wild   
+Bond Type Number
+          98
+Bond Style
+           2
+Bond Coefficients
+    0.1425000000E+01
+    0.1942416076E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH-wild    OH-wild   
+Bond Type Number
+          99
+Bond Style
+           2
+Bond Coefficients
+    0.1425000000E+01
+    0.1610293120E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH-wild    OS-wild   
+Bond Type Number
+         100
+Bond Style
+           2
+Bond Coefficients
+    0.1324000000E+01
+    0.2526147332E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CI-wild    NC-wild   
+Bond Type Number
+         101
+Bond Style
+           2
+Bond Coefficients
+    0.1350000000E+01
+    0.2762659134E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CJ-wild    CJ-wild   
+Bond Type Number
+         102
+Bond Style
+           2
+Bond Coefficients
+    0.1350000000E+01
+    0.2762659134E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CJ-wild    CM-wild   
+Bond Type Number
+         103
+Bond Style
+           2
+Bond Coefficients
+    0.1365000000E+01
+    0.2254410368E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CJ-wild    N*-wild   
+Bond Type Number
+         104
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1710936440E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CK-wild    HA-wild   
+Bond Type Number
+         105
+Bond Style
+           2
+Bond Coefficients
+    0.1371000000E+01
+    0.2214153040E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CK-wild    N*-wild   
+Bond Type Number
+         106
+Bond Style
+           2
+Bond Coefficients
+    0.1371000000E+01
+    0.2214153040E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CK-wild    NA-wild   
+Bond Type Number
+         107
+Bond Style
+           2
+Bond Coefficients
+    0.1304000000E+01
+    0.2662015814E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CK-wild    NB-wild   
+Bond Type Number
+         108
+Bond Style
+           2
+Bond Coefficients
+    0.1340000000E+01
+    0.2762659134E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CM-wild    CM-wild   
+Bond Type Number
+         109
+Bond Style
+           2
+Bond Coefficients
+    0.1460000000E+01
+    0.2681138045E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    C+-wild   
+Bond Type Number
+         110
+Bond Style
+           2
+Bond Coefficients
+    0.1084000000E+01
+    0.2681138045E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C+-wild    HC-wild   
+Bond Type Number
+         111
+Bond Style
+           2
+Bond Coefficients
+    0.1510000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CM-wild    CT-wild   
+Bond Type Number
+         112
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1710936440E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CM-wild    HC-wild   
+Bond Type Number
+         113
+Bond Style
+           2
+Bond Coefficients
+    0.1090000000E+01
+    0.1710936440E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HC-wild    C -wild   
+Bond Type Number
+         114
+Bond Style
+           2
+Bond Coefficients
+    0.1365000000E+01
+    0.2254410368E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CM-wild    N*-wild   
+Bond Type Number
+         115
+Bond Style
+           2
+Bond Coefficients
+    0.1365000000E+01
+    0.2254410368E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CM-wild    NA-wild   
+Bond Type Number
+         116
+Bond Style
+           2
+Bond Coefficients
+    0.1380000000E+01
+    0.2153767048E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN-wild    NA-wild   
+Bond Type Number
+         117
+Bond Style
+           2
+Bond Coefficients
+    0.1343000000E+01
+    0.2249378202E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CP-wild    NA-wild   
+Bond Type Number
+         118
+Bond Style
+           2
+Bond Coefficients
+    0.1335000000E+01
+    0.2455697008E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CP-wild    NB-wild   
+Bond Type Number
+         119
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CQ-wild    HA-wild   
+Bond Type Number
+         120
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CQ-wild    H5-wild   
+Bond Type Number
+         121
+Bond Style
+           2
+Bond Coefficients
+    0.1324000000E+01
+    0.2526147332E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CQ-wild    NC-wild   
+Bond Type Number
+         122
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CR-wild    HA-wild   
+Bond Type Number
+         123
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CR-wild    H5-wild   
+Bond Type Number
+         124
+Bond Style
+           2
+Bond Coefficients
+    0.1343000000E+01
+    0.2400343182E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CR-wild    NA-wild   
+Bond Type Number
+         125
+Bond Style
+           2
+Bond Coefficients
+    0.1335000000E+01
+    0.2455697008E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CR-wild    NB-wild   
+Bond Type Number
+         126
+Bond Style
+           2
+Bond Coefficients
+    0.1529000000E+01
+    0.1348620488E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    CT-wild   
+Bond Type Number
+         127
+Bond Style
+           2
+Bond Coefficients
+    0.1090000000E+01
+    0.1710936440E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    HC-wild   
+Bond Type Number
+         128
+Bond Style
+           2
+Bond Coefficients
+    0.1449000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    N -wild   
+Bond Type Number
+         129
+Bond Style
+           2
+Bond Coefficients
+    0.1475000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    N*-wild   
+Bond Type Number
+         130
+Bond Style
+           2
+Bond Coefficients
+    0.1475000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    NA-wild   
+Bond Type Number
+         131
+Bond Style
+           2
+Bond Coefficients
+    0.1463000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    N2-wild   
+Bond Type Number
+         132
+Bond Style
+           2
+Bond Coefficients
+    0.1471000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    N3-wild   
+Bond Type Number
+         133
+Bond Style
+           2
+Bond Coefficients
+    0.1471000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    NT-wild   
+Bond Type Number
+         134
+Bond Style
+           2
+Bond Coefficients
+    0.1410000000E+01
+    0.1610293120E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    OH-wild   
+Bond Type Number
+         135
+Bond Style
+           2
+Bond Coefficients
+    0.1410000000E+01
+    0.1610293120E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    OS-wild   
+Bond Type Number
+         136
+Bond Style
+           2
+Bond Coefficients
+    0.1810000000E+01
+    0.1117140852E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    S -wild   
+Bond Type Number
+         137
+Bond Style
+           2
+Bond Coefficients
+    0.1810000000E+01
+    0.1117140852E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    SH-wild   
+Bond Type Number
+         138
+Bond Style
+           2
+Bond Coefficients
+    0.1781000000E+01
+    0.1232880670E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    Cl-wild   
+Bond Type Number
+         139
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CV-wild    HA-wild   
+Bond Type Number
+         140
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CV-wild    H4-wild   
+Bond Type Number
+         141
+Bond Style
+           2
+Bond Coefficients
+    0.1394000000E+01
+    0.2063188060E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CV-wild    NB-wild   
+Bond Type Number
+         142
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CW-wild    H4-wild   
+Bond Type Number
+         143
+Bond Style
+           2
+Bond Coefficients
+    0.1080000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CW-wild    HA-wild   
+Bond Type Number
+         144
+Bond Style
+           2
+Bond Coefficients
+    0.1381000000E+01
+    0.2148734882E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CW-wild    NA-wild   
+Bond Type Number
+         145
+Bond Style
+           2
+Bond Coefficients
+    0.1010000000E+01
+    0.2183960044E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H -wild    N -wild   
+Bond Type Number
+         146
+Bond Style
+           2
+Bond Coefficients
+    0.1010000000E+01
+    0.2183960044E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H -wild    N2-wild   
+Bond Type Number
+         147
+Bond Style
+           2
+Bond Coefficients
+    0.1010000000E+01
+    0.2183960044E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H -wild    NA-wild   
+Bond Type Number
+         148
+Bond Style
+           2
+Bond Coefficients
+    0.1010000000E+01
+    0.2183960044E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H2-wild    N -wild   
+Bond Type Number
+         149
+Bond Style
+           2
+Bond Coefficients
+    0.1010000000E+01
+    0.2183960044E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H2-wild    N2-wild   
+Bond Type Number
+         150
+Bond Style
+           2
+Bond Coefficients
+    0.1010000000E+01
+    0.2183960044E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H2-wild    NT-wild   
+Bond Type Number
+         151
+Bond Style
+           2
+Bond Coefficients
+    0.1010000000E+01
+    0.2183960044E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H3-wild    N2-wild   
+Bond Type Number
+         152
+Bond Style
+           2
+Bond Coefficients
+    0.1010000000E+01
+    0.2183960044E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H3-wild    N3-wild   
+Bond Type Number
+         153
+Bond Style
+           2
+Bond Coefficients
+    0.9450000000E+00
+    0.2782787798E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HO-wild    OH-wild   
+Bond Type Number
+         154
+Bond Style
+           2
+Bond Coefficients
+    0.9450000000E+00
+    0.2782787798E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HO-wild    OS-wild   
+Bond Type Number
+         155
+Bond Style
+           2
+Bond Coefficients
+    0.1336000000E+01
+    0.1378813484E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HS-wild    SH-wild   
+Bond Type Number
+         156
+Bond Style
+           2
+Bond Coefficients
+    0.1480000000E+01
+    0.2641887150E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+O2-wild    P -wild   
+Bond Type Number
+         157
+Bond Style
+           2
+Bond Coefficients
+    0.1610000000E+01
+    0.1157398180E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+OH-wild    P -wild   
+Bond Type Number
+         158
+Bond Style
+           2
+Bond Coefficients
+    0.1610000000E+01
+    0.1157398180E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+OS-wild    P -wild   
+Bond Type Number
+         159
+Bond Style
+           2
+Bond Coefficients
+    0.1843000000E+01
+    0.1066819192E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    P -wild   
+Bond Type Number
+         160
+Bond Style
+           2
+Bond Coefficients
+    0.2038000000E+01
+    0.8353395560E+05
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+S -wild    S -wild   
+Bond Type Number
+         161
+Bond Style
+           2
+Bond Coefficients
+    0.1340000000E+01
+    0.2667047980E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C9-wild    C9-wild   
+Bond Type Number
+         162
+Bond Style
+           2
+Bond Coefficients
+    0.1340000000E+01
+    0.2667047980E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C9-wild    C8-wild   
+Bond Type Number
+         163
+Bond Style
+           2
+Bond Coefficients
+    0.1340000000E+01
+    0.2667047980E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C9-wild    C7-wild   
+Bond Type Number
+         164
+Bond Style
+           2
+Bond Coefficients
+    0.1340000000E+01
+    0.2667047980E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C8-wild    C8-wild   
+Bond Type Number
+         165
+Bond Style
+           2
+Bond Coefficients
+    0.1340000000E+01
+    0.2667047980E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C8-wild    C7-wild   
+Bond Type Number
+         166
+Bond Style
+           2
+Bond Coefficients
+    0.1340000000E+01
+    0.2667047980E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C7-wild    C7-wild   
+Bond Type Number
+         167
+Bond Style
+           2
+Bond Coefficients
+    0.1500000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C8-wild    CT-wild   
+Bond Type Number
+         168
+Bond Style
+           2
+Bond Coefficients
+    0.1500000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C8-wild    CH-wild   
+Bond Type Number
+         169
+Bond Style
+           2
+Bond Coefficients
+    0.1500000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C8-wild    C2-wild   
+Bond Type Number
+         170
+Bond Style
+           2
+Bond Coefficients
+    0.1500000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C8-wild    C3-wild   
+Bond Type Number
+         171
+Bond Style
+           2
+Bond Coefficients
+    0.1500000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C7-wild    CT-wild   
+Bond Type Number
+         172
+Bond Style
+           2
+Bond Coefficients
+    0.1500000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C7-wild    CH-wild   
+Bond Type Number
+         173
+Bond Style
+           2
+Bond Coefficients
+    0.1500000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C7-wild    C2-wild   
+Bond Type Number
+         174
+Bond Style
+           2
+Bond Coefficients
+    0.1500000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C7-wild    C3-wild   
+Bond Type Number
+         175
+Bond Style
+           2
+Bond Coefficients
+    0.1526000000E+01
+    0.1308363160E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    C3-wild   
+Bond Type Number
+         176
+Bond Style
+           2
+Bond Coefficients
+    0.1526000000E+01
+    0.1308363160E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    C2-wild   
+Bond Type Number
+         177
+Bond Style
+           2
+Bond Coefficients
+    0.1391000000E+01
+    0.2083316724E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    NB-wild   
+Bond Type Number
+         178
+Bond Style
+           2
+Bond Coefficients
+    0.1381000000E+01
+    0.2148734882E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CA-wild    N -wild   
+Bond Type Number
+         179
+Bond Style
+           2
+Bond Coefficients
+    0.1510000000E+01
+    0.1595196622E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CB-wild    CT-wild   
+Bond Type Number
+         180
+Bond Style
+           2
+Bond Coefficients
+    0.1370000000E+01
+    0.2616726320E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CC-wild    CB-wild   
+Bond Type Number
+         181
+Bond Style
+           2
+Bond Coefficients
+    0.1332000000E+01
+    0.1846804922E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT-wild    F -wild   
+Bond Type Number
+         182
+Bond Style
+           2
+Bond Coefficients
+    0.1810000000E+01
+    0.1117140852E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+SY-wild    C3-wild   
+Bond Type Number
+         183
+Bond Style
+           2
+Bond Coefficients
+    0.1770000000E+01
+    0.1710936440E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+SY-wild    CA-wild   
+Bond Type Number
+         184
+Bond Style
+           2
+Bond Coefficients
+    0.1760000000E+01
+    0.1117140852E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+SY-wild    C8-wild   
+Bond Type Number
+         185
+Bond Style
+           2
+Bond Coefficients
+    0.1440000000E+01
+    0.3522516200E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+SY-wild    OY-wild   
+Bond Type Number
+         186
+Bond Style
+           2
+Bond Coefficients
+    0.1670000000E+01
+    0.2183960044E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+SY-wild    N -wild   
+Bond Type Number
+         187
+Bond Style
+           2
+Bond Coefficients
+    0.1770000000E+01
+    0.1710936440E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+SY-wild    CT-wild   
+Bond Type Number
+         188
+Bond Style
+           2
+Bond Coefficients
+    0.1800000000E+01
+    0.2516083000E+06
+Vibration Order
+wild      
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+U -wild    OU-wild   
+Number of Angle Terms
+           1
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1500000000E+03
+    0.9057898800E+05
+Angle Order
+wild           
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+OU-wild    U -wild    OU-wild   
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+           2
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.8001143940E+02
+Torsion Order
+wild           
+Force Field Name
+OPLS-1996 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HC-wild    CT-wild    CT-wild    HC-wild   
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

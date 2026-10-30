@@ -1,0 +1,371 @@
+{
+  "excluded": [
+    "30MB nature-figure/assets",
+    "private templates",
+    "images",
+    "PDFs",
+    "executables",
+    "MatOS source"
+  ],
+  "files": {
+    "_shared/core/ethics.md": {
+      "bytes": 2224,
+      "sha256": "4ad6ac9794514bb949f0c85053cdd936b9597881c0b84c6f9fc7ebcc4f3b352d"
+    },
+    "_shared/core/paper-type-taxonomy.md": {
+      "bytes": 2435,
+      "sha256": "84878907fd0416f628c8e3969e583569b9930f0129e6553167112435d93a3ad1"
+    },
+    "_shared/core/reader-workflow.md": {
+      "bytes": 977,
+      "sha256": "acf54e59da3cd29d9179748895c7b5ed0da2d948704e97bee83771698ecbe10d"
+    },
+    "_shared/core/terminology-ledger.md": {
+      "bytes": 2768,
+      "sha256": "c8ff387fc55439dbec9835d624fb1c1e544cca06ae8d007f8e4f726f68080784"
+    },
+    "_shared/journal-formats/nat-comms.md": {
+      "bytes": 7045,
+      "sha256": "5a9eef685502e35d2289478d0b3815d5dbfbb6b2ed7d758accedfc7fd930e975"
+    },
+    "nature-figure/SKILL.md": {
+      "bytes": 5260,
+      "sha256": "d7620c489a95738c3a647f30df97645fabfcbeaf6de268161193acc986cc7518"
+    },
+    "nature-figure/manifest.yaml": {
+      "bytes": 3200,
+      "sha256": "279d77c4a087aa96aacbad0d29ffb4d1258d79518d5943494f0a82799158a153"
+    },
+    "nature-figure/references/api.md": {
+      "bytes": 13552,
+      "sha256": "4d4f47ab46d082c4d1f2065058dd4756302a7d0770929845a635fab1fdddb71d"
+    },
+    "nature-figure/references/backend-selection.md": {
+      "bytes": 4694,
+      "sha256": "f30b3e5c9293e8732c6de27c2f695284d3267ac5f4ecf21d8d5209020eb2e052"
+    },
+    "nature-figure/references/chart-types.md": {
+      "bytes": 8911,
+      "sha256": "585b5e59c0a528e020750df6b77914759eaa285f8a2a025d3810e40a8637c2ab"
+    },
+    "nature-figure/references/common-patterns.md": {
+      "bytes": 9950,
+      "sha256": "c8f5cd326038c784c63dc7f96c59f07d3559de69d50225ecbb46d76e03baf416"
+    },
+    "nature-figure/references/demos.md": {
+      "bytes": 4118,
+      "sha256": "90f0be14bf2a782853f5c71c6a8b4933a246c7a96c4f6c59d80e9c2f7ceab036"
+    },
+    "nature-figure/references/design-theory.md": {
+      "bytes": 15620,
+      "sha256": "0a7b3a8a964635fa1c7a59d82640e0adb31a6e9845beae77bc6e87503f8597c1"
+    },
+    "nature-figure/references/figure-contract.md": {
+      "bytes": 3970,
+      "sha256": "d989b4ebdb3aeab14c09e261980756abe72a67bc5eb866e1b91cdaac9c5d5201"
+    },
+    "nature-figure/references/figure-legend-conventions.md": {
+      "bytes": 3607,
+      "sha256": "e9591ac3b21dfc26c75f9ab8ca2950e5c1e222e807b3645df7039c12e40c33c4"
+    },
+    "nature-figure/references/nature-2026-observations.md": {
+      "bytes": 5622,
+      "sha256": "e4f7800316740297ae3573b2f1830a2d150e3e306546144f6c0547806431c307"
+    },
+    "nature-figure/references/qa-contract.md": {
+      "bytes": 4736,
+      "sha256": "5323f234fa5319784ce4b06e4eba1d242ba39a72ce83198f9e2ba126eb500339"
+    },
+    "nature-figure/references/r-template-index.md": {
+      "bytes": 3903,
+      "sha256": "0ebbbd4171896b61639d7969a010401d0aa257bafb99783026a1ba32c91ce19e"
+    },
+    "nature-figure/references/r-workflow.md": {
+      "bytes": 5275,
+      "sha256": "67ca5126e54b22373a6646c7f7c23c892ef237174092a2b5c94edbd9b25ead5e"
+    },
+    "nature-figure/references/tutorials.md": {
+      "bytes": 8169,
+      "sha256": "920ba75294c09ac5a7c7df9ac1807060737b8331149d105b3d0f0da041e50445"
+    },
+    "nature-figure/static/core/contract.md": {
+      "bytes": 3076,
+      "sha256": "40b0408bb5a036ebc218ebdcfb1968127b80e12d6696f911c22fa7e9f48864ed"
+    },
+    "nature-figure/static/core/stance.md": {
+      "bytes": 3371,
+      "sha256": "46d1a49608ccf240af4237b5fdb7925b67f4589d7f445d2bcb36506e88985b2f"
+    },
+    "nature-figure/static/fragments/backend/python.md": {
+      "bytes": 2285,
+      "sha256": "35242f2ec6a0bef5f4d3fe2d71b4804c98912ed56d98bab1b5daac6af94af8e5"
+    },
+    "nature-figure/static/fragments/backend/r.md": {
+      "bytes": 2075,
+      "sha256": "3f31ff4929fbd8637f4e10ee9eaa7de53da6e48c3c86ee1bd3fc3067c41fa156"
+    },
+    "nature-writing/SKILL.md": {
+      "bytes": 4931,
+      "sha256": "e1d5d7d3100e56b5e5512a6d9a37b70d08c1b819220824fc81dfe1d2bc66a83d"
+    },
+    "nature-writing/manifest.yaml": {
+      "bytes": 4663,
+      "sha256": "614763d3d1e428a4968291f008a95b05c623f55de5b17a466a73e3a6dd54e924"
+    },
+    "nature-writing/references/abstract.md": {
+      "bytes": 3628,
+      "sha256": "992251e754bdbe6d9e49070cde496f2ca23e78bfce940bd32421a2a70d01e574"
+    },
+    "nature-writing/references/article-architecture.md": {
+      "bytes": 3221,
+      "sha256": "8026c1a1e27bfe06d8ad96ff2392aa1635c24d91f197e6469f6b7ba796ec0f96"
+    },
+    "nature-writing/references/chinese-author-workflow.md": {
+      "bytes": 1821,
+      "sha256": "42fc1cb975d94d1ecdb8901fb6f6e727ca321379b0faa3745d4814c0b1268bf1"
+    },
+    "nature-writing/references/conclusion.md": {
+      "bytes": 1244,
+      "sha256": "64de66f24ceb42ff5cefb4498a8bd16f595661bbaa604d9cde6e743b39dab9c6"
+    },
+    "nature-writing/references/examples/abstract-examples.md": {
+      "bytes": 875,
+      "sha256": "8228ce8ec4a35b8339bcb439c4292bb2d678e5be17af2ef1d7631d03ebf40010"
+    },
+    "nature-writing/references/examples/abstract/template-a.md": {
+      "bytes": 950,
+      "sha256": "c4cec6346be6d76350bfacea36c1abad5bce669e810f7facc2c884b664a8d83e"
+    },
+    "nature-writing/references/examples/abstract/template-b.md": {
+      "bytes": 3265,
+      "sha256": "dc41e8d5206fca72dd41b2cd188ec447b7735b54c164b6da1785bd88c2e0b78d"
+    },
+    "nature-writing/references/examples/abstract/template-c.md": {
+      "bytes": 1750,
+      "sha256": "4f6269a1b1ad47055eb4287cdd0410ea1d1d1198dbf02d74671f50d3fa0d1447"
+    },
+    "nature-writing/references/examples/index.md": {
+      "bytes": 2402,
+      "sha256": "8652823627fd0f56a5e2be3eff192dcc5925f482380d7b45321cd9cfc6ba4b03"
+    },
+    "nature-writing/references/examples/introduction-examples.md": {
+      "bytes": 1544,
+      "sha256": "0fb5b62e4353f71e586f8873881d2a60a86ad756e02bd0e7ef626dcafa0e5d71"
+    },
+    "nature-writing/references/examples/introduction/novel-task-challenge-decomposition.md": {
+      "bytes": 1550,
+      "sha256": "5613ddd24911efde77aaf35a7ff883a9ef886b99b9863782aeec426282cd286c"
+    },
+    "nature-writing/references/examples/introduction/pipeline-not-recommended-abstract-only.md": {
+      "bytes": 2976,
+      "sha256": "33ab449b0eadc7cc968c0ff4cddcc4538811d2abc2a0497ebca15c629da80cd2"
+    },
+    "nature-writing/references/examples/introduction/pipeline-version-1-one-contribution-multi-advantages.md": {
+      "bytes": 2039,
+      "sha256": "a39b95c76a19f7fd214048dd2e8861d825495662b9144529326abc4ab94c7f23"
+    },
+    "nature-writing/references/examples/introduction/pipeline-version-2-two-contributions.md": {
+      "bytes": 2049,
+      "sha256": "fc6d13cfdd6e69b9bf7238e86f400e7d120d35c053718a56ae9faf442f0e86f1"
+    },
+    "nature-writing/references/examples/introduction/pipeline-version-3-new-module-on-existing-pipeline.md": {
+      "bytes": 1514,
+      "sha256": "71fe9465e12602517ca47a693572bd7db0c08b7cd046ae1c55ec88ba679e1d49"
+    },
+    "nature-writing/references/examples/introduction/pipeline-version-4-observation-driven.md": {
+      "bytes": 1441,
+      "sha256": "f5e59e8c578cd3996870c3863ac1f2ce503fe74ec76c909a66a9cb9100020e70"
+    },
+    "nature-writing/references/examples/introduction/technical-challenge-version-1-existing-task.md": {
+      "bytes": 2690,
+      "sha256": "470195180f159d7f240409c0685a927fea21c82ed7d7c766a03b76ed3765e276"
+    },
+    "nature-writing/references/examples/introduction/technical-challenge-version-2-existing-task-insight-backed-by-traditional.md": {
+      "bytes": 3848,
+      "sha256": "b90e9edf376f9dc2cac1fcbe9174b8878a090763dac08302a301c8b743301b1f"
+    },
+    "nature-writing/references/examples/introduction/technical-challenge-version-3-novel-task.md": {
+      "bytes": 1629,
+      "sha256": "3b3b58cc0cffe2e1ae1e192b2344223924f9dfb880eeae3c955e09cd923269ef"
+    },
+    "nature-writing/references/examples/introduction/version-1-task-then-application.md": {
+      "bytes": 727,
+      "sha256": "d9296f2f23e8589e068a06fd063d2b9291b30b630ffeac19f0cf0290fde52284"
+    },
+    "nature-writing/references/examples/introduction/version-2-application-first.md": {
+      "bytes": 405,
+      "sha256": "3f57603bd5fd56bc185a3d78f12edc43bd202e2593b01d1bda943f3745af7ea5"
+    },
+    "nature-writing/references/examples/introduction/version-3-general-to-specific-setting.md": {
+      "bytes": 847,
+      "sha256": "0afbf79dd9c47e65ec0d9debf08c701838b5398327a0864b8f8a0421ea786a2a"
+    },
+    "nature-writing/references/examples/introduction/version-4-open-with-challenge.md": {
+      "bytes": 1753,
+      "sha256": "974379058c3d5448bbb95ad989b68564ede2dc7e262f4b9bb82820058ad098b1"
+    },
+    "nature-writing/references/examples/method-examples.md": {
+      "bytes": 1028,
+      "sha256": "8a8499c32096fbdf9baac6d00d71df750fba2909d29a0bc37e559ebd02d10210"
+    },
+    "nature-writing/references/examples/method/example-of-the-three-elements.md": {
+      "bytes": 7440,
+      "sha256": "a08a1201e6b4a9629262e16827b8d95e62eeee97f6117a1d97659a37200a4dea"
+    },
+    "nature-writing/references/examples/method/method-writing-common-issues-note.md": {
+      "bytes": 355,
+      "sha256": "265ca143a785401c29d754d022e761aca41cce7f17db316a3a12cf2e35b5bfa9"
+    },
+    "nature-writing/references/examples/method/module-design-instant-ngp.md": {
+      "bytes": 4557,
+      "sha256": "a7c72221545e83d05b3becc4209b9fec71188a9a758434aa1ae3c4bc673e1dad"
+    },
+    "nature-writing/references/examples/method/module-motivation-patterns.md": {
+      "bytes": 410,
+      "sha256": "0d1476b9e31662ecd135eec0ec70bc959f91235622e874e2a1e12a5234d195ce"
+    },
+    "nature-writing/references/examples/method/module-triad-neural-body.md": {
+      "bytes": 763,
+      "sha256": "eabc41af8b001bcab30bc8373bb44b798ab0a21d32045d01d6b672d49c1ed76f"
+    },
+    "nature-writing/references/examples/method/neural-body-annotated-figure-text.md": {
+      "bytes": 2845,
+      "sha256": "f671d284186011497291fcec22dadd1dabe835f60fb97dc607cfa0246d08b6be"
+    },
+    "nature-writing/references/examples/method/overview-template.md": {
+      "bytes": 2054,
+      "sha256": "3328ea5b1100e8068bfd94455486a5934d55a888bf0095df727eef9ec7eadf93"
+    },
+    "nature-writing/references/examples/method/pre-writing-questions.md": {
+      "bytes": 479,
+      "sha256": "b6466d5d6fbe8785a45a0b67134c9c08a0d8b3e14f2e17db2f2fe3a2053b3c69"
+    },
+    "nature-writing/references/examples/method/section-skeleton.md": {
+      "bytes": 110,
+      "sha256": "e437a48be1e608bed3200844e1033b8b9da900aa1e4512dccb80f778e6fe0590"
+    },
+    "nature-writing/references/experiments.md": {
+      "bytes": 4476,
+      "sha256": "c006493e48996121af46332af8a833b6607508773668ade35b374cb5081a8812"
+    },
+    "nature-writing/references/introduction.md": {
+      "bytes": 15015,
+      "sha256": "dafee03483388185bf923fafd3bbf8b4988fc9e5672628690653892cc6367cd0"
+    },
+    "nature-writing/references/method.md": {
+      "bytes": 6256,
+      "sha256": "a11a743cadd5137bb633c5d031f0d5d179e4092070696206bcd8c92de20df57c"
+    },
+    "nature-writing/references/nat-comms-2025-corpus.md": {
+      "bytes": 7457,
+      "sha256": "220398897991a1bbbfbda7c0a39390afdfac3706324e3c5b7c2c2a93f9195161"
+    },
+    "nature-writing/references/nature-summary-paragraph.md": {
+      "bytes": 9984,
+      "sha256": "4787adac886152e7bd3ebe73e8682d5db9fd20dc952a2d30d101fd4377e58729"
+    },
+    "nature-writing/references/paper-review.md": {
+      "bytes": 5428,
+      "sha256": "7a46e0805a7048e66f9f2f91cbc13134eff1864bf0152d699c987df078051f20"
+    },
+    "nature-writing/references/paragraph-flow.md": {
+      "bytes": 1695,
+      "sha256": "7fe339e94763c97902d846fffb1116c64e140d3a3d6949fa65c88b2eebf014ec"
+    },
+    "nature-writing/references/related-work.md": {
+      "bytes": 1283,
+      "sha256": "2b37fce3ae4ea604492689215e835d45f85cc39ed74e6f6132b2723bbe506e0d"
+    },
+    "nature-writing/static/core/output-format.md": {
+      "bytes": 1044,
+      "sha256": "c85e32375134fd5187be45903651801edd03bc47e9a8f6962824936571b65c0c"
+    },
+    "nature-writing/static/core/stance.md": {
+      "bytes": 2267,
+      "sha256": "44d40494978c70b9bc1a8c3e0e1b87032a32d6e8f0081f9e1af4301f101db612"
+    },
+    "nature-writing/static/core/workflow.md": {
+      "bytes": 5902,
+      "sha256": "f71476a3ab3aedee2c396a19c14ad358f9eff70e0b68873360ecf9b9ed65ef49"
+    },
+    "nature-writing/static/fragments/journal/generic.md": {
+      "bytes": 876,
+      "sha256": "5e249c87e06ce3dbcaa0dd44551d2c6064465f88766bc89fd051f3a6e3379f6f"
+    },
+    "nature-writing/static/fragments/journal/nat-comms.md": {
+      "bytes": 2948,
+      "sha256": "3484503d3b3539f64afeba3f56355b104631fe093e78b526f7638d48024b1a70"
+    },
+    "nature-writing/static/fragments/journal/nature.md": {
+      "bytes": 1913,
+      "sha256": "adb5520d697026a594ad497670e6d1d0acad566a68879f2a6fd99d1c78559eb8"
+    },
+    "nature-writing/static/fragments/language/en.md": {
+      "bytes": 1026,
+      "sha256": "6de5e67bf7c90361237f998c10f98d6d2c61e9c067ce3c686cab6a3cdf919caf"
+    },
+    "nature-writing/static/fragments/language/zh-to-en.md": {
+      "bytes": 1616,
+      "sha256": "a60506956df0a5b1e006fe17aec2bc843b1a0463662f5675cb9dc6db112a96c8"
+    },
+    "nature-writing/static/fragments/paper_type/algorithmic.md": {
+      "bytes": 1237,
+      "sha256": "a6e548d38dfbb60bbc9beac713da4b51c625adcce55cdc688d4578a530b2c35b"
+    },
+    "nature-writing/static/fragments/paper_type/hypothesis.md": {
+      "bytes": 1043,
+      "sha256": "c2ef6457304001a14fba41c615e62d47a852a9b0137ae13def6117669143da23"
+    },
+    "nature-writing/static/fragments/paper_type/methods.md": {
+      "bytes": 1241,
+      "sha256": "eebf6bdd16e3114abf8b03b524af22c9183444d7e30e8c4ecc5fc37b32a636f0"
+    },
+    "nature-writing/static/fragments/paper_type/research.md": {
+      "bytes": 1288,
+      "sha256": "29a20cfce7525107867faf5ff8b6215d4b86fc8587b1dc92993154c18b2f33e1"
+    },
+    "nature-writing/static/fragments/paper_type/review.md": {
+      "bytes": 1209,
+      "sha256": "f26f847b44761faf44aee024bc05d079490ead7bd5ffa975b277add7795f2b21"
+    },
+    "nature-writing/static/fragments/section/abstract.md": {
+      "bytes": 1337,
+      "sha256": "5088e0891eae48f05aef2a75a540a19e015147ec68a0fbc909be6682a46354bc"
+    },
+    "nature-writing/static/fragments/section/conclusion.md": {
+      "bytes": 929,
+      "sha256": "5287996cba0ef8f41a540abc4e50aae8e830a056a5de7188f6bc2b701ac78bd6"
+    },
+    "nature-writing/static/fragments/section/discussion.md": {
+      "bytes": 1154,
+      "sha256": "99700796e9e1d51720c974218d7507c2a34bfc0a6791c033848a64dd78eb677b"
+    },
+    "nature-writing/static/fragments/section/experiments.md": {
+      "bytes": 1503,
+      "sha256": "8c06aa04a4fcef43c938d8158eeac2b4331035eb6114ffc03b11cdef549affe3"
+    },
+    "nature-writing/static/fragments/section/intro.md": {
+      "bytes": 2048,
+      "sha256": "3cd340e024c383ea1b5ba32453e624d11b506f6e4b775c0b5c5bc0cf8797b225"
+    },
+    "nature-writing/static/fragments/section/method.md": {
+      "bytes": 1365,
+      "sha256": "47bbc70c2f61df13a5402ad404df13670400d58979a5d24750f1c64ae4478c70"
+    },
+    "nature-writing/static/fragments/section/related-work.md": {
+      "bytes": 1178,
+      "sha256": "96f42b73af918123173c30467698e78d42ed00dc043171265cdd2bc6e5fb3bd6"
+    },
+    "nature-writing/static/fragments/section/title.md": {
+      "bytes": 999,
+      "sha256": "667fafc45b0a38c439998d6d8ed18fb98ffea1b196fc9343bc3a4629fcdc110a"
+    },
+    "result-guidance/evidence-closure.md": {
+      "bytes": 3224,
+      "sha256": "680fb66468f3b36092cf730e2459117d4f08168e2f03be4e4489668b8c4507dd"
+    }
+  },
+  "license_status": "No separate license file was present in the supplied skill trees; no permissive or upstream redistribution license is asserted. MatOS code/assets are not included.",
+  "schema_version": 1,
+  "source": "User-provided local nature-figure/nature-writing skills; imported by explicit user instruction"
+}

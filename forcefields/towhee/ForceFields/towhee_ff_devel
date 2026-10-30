@@ -1,0 +1,2525 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+          27
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+LB or Geometric               
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3207235374E+01
+    0.2516083000E+02
+    0.3207235374E+01
+    0.1258041500E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+CPH1      
+CPH1      
+CPH1      
+CPH1      
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3207235374E+01
+    0.2516083000E+02
+    0.3207235374E+01
+    0.1258041500E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+CPH2      
+CPH2      
+CPH2      
+CPH2      
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3296325246E+01
+    0.1006433200E+03
+    0.3296325246E+01
+    0.5032166000E+02
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+NR1       
+NR1       
+NR1       
+NR1       
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.3875409411E+01
+    0.2767691300E+02
+    0.3875409411E+01
+    0.1383845650E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+CT3I      
+CT3I      
+CT3I      
+CT3I      
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.4053589154E+01
+    0.1006433200E+02
+    0.4053589154E+01
+    0.5032166000E+01
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+CN7B      
+CN7B      
+CN7B      
+CN7B      
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.1603617687E+01
+    0.2314796360E+02
+    0.1603617687E+01
+    0.1157398180E+02
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+HR1       
+HR1       
+HR1       
+HR1       
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.2615678627E+01
+    0.3925089480E+01
+    0.2615678627E+01
+    0.1962544740E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+HR3       
+HR3       
+HR3       
+HR3       
+Atom Type Number
+           8
+Nonbond Coefficients
+    0.2351972608E+01
+    0.1107076520E+02
+    0.2351972608E+01
+    0.5535382600E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+HA        
+HA        
+HA        
+HA        
+Atom Type Number
+           9
+Nonbond Coefficients
+    0.2351972608E+01
+    0.1107076520E+02
+    0.2351972608E+01
+    0.5535382600E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+HN7       
+HN7       
+HN7       
+HN7       
+Atom Type Number
+          10
+Nonbond Coefficients
+    0.2387608556E+01
+    0.1207719840E+02
+    0.2387608556E+01
+    0.6038599200E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+HA3       
+HA3       
+HA3       
+HA3       
+Atom Type Number
+          11
+Nonbond Coefficients
+    0.3634866757E+01
+    0.3925089480E+02
+    0.3634866757E+01
+    0.1962544740E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+CT3       
+CT3       
+CT3       
+CT3       
+Atom Type Number
+          12
+Nonbond Coefficients
+    0.3581412835E+01
+    0.2818012960E+02
+    0.3581412835E+01
+    0.1409006480E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+CT2       
+CT2       
+CT2       
+CT2       
+Atom Type Number
+          13
+Nonbond Coefficients
+    0.2387608556E+01
+    0.1409006480E+02
+    0.2387608556E+01
+    0.7045032400E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+HA2       
+HA2       
+HA2       
+HA2       
+Atom Type Number
+          14
+Nonbond Coefficients
+    0.3741774603E+01
+    0.2365118020E+03
+    0.3741774603E+01
+    0.1182559010E+03
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+SBS       
+SBS       
+SBS       
+SBS       
+Atom Type Number
+          15
+Nonbond Coefficients
+    0.3029055631E+01
+    0.6038599200E+02
+    0.3029055631E+01
+    0.3019299600E+02
+Mass
+    0.1599940000E+02
+Element
+ O
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+OBS       
+OBS       
+OBS       
+OBS       
+Atom Type Number
+          16
+Nonbond Coefficients
+    0.3581412835E+01
+    0.2818012960E+02
+    0.3581412835E+01
+    0.1409006480E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+CBS       
+CBS       
+CBS       
+CBS       
+Atom Type Number
+          17
+Nonbond Coefficients
+    0.2387608556E+01
+    0.1409006480E+02
+    0.2387608556E+01
+    0.7045032400E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+HBS       
+HBS       
+HBS       
+HBS       
+Atom Type Number
+          18
+Nonbond Coefficients
+    0.3739992806E+01
+    0.1006433200E+03
+    0.3739992806E+01
+    0.5032166000E+02
+Mass
+    0.3097376100E+02
+Element
+ P
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+P3        
+P3        
+P3        
+P3        
+Atom Type Number
+          19
+Nonbond Coefficients
+    0.3500002510E+01
+    0.3321229560E+02
+    0.3500002510E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+C1P       
+C1P       
+C1P       
+C1P       
+Atom Type Number
+          20
+Nonbond Coefficients
+    0.3500002510E+01
+    0.3321229560E+02
+    0.3500002510E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+C1PR      
+C1PR      
+C1PR      
+C1PR      
+Atom Type Number
+          21
+Nonbond Coefficients
+    0.3500002510E+01
+    0.3321229560E+02
+    0.3500002510E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+C2R       
+C2R       
+C2R       
+C2R       
+Atom Type Number
+          22
+Nonbond Coefficients
+    0.3500002510E+01
+    0.3321229560E+02
+    0.3500002510E+01
+    0.1660614780E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+CT        
+CT        
+CT        
+CT        
+Atom Type Number
+          23
+Nonbond Coefficients
+    0.2500004338E+01
+    0.1509649800E+02
+    0.2500004338E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+H1        
+H1        
+H1        
+H1        
+Atom Type Number
+          24
+Nonbond Coefficients
+    0.2500004338E+01
+    0.1509649800E+02
+    0.2500004338E+01
+    0.7548249000E+01
+Mass
+    0.1007940000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+HC        
+HC        
+HC        
+HC        
+Atom Type Number
+          25
+Nonbond Coefficients
+    0.3545776886E+01
+    0.4025732800E+02
+    0.3545776886E+01
+    0.2012866400E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+CCM       
+CCM       
+CCM       
+CCM       
+Atom Type Number
+          26
+Nonbond Coefficients
+    0.3118145503E+01
+    0.1006433200E+03
+    0.3118145503E+01
+    0.5032166000E+02
+Mass
+    0.1201070000E+02
+Element
+ C
+Bond Pattern
+sp   
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+CN        
+CN        
+CN        
+CN        
+Atom Type Number
+          27
+Nonbond Coefficients
+    0.3296325246E+01
+    0.3019299600E+03
+    0.3296325246E+01
+    0.1509649800E+03
+Mass
+    0.1400670000E+02
+Element
+ N
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+devel     
+Atom Names
+NC        
+NC        
+NC        
+NC        
+Number of Bonded Terms
+          25
+Bond Type Number
+           1
+Bond Style
+           2
+Bond Coefficients
+    0.1361000000E+01
+    0.2063188060E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CPH1       CPH1      
+Bond Type Number
+           2
+Bond Style
+           2
+Bond Coefficients
+    0.1337000000E+01
+    0.2012866400E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NR1        CPH2      
+Bond Type Number
+           3
+Bond Style
+           2
+Bond Coefficients
+    0.1382000000E+01
+    0.2012866400E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NR1        CPH1      
+Bond Type Number
+           4
+Bond Style
+           2
+Bond Coefficients
+    0.1477000000E+01
+    0.1107076520E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NR1        CN7B      
+Bond Type Number
+           5
+Bond Style
+           2
+Bond Coefficients
+    0.1077000000E+01
+    0.1836740590E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CPH1       HR3       
+Bond Type Number
+           6
+Bond Style
+           2
+Bond Coefficients
+    0.1078000000E+01
+    0.1710936440E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CPH2       HR1       
+Bond Type Number
+           7
+Bond Style
+           2
+Bond Coefficients
+    0.1090000000E+01
+    0.1554939294E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN7B       HN7       
+Bond Type Number
+           8
+Bond Style
+           2
+Bond Coefficients
+    0.1524000000E+01
+    0.1006433200E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN7B       CT3I      
+Bond Type Number
+           9
+Bond Style
+           2
+Bond Coefficients
+    0.1092000000E+01
+    0.1620357452E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT3I       HA        
+Bond Type Number
+          10
+Bond Style
+           2
+Bond Coefficients
+    0.1093000000E+01
+    0.1744148736E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CBS        HBS       
+Bond Type Number
+          11
+Bond Style
+           2
+Bond Coefficients
+    0.1842000000E+01
+    0.8987448476E+05
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CBS        SBS       
+Bond Type Number
+          12
+Bond Style
+           2
+Bond Coefficients
+    0.1492000000E+01
+    0.2659499731E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+SBS        OBS       
+Bond Type Number
+          13
+Bond Style
+           2
+Bond Coefficients
+    0.1523000000E+01
+    0.1502101551E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CBS        CT2       
+Bond Type Number
+          14
+Bond Style
+           2
+Bond Coefficients
+    0.1096000000E+01
+    0.1665646946E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT2        HA2       
+Bond Type Number
+          15
+Bond Style
+           2
+Bond Coefficients
+    0.1534000000E+01
+    0.1448257375E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT2        CT2       
+Bond Type Number
+          16
+Bond Style
+           2
+Bond Coefficients
+    0.1532000000E+01
+    0.1471908555E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT2        CT3       
+Bond Type Number
+          17
+Bond Style
+           2
+Bond Coefficients
+    0.1095000000E+01
+    0.1695839942E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT3        HA3       
+Bond Type Number
+          18
+Bond Style
+           2
+Bond Coefficients
+    0.1823000000E+01
+    0.1036626196E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+P3         C1P       
+Bond Type Number
+          19
+Bond Style
+           2
+Bond Coefficients
+    0.1839000000E+01
+    0.1036626196E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+P3         C1PR      
+Bond Type Number
+          20
+Bond Style
+           2
+Bond Coefficients
+    0.1547000000E+01
+    0.1414038646E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C1PR       C2R       
+Bond Type Number
+          21
+Bond Style
+           2
+Bond Coefficients
+    0.1538000000E+01
+    0.1414038646E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2R        C2R       
+Bond Type Number
+          22
+Bond Style
+           2
+Bond Coefficients
+    0.1534000000E+01
+    0.1414038646E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C1P        CT        
+Bond Type Number
+          23
+Bond Style
+           2
+Bond Coefficients
+    0.1092000000E+01
+    0.1710936440E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           4
+Atom Names
+C1P        H1        
+C1PR       H1        
+C2R        HC        
+CT         HC        
+Bond Type Number
+          24
+Bond Style
+           2
+Bond Coefficients
+    0.1408000000E+01
+    0.2163831380E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CCM        CN        
+Bond Type Number
+          25
+Bond Style
+           2
+Bond Coefficients
+    0.1167000000E+01
+    0.6088920860E+06
+Vibration Order
+wild      
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN         NC        
+Number of Angle Terms
+          47
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1071800000E+03
+    0.6541815800E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NR1        CPH1       CPH1      
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1082800000E+03
+    0.6541815800E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CPH1       NR1        CPH2      
+Angle Type Number
+           3
+Angle Style
+           1
+Angle Coefficients
+    0.1090800000E+03
+    0.6541815800E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NR1        CPH2       NR1       
+Angle Type Number
+           4
+Angle Style
+           1
+Angle Coefficients
+    0.1258800000E+03
+    0.6541815800E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CPH2       NR1        CN7B      
+Angle Type Number
+           5
+Angle Style
+           1
+Angle Coefficients
+    0.1258300000E+03
+    0.6541815800E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CPH1       NR1        CN7B      
+Angle Type Number
+           6
+Angle Style
+           1
+Angle Coefficients
+    0.1083300000E+03
+    0.1509649800E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HN7        CN7B       NR1       
+Angle Type Number
+           7
+Angle Style
+           1
+Angle Coefficients
+    0.1089700000E+03
+    0.1786418930E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HN7        CN7B       HN7       
+Angle Type Number
+           8
+Angle Style
+           1
+Angle Coefficients
+    0.1254600000E+03
+    0.1258041500E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HR1        CPH2       NR1       
+Angle Type Number
+           9
+Angle Style
+           1
+Angle Coefficients
+    0.1220900000E+03
+    0.1258041500E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HR3        CPH1       NR1       
+Angle Type Number
+          10
+Angle Style
+           1
+Angle Coefficients
+    0.1307300000E+03
+    0.1258041500E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HR3        CPH1       CPH1      
+Angle Type Number
+          11
+Angle Style
+           1
+Angle Coefficients
+    0.1116900000E+03
+    0.1680743444E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HN7        CN7B       CT3I      
+Angle Type Number
+          12
+Angle Style
+           1
+Angle Coefficients
+    0.1108600000E+03
+    0.1680743444E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA         CT3I       CN7B      
+Angle Type Number
+          13
+Angle Style
+           1
+Angle Coefficients
+    0.1080300000E+03
+    0.1786418930E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA         CT3I       HA        
+Angle Type Number
+          14
+Angle Style
+           1
+Angle Coefficients
+    0.1124400000E+03
+    0.7045032400E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NR1        CN7B       CT3I      
+Angle Type Number
+          15
+Angle Style
+           1
+Angle Coefficients
+    0.1056900000E+03
+    0.1861901420E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HBS        CBS        SBS       
+Angle Type Number
+          16
+Angle Style
+           1
+Angle Coefficients
+    0.1085500000E+03
+    0.1660614780E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HBS        CBS        HBS       
+Angle Type Number
+          17
+Angle Style
+           1
+Angle Coefficients
+    0.1043500000E+03
+    0.3723802840E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+OBS        SBS        CBS       
+Angle Type Number
+          18
+Angle Style
+           1
+Angle Coefficients
+    0.1140700000E+03
+    0.4810750696E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+OBS        SBS        OBS       
+Angle Type Number
+          19
+Angle Style
+           1
+Angle Coefficients
+    0.1129700000E+03
+    0.3099814256E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+SBS        CBS        CT2       
+Angle Type Number
+          20
+Angle Style
+           1
+Angle Coefficients
+    0.1117700000E+03
+    0.2264474700E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HBS        CBS        CT2       
+Angle Type Number
+          21
+Angle Style
+           1
+Angle Coefficients
+    0.1087900000E+03
+    0.2264474700E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA2        CT2        CBS       
+Angle Type Number
+          22
+Angle Style
+           1
+Angle Coefficients
+    0.1062000000E+03
+    0.1761258100E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA2        CT2        HA2       
+Angle Type Number
+          23
+Angle Style
+           1
+Angle Coefficients
+    0.1095900000E+03
+    0.2264474700E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA2        CT2        CT2       
+Angle Type Number
+          24
+Angle Style
+           1
+Angle Coefficients
+    0.1132300000E+03
+    0.2687176644E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CBS        CT2        CT2       
+Angle Type Number
+          25
+Angle Style
+           1
+Angle Coefficients
+    0.1093300000E+03
+    0.2264474700E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA2        CT2        CT3       
+Angle Type Number
+          26
+Angle Style
+           1
+Angle Coefficients
+    0.1112600000E+03
+    0.2264474700E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA3        CT3        CT2       
+Angle Type Number
+          27
+Angle Style
+           1
+Angle Coefficients
+    0.1076200000E+03
+    0.1761258100E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA3        CT3        HA3       
+Angle Type Number
+          28
+Angle Style
+           1
+Angle Coefficients
+    0.1131400000E+03
+    0.2687176644E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT3        CT2        CT2       
+Angle Type Number
+          29
+Angle Style
+           1
+Angle Coefficients
+    0.9710000000E+02
+    0.2918656280E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C1PR       P3         C1PR      
+Angle Type Number
+          30
+Angle Style
+           1
+Angle Coefficients
+    0.1086000000E+03
+    0.2918656280E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C1P        P3         C1P       
+Angle Type Number
+          31
+Angle Style
+           1
+Angle Coefficients
+    0.1128000000E+03
+    0.2918656280E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C1P        P3         C1PR      
+Angle Type Number
+          32
+Angle Style
+           1
+Angle Coefficients
+    0.1042000000E+03
+    0.2767691300E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+P3         C1PR       C2R       
+Angle Type Number
+          33
+Angle Style
+           1
+Angle Coefficients
+    0.1098000000E+03
+    0.2113509720E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+P3         C1PR       H1        
+Angle Type Number
+          34
+Angle Style
+           1
+Angle Coefficients
+    0.1084000000E+03
+    0.2113509720E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+P3         C1P        H1        
+Angle Type Number
+          35
+Angle Style
+           1
+Angle Coefficients
+    0.1152000000E+03
+    0.2767691300E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+P3         C1P        CT        
+Angle Type Number
+          36
+Angle Style
+           1
+Angle Coefficients
+    0.1079000000E+03
+    0.3371551220E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C1PR       C2R        C2R       
+Angle Type Number
+          37
+Angle Style
+           1
+Angle Coefficients
+    0.1126000000E+03
+    0.2264474700E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H1         C1PR       C2R       
+Angle Type Number
+          38
+Angle Style
+           1
+Angle Coefficients
+    0.1087000000E+03
+    0.1761258100E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H1         C1PR       H1        
+Angle Type Number
+          39
+Angle Style
+           1
+Angle Coefficients
+    0.1085000000E+03
+    0.1761258100E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H1         C1P        H1        
+Angle Type Number
+          40
+Angle Style
+           1
+Angle Coefficients
+    0.1101000000E+03
+    0.2264474700E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HC         C2R        C1PR      
+Angle Type Number
+          41
+Angle Style
+           1
+Angle Coefficients
+    0.1109000000E+03
+    0.2264474700E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HC         C2R        C2R       
+Angle Type Number
+          42
+Angle Style
+           1
+Angle Coefficients
+    0.1070000000E+03
+    0.1761258100E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HC         C2R        HC        
+Angle Type Number
+          43
+Angle Style
+           1
+Angle Coefficients
+    0.1110000000E+03
+    0.2264474700E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H1         C1P        CT        
+Angle Type Number
+          44
+Angle Style
+           1
+Angle Coefficients
+    0.1111000000E+03
+    0.2264474700E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HC         CT         C1P       
+Angle Type Number
+          45
+Angle Style
+           1
+Angle Coefficients
+    0.1078000000E+03
+    0.1761258100E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HC         CT         HC        
+Angle Type Number
+          46
+Angle Style
+           1
+Angle Coefficients
+    0.1799999000E+03
+    0.1509649800E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NC         CN         CCM       
+Angle Type Number
+          47
+Angle Style
+           1
+Angle Coefficients
+    0.1200000000E+03
+    0.2214153040E+05
+Angle Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CN         CCM        CN        
+Number of Torsion Terms
+          31
+Torsion Type Number
+           1
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.7045032400E+04
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+NR1        CPH1       CPH1       NR1       
+CPH1       NR1        CPH2       NR1       
+CPH1       CPH1       NR1        CPH2      
+Torsion Type Number
+           2
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.1509649800E+04
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+HR3        CPH1       CPH1       NR1       
+CPH1       NR1        CPH2       HR1       
+HR3        CPH1       NR1        CPH2      
+Torsion Type Number
+           3
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.1006433200E+04
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HR3        CPH1       CPH1       HR3       
+Torsion Type Number
+           4
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.0000000000E+00
+    0.1000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           6
+Atom Names
+CN7B       NR1        CPH2       NR1       
+CN7B       NR1        CPH2       HR1       
+CPH1       CPH1       NR1        CN7B      
+HR3        CPH1       NR1        CN7B      
+HR3        CPH1       NR1        CN7B      
+CPH1       NR1        CN7B       HN7       
+Torsion Type Number
+           5
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.9812723700E+02
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CPH2       NR1        CN7B       HN7       
+Torsion Type Number
+           6
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.5032166000E+02
+    0.3000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CPH2       NR1        CN7B       CT3I      
+Torsion Type Number
+           7
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.1006433200E+03
+    0.4000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CPH1       NR1        CN7B       CT3I      
+Torsion Type Number
+           8
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.0000000000E+00
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA         CT3I       CN7B       NR1       
+Torsion Type Number
+           9
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.9812723700E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA         CT3I       CN7B       HN7       
+Torsion Type Number
+          10
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.8846547828E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+OBS        SBS        CBS        HBS       
+Torsion Type Number
+          11
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.9878141858E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+OBS        SBS        CBS        CT2       
+Torsion Type Number
+          12
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.7749535640E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA2        CT2        CBS        HBS       
+Torsion Type Number
+          13
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.5137841486E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HA2        CT2        CBS        SBS       
+Torsion Type Number
+          14
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.9269249772E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+CT2        CT2        CBS        HBS       
+HA3        CT3        CT2        CT2       
+Torsion Type Number
+          15
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           3
+Torsion Coefficients
+   -0.8196391981E+03
+    0.1000000000E+01
+    0.0000000000E+00
+   -0.1431148010E+03
+    0.2000000000E+01
+    0.3141592654E+01
+    0.5233452640E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT2        CT2        CBS        SBS       
+Torsion Type Number
+          16
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.7749535640E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+HA2        CT2        CT2        HA2       
+HA3        CT3        CT2        HA2       
+Torsion Type Number
+          17
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.9269249772E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+HA2        CT2        CT2        CBS       
+CT3        CT2        CT2        HA2       
+Torsion Type Number
+          18
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           4
+Torsion Coefficients
+    0.2625784219E+03
+    0.1000000000E+01
+    0.0000000000E+00
+   -0.4156569116E+02
+    0.2000000000E+01
+    0.3141592654E+01
+    0.1007439633E+03
+    0.3000000000E+01
+    0.0000000000E+00
+   -0.6783359768E+02
+    0.4000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT3        CT2        CT2        CBS       
+Torsion Type Number
+          19
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.6813552764E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C2R        C1PR       P3         C1PR      
+C2R        C1PR       P3         C1P       
+Torsion Type Number
+          20
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.5575639928E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+H1         C1PR       P3         C1PR      
+H1         C1PR       P3         C1P       
+Torsion Type Number
+          21
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           3
+Torsion Coefficients
+   -0.1953486841E+03
+    0.1000000000E+01
+    0.0000000000E+00
+    0.5942988046E+02
+    0.2000000000E+01
+    0.3141592654E+01
+   -0.4297469764E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2R        C2R        C1PR       P3        
+Torsion Type Number
+          22
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.9208863780E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2R        C2R        C1PR       H1        
+Torsion Type Number
+          23
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.2797884296E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HC         C2R        C1PR       P3        
+Torsion Type Number
+          24
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.8001143940E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HC         C2R        C1PR       H1        
+Torsion Type Number
+          25
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           3
+Torsion Coefficients
+    0.4377984420E+03
+    0.1000000000E+01
+    0.0000000000E+00
+   -0.3950250310E+02
+    0.2000000000E+01
+    0.3141592654E+01
+    0.7019871570E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C1PR       C2R        C2R        C1PR      
+Torsion Type Number
+          26
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.9208863780E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HC         C2R        C2R        C1PR      
+Torsion Type Number
+          27
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.8001143940E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+HC         C2R        C2R        HC        
+HC         CT         C1P        H1        
+Torsion Type Number
+          28
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.6813552764E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+CT         C1P        P3         C1P       
+CT         C1P        P3         C1PR      
+Torsion Type Number
+          29
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.5575639928E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+H1         C1P        P3         C1P       
+H1         C1P        P3         C1PR      
+Torsion Type Number
+          30
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.2797884296E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HC         CT         C1P        P3        
+Torsion Type Number
+          31
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.0000000000E+00
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NC         CN         CCM        CN        
+Number of Improper Terms
+           3
+Improper Type Number
+           1
+Improper Form
+           2
+Improper Style
+           1
+Improper Coefficients
+    0.2516083000E+03
+    0.0000000000E+00
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+CPH2       NR1        NR1        HR1       
+CPH1       CPH1       NR1        HR3       
+Improper Type Number
+           2
+Improper Form
+           2
+Improper Style
+           1
+Improper Coefficients
+    0.3019299600E+03
+    0.0000000000E+00
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NR1        CPH1       CPH2       CN7B      
+Improper Type Number
+           3
+Improper Form
+           2
+Improper Style
+           1
+Improper Coefficients
+    0.1343588322E+05
+    0.0000000000E+00
+Force Field Name
+devel     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CCM        CN         CN         CN        
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

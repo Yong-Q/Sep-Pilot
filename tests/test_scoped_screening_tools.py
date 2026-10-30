@@ -34,7 +34,15 @@ def test_stage_cif_subset_is_sorted_hashed_scoped_and_idempotent(tmp_path, monke
 def _write_result(root: Path, gas: str, material: str, loading: float, sd: float):
     path = root / gas / "298K" / material / "Output" / "System_0" / "result.data"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"Average loading absolute [mol/kg framework] {loading} +/- {sd} [-]\n")
+    from agents.slurm import _gas_preset
+    preset=_gas_preset(gas)
+    native=path.parents[2]
+    (native/"simulation.input").write_text(
+        f"SimulationType MonteCarlo\nFrameworkName {material}\nUnitCells 1 1 1\nComponent 0 MoleculeName {preset['molecule_name']}\n"
+        f"NumberOfCycles 1000\nNumberOfInitializationCycles 2000\nExternalTemperature 298\n"
+        f"ExternalPressure 100000\nForcefield {preset['forcefield']}\n"
+        f"MoleculeDefinition {preset['molecule_definition']}\n")
+    path.write_text(f"Average loading absolute [mol/kg framework] {loading} +/- {sd} [-]\nSimulation finished\n")
 
 
 def test_gcmc_screening_analysis_uses_real_molkg_evidence_and_declares_ratio(tmp_path, monkeypatch):

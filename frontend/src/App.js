@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import './App.css';
 import { graphViewportKey, loadCachedWorkflow, saveCachedWorkflow, selectGraph, retainGraph } from './workflowGraph';
 import { readJsonResponse } from './apiResponse';
+import ResultDeliverables from './ResultDeliverables';
+import ReportRetry from './ReportRetry';
+import { followWorkflowEvents } from './workflowEvents';
 
 const API = '/api';
 const TOKEN_KEY = 'bimem_token';
@@ -10,6 +13,44 @@ const USER_KEY = 'bimem_user';
 function getToken() { return sessionStorage.getItem(TOKEN_KEY); }
 function setToken(t) { sessionStorage.setItem(TOKEN_KEY, t); }
 function clearToken() { sessionStorage.removeItem(TOKEN_KEY); }
+
+const pendingTurnKey = owner => 'bimem_pending_turns_v1:' + owner;
+const historyKey = (owner, convId) => JSON.stringify([owner, convId]);
+let clientTurnSequence = 0;
+// Correlation only, including browsers where randomUUID needs HTTPS.
+const newClientTurnId = () => 'chat_' + (window.crypto?.randomUUID?.() ||
+  Date.now().toString(36) + '_' + (++clientTurnSequence).toString(36) + '_' + Math.random().toString(36).slice(2));
+
+// Server history and unconfirmed user turns have separate lifetimes. Never
+// infer turn identity from text: a user may ask the same question twice.
+function loadPendingTurns(owner, convId) {
+  try {
+    const records = JSON.parse(sessionStorage.getItem(pendingTurnKey(owner)) || '{}');
+    return (records[convId] || []).filter(turn =>
+      typeof turn.content === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(turn.client_turn_id || ''))
+      .map(turn => turn.submission_state === 'sending' ? { ...turn, submission_state: 'uncertain' } : turn);
+  } catch (_) { return []; }
+}
+function savePendingTurns(owner, convId, pending) {
+  try {
+    const records = JSON.parse(sessionStorage.getItem(pendingTurnKey(owner)) || '{}');
+    if (pending.length) records[convId] = pending;
+    else delete records[convId];
+    if (Object.keys(records).length) sessionStorage.setItem(pendingTurnKey(owner), JSON.stringify(records));
+    else sessionStorage.removeItem(pendingTurnKey(owner));
+  } catch (_) { /* Storage may be unavailable; keep the in-memory ledger. */ }
+}
+function confirmsTurn(message, turn) {
+  return message.role === 'user' && (
+    message.client_turn_id === turn.client_turn_id ||
+    (!message.client_turn_id && turn.turn_uid && message.turn_uid === turn.turn_uid)
+  );
+}
+function mergePendingHistory(entry, messages) {
+  entry.messages = Array.isArray(messages) ? messages : [];
+  entry.pending = entry.pending.filter(turn => !entry.messages.some(message => confirmsTurn(message, turn)));
+  return [...entry.messages, ...entry.pending.map(turn => ({ ...turn, role: 'user' }))];
+}
 
 function authHeaders(extra) {
   const h = extra || {};
@@ -710,6 +751,17 @@ export function OperationsDrawer({ workflow, partial, processing }) {
             </div>}
           </section>
 
+          <ReportRetry owner={workflow.scope?.username} convId={workflow.scope?.conv_id}
+            authHeaders={authHeaders} processing={processing} paused={Boolean(runtimeState.user_paused)}
+            revision={JSON.stringify([goal.approved_plan_version, runtimeNodes.filter(node =>
+              node.contract?.tool === 'generate_scientific_report').map(node =>
+              [node.step_id, node.status, node.result_ref?.call_id])])} />
+
+          <ResultDeliverables owner={workflow.scope?.username} convId={workflow.scope?.conv_id}
+            revision={JSON.stringify([goal.approved_plan_version, runtimeNodes.filter(node =>
+              ['generate_scientific_report', 'generate_result_figures'].includes(node.contract?.tool))
+              .map(node => [node.step_id, node.status, node.token])])} authHeaders={authHeaders} />
+
           {liveReports.length > 0 && <section className="runtime-section">
             <div className="runtime-section-title"><span>实时报告</span><span className="runtime-section-note">{liveReports.length} 个分片</span></div>
             <div className="runtime-report-list">
@@ -932,6 +984,69 @@ export default function App() {
   const workflowSnapshotRef = useRef({});
   const workflowCacheRef = useRef({});
   const eventAnswerUidRef = useRef('');
+  const historiesRef = useRef(new Map());
+  const selectionRef = useRef({ owner: null, convId: '', epoch: 0 });
+  const authEpochRef = useRef({ owner: null, epoch: 0 });
+  if (authEpochRef.current.owner !== user) {
+    authEpochRef.current = { owner: user, epoch: authEpochRef.current.epoch + 1 };
+  }
+  if (selectionRef.current.owner !== user || selectionRef.current.convId !== convId) {
+    selectionRef.current = { owner: user, convId, epoch: selectionRef.current.epoch + 1 };
+  }
+  const getHistory = useCallback((owner, id) => {
+    const key = historyKey(owner, id);
+    if (!historiesRef.current.has(key)) {
+      const pending = loadPendingTurns(owner, id);
+      historiesRef.current.set(key, { generation: 0, pending, messages: [], revision: -1, nextRead: 0, committedRead: 0, statusRead: 0,
+        latestClientTurnId: pending[pending.length - 1]?.client_turn_id || '',
+        turnUid: [...pending].reverse().find(turn => turn.turn_uid)?.turn_uid || '' });
+    }
+    return historiesRef.current.get(key);
+  }, []);
+  const historyTicket = useCallback((owner, id) => {
+    const entry = getHistory(owner, id);
+    return { owner, convId: id, generation: entry.generation,
+      epoch: selectionRef.current.epoch, readId: ++entry.nextRead };
+  }, [getHistory]);
+  const currentTicket = useCallback(ticket => {
+    const selected = selectionRef.current;
+    return selected.owner === ticket.owner && selected.convId === ticket.convId &&
+      selected.epoch === ticket.epoch && getHistory(ticket.owner, ticket.convId).generation === ticket.generation;
+  }, [getHistory]);
+  const commitHistory = useCallback((ticket, detail) => {
+    if (!currentTicket(ticket)) return false;
+    const entry = getHistory(ticket.owner, ticket.convId);
+    if (ticket.readId < entry.committedRead) return false;
+    entry.committedRead = ticket.readId;
+    const merged = mergePendingHistory(entry, detail.messages);
+    savePendingTurns(ticket.owner, ticket.convId, entry.pending);
+    setMessages(merged);
+    return true;
+  }, [currentTicket, getHistory]);
+  const acceptStatus = useCallback((ticket, data, checkRevision = false) => {
+    if (!currentTicket(ticket)) return false;
+    const entry = getHistory(ticket.owner, ticket.convId);
+    if (ticket.readId < Math.max(entry.committedRead, entry.statusRead)) return false;
+    const revision = Number(data.revision);
+    if (checkRevision && Number.isFinite(revision) && revision < entry.revision) return false;
+    const uid = String(data.uid || data.current_uid || '');
+    // While POST acknowledgement is unknown, an older idle event is not proof
+    // that this local turn completed. Only history can confirm its identity.
+    if (data.done && entry.pending.some(turn => turn.submission_state === 'sending')) return false;
+    if (entry.turnUid && (!uid || (uid !== entry.turnUid &&
+      (!Number.isFinite(Number(uid)) || Number(uid) < Number(entry.turnUid))))) return false;
+    if (uid) entry.turnUid = uid;
+    if (checkRevision && Number.isFinite(revision)) entry.revision = revision;
+    entry.statusRead = ticket.readId;
+    return true;
+  }, [currentTicket, getHistory]);
+  const reloadHistory = useCallback(async (owner, id) => {
+    const ticket = historyTicket(owner, id);
+    const response = await fetch(API + '/conversations/' + id, { headers: authHeaders() });
+    if (!response.ok) return false;
+    const detail = await readJsonResponse(response);
+    return commitHistory(ticket, detail);
+  }, [historyTicket, commitHistory]);
   const acceptWorkflow = useCallback((next, expectedConvId) => {
     if (!next || next.scope?.conv_id !== expectedConvId) return;
     const revision = Number(next.snapshot_at || 0);
@@ -1024,27 +1139,29 @@ export default function App() {
       setWorkflow(cached);
     }
     let active = true;
+    const ticket = historyTicket(user, convId);
+    const entry = getHistory(user, convId);
+    setMessages([...entry.messages, ...entry.pending.map(turn => ({ ...turn, role: 'user' }))]);
+    if (entry.pending.some(turn => ['sending', 'accepted'].includes(turn.submission_state))) setProcessing(true);
     fetch(API + '/conversations/' + convId, { headers: authHeaders() })
       .then(r => r.ok ? readJsonResponse(r) : null)
       .then(d => {
         if (!active || !d) return;
-        setMessages((d.messages || []).map(m => ({
-          role: m.role, content: m.content, agent: m.agent,
-          execution_logs: m.execution_logs, timestamp: m.timestamp,
-          error: m.error,
-        })));
+        if (!commitHistory(ticket, d)) return;
         // 切换/打开一个**正在处理**的会话时，恢复实时轮询。
         // 否则该会话看起来"任务和响应消失"——后端 agent 其实还在跑，
         // 但前端 processing=false 导致 latest_answer 永不轮询、
         // 新响应/实时进度永不出现。
-        setProcessing(!!d.is_processing);
-        if (!d.is_processing) setPartial(null);
+        if (acceptStatus(ticket, { ...d, done: !d.is_processing })) {
+          setProcessing(!!d.is_processing);
+          if (!d.is_processing) setPartial(null);
+        }
         setInterruptRequested(false);
         setQueuedRedirect('');
         acceptWorkflow(d.workflow, convId);
       }).catch(() => {});
     return () => { active = false; };
-  }, [user, convId, acceptWorkflow]);
+  }, [user, convId, acceptWorkflow, historyTicket, getHistory, commitHistory, acceptStatus]);
 
   // Authenticated server-sent workflow events. Native EventSource cannot send
   // our Bearer header, so use fetch streaming and parse SSE frames. A slow
@@ -1055,6 +1172,28 @@ export default function App() {
     let active = true;
     const applyEvent = async data => {
       if (!active || data.conv_id !== convId) return;
+      const ticket = historyTicket(user, convId);
+      let confirmedDetail = false;
+      if (!acceptStatus(ticket, data, true)) {
+        const entry = getHistory(user, convId);
+        // A completed turn can reach SSE before its POST response. Verify its
+        // identity through read-only history; an idle snapshot alone cannot
+        // end an unacknowledged local submission.
+        if (!currentTicket(ticket) || !data.done || !data.uid ||
+            !entry.pending.some(turn => turn.submission_state === 'sending') ||
+            (entry.turnUid && Number(data.uid) < Number(entry.turnUid)) ||
+            (Number.isFinite(Number(data.revision)) && Number(data.revision) < entry.revision)) return;
+        try {
+          const response = await fetch(API + '/conversations/' + convId, { headers: authHeaders() });
+          if (!response.ok || !active) return;
+          const detail = await readJsonResponse(response);
+          if (!active || !commitHistory(ticket, detail)) return;
+          const verified = { ...data, uid: detail.current_uid || data.uid, done: !detail.is_processing };
+          if (!acceptStatus(ticket, verified, true)) return;
+          data = verified;
+          confirmedDetail = true;
+        } catch (_) { return; }
+      }
       acceptWorkflow(data.workflow, convId);
       setInterruptRequested(!!data.interrupt_requested);
       setQueuedRedirect(data.queued_redirect ? '已排队' : '');
@@ -1074,49 +1213,21 @@ export default function App() {
       const answerKey = convId + ':' + (data.uid || 'idle');
       if (eventAnswerUidRef.current === answerKey) return;
       eventAnswerUidRef.current = answerKey;
+      if (confirmedDetail) return;
       try {
         const response = await fetch(API + '/conversations/' + convId, { headers: authHeaders() });
         if (!response.ok || !active) return;
         const detail = await readJsonResponse(response);
         if (!active) return;
-        setMessages((detail.messages || []).map(message => ({
-          role: message.role, content: message.content, agent: message.agent,
-          execution_logs: message.execution_logs, timestamp: message.timestamp,
-          error: message.error,
-        })));
+        commitHistory(ticket, detail);
       } catch (_) {}
     };
-    const connect = async () => {
-      try {
-        const response = await fetch(API + '/conversations/' + convId + '/events', {
-          headers: authHeaders(), signal: controller.signal,
-        });
-        if (!response.ok || !response.body) throw new Error('event stream unavailable');
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        while (active) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          let boundary;
-          while ((boundary = buffer.indexOf('\n\n')) >= 0) {
-            const frame = buffer.slice(0, boundary);
-            buffer = buffer.slice(boundary + 2);
-            const payload = frame.split('\n').filter(line => line.startsWith('data: '))
-              .map(line => line.slice(6)).join('\n');
-            if (payload) {
-              try { await applyEvent(JSON.parse(payload)); } catch (_) {}
-            }
-          }
-        }
-      } catch (_) {
-        // The low-frequency authoritative polling below covers disconnects.
-      }
-    };
-    connect();
+    followWorkflowEvents({
+      url: API + '/conversations/' + convId + '/events',
+      headers: authHeaders, signal: controller.signal, onEvent: applyEvent,
+    });
     return () => { active = false; controller.abort(); };
-  }, [user, convId, acceptWorkflow]);
+  }, [user, convId, acceptWorkflow, historyTicket, acceptStatus, commitHistory, currentTicket, getHistory]);
 
   // Main model can be idle while workers run. Keep the selected conversation
   // observable and wake the progress poll when a lifecycle event starts a turn.
@@ -1128,12 +1239,13 @@ export default function App() {
       inFlight = true;
       controller = new AbortController();
       const timeout = setTimeout(() => controller?.abort(), 8000);
+      const ticket = historyTicket(user, convId);
       try {
         const res = await fetch(API + '/latest_answer?conv_id=' + convId,
           { headers: authHeaders(), signal: controller.signal });
         if (!res.ok || !active) return;
         const d = await readJsonResponse(res);
-        if (!active) return;
+        if (!active || !acceptStatus(ticket, d)) return;
         acceptWorkflow(d.workflow, convId);
         setInterruptRequested(!!d.interrupt_requested);
         setQueuedRedirect(d.queued_redirect || '');
@@ -1147,10 +1259,7 @@ export default function App() {
           if (!mr.ok || !active) return;
           const md = await readJsonResponse(mr);
           if (!active) return;
-          setMessages((md.messages || []).map(m => ({
-            role: m.role, content: m.content, agent: m.agent,
-            execution_logs: m.execution_logs, timestamp: m.timestamp, error: m.error,
-          })));
+          if (!commitHistory(ticket, md)) return;
           seenUid = d.uid;
           if (md.is_processing) setProcessing(true);
         }
@@ -1164,7 +1273,7 @@ export default function App() {
     pollIdle();
     const interval = setInterval(pollIdle, 30000);
     return () => { active = false; clearInterval(interval); controller?.abort(); };
-  }, [user, convId, processing, acceptWorkflow]);
+  }, [user, convId, processing, acceptWorkflow, historyTicket, acceptStatus, commitHistory]);
 
   // poll progress while processing
   useEffect(() => {
@@ -1172,11 +1281,12 @@ export default function App() {
     let active = true;
     let reloadDone = false;  // 只执行一次完成后的消息回填，避免重复 fetch
     const poll = async () => {
+      const ticket = historyTicket(user, convId);
       try {
         const res = await fetch(API + '/latest_answer?conv_id=' + convId, { headers: authHeaders() });
         if (!res.ok || !active) return;
         const d = await readJsonResponse(res);
-        if (!active) return;
+        if (!active || !acceptStatus(ticket, d)) return;
         // Show partial progress
         setPartial({
           current_agent: d.agent_name || 'Agent',
@@ -1200,14 +1310,10 @@ export default function App() {
           // 既被 setPartial(null) 清掉、又没进 messages，"响应消失"。
           // 先 reload：此时 active 仍为 true（processing 还没改）。
           const mr = await fetch(API + '/conversations/' + convId, { headers: authHeaders() });
-          if (!active) return;
+          if (!active || !currentTicket(ticket)) return;
           if (mr.ok) {
             const md = await readJsonResponse(mr);
-            setMessages((md.messages || []).map(m => ({
-              role: m.role, content: m.content, agent: m.agent,
-              execution_logs: m.execution_logs, timestamp: m.timestamp,
-              error: m.error,
-            })));
+            if (!commitHistory(ticket, md)) return;
           } else {
             // reload 失败兜底：把 d.answer 直接补进 messages，保证答复不消失
             setMessages(p => [...p, { role: 'assistant', content: d.answer || '', timestamp: Date.now() / 1000 }]);
@@ -1222,9 +1328,10 @@ export default function App() {
     };
     const id = setInterval(poll, 15000);
     return () => { active = false; clearInterval(id); };
-  }, [processing, convId, loadConversations, acceptWorkflow]);
+  }, [user, processing, convId, loadConversations, acceptWorkflow, historyTicket, acceptStatus, commitHistory, currentTicket]);
 
   const doNew = async () => {
+    selectionRef.current.epoch += 1;
     setProcessing(false);
     setInterruptRequested(false);
     setQueuedRedirect('');
@@ -1242,6 +1349,7 @@ export default function App() {
 
   const doSwitch = (id) => {
     if (id === convId) return;
+    selectionRef.current = { owner: user, convId: id, epoch: selectionRef.current.epoch + 1 };
     setConvId(id);
     setMessages([]);
     setPartial(null);
@@ -1257,8 +1365,19 @@ export default function App() {
     // 中断(freeze)后允许立即发消息作为重定向：processing 仍为 true 时不阻塞，
     // 后端会把这条消息排队到当前轮停止后执行（不再 429）。
     if (!text || (processing && !interruptRequested) || !convId) return;
+    const owner = user, id = convId;
+    const authEpoch = authEpochRef.current.epoch;
+    const sameOwner = () => authEpochRef.current.owner === owner && authEpochRef.current.epoch === authEpoch;
+    const entry = getHistory(owner, id);
+    if (entry.pending.some(pending => pending.submission_state === 'sending')) return;
+    const turn = { client_turn_id: newClientTurnId(), content: text, timestamp: Date.now() / 1000, submission_state: 'sending' };
+    entry.generation += 1;
+    entry.pending.push(turn);
+    entry.latestClientTurnId = turn.client_turn_id;
+    savePendingTurns(owner, id, entry.pending);
+    const ticket = historyTicket(owner, id);
     setInput('');
-    setMessages(p => [...p, { role: 'user', content: text, timestamp: Date.now() / 1000 }]);
+    setMessages(p => [...p, { ...turn, role: 'user' }]);
     setProcessing(true);
     setInterruptRequested(false);  // 这条消息就是续写指令
     setQueuedRedirect('');
@@ -1270,18 +1389,45 @@ export default function App() {
       const r = await fetch(API + '/query', {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ query: text, conv_id: convId }),
+        body: JSON.stringify({ query: text, conv_id: id, client_turn_id: turn.client_turn_id }),
       });
       const data = await readJsonResponse(r);
+      if (!sameOwner()) return;
       if (!r.ok) {
+        turn.submission_state = 'failed';
+        savePendingTurns(owner, id, entry.pending);
+        if (!currentTicket(ticket)) return;
+        setMessages(previous => previous.map(message => message.client_turn_id === turn.client_turn_id ? { ...message, ...turn } : message));
         setMessages(p => [...p, { role: 'assistant', content: data.detail || 'Error', error: true, timestamp: Date.now() / 1000 }]);
         setProcessing(false);
         setPartial(null);
+      } else {
+        turn.submission_state = 'accepted';
+        turn.turn_uid = String(data.uid || '');
+        if (entry.latestClientTurnId !== turn.client_turn_id) {
+          savePendingTurns(owner, id, entry.pending);
+          return;
+        }
+        entry.turnUid = turn.turn_uid;
+        entry.generation += 1;
+        savePendingTurns(owner, id, entry.pending);
+        if (selectionRef.current.owner !== owner || selectionRef.current.convId !== id || selectionRef.current.epoch !== ticket.epoch) return;
+        // Failure to refresh history does not undo a successful acceptance.
+        try { await reloadHistory(owner, id); } catch (_) {}
       }
       // Success: /api/query returns immediately (done=False).
       // Processing continues in background; polling effect watches latest_answer
       // until done=true, then reloads messages and clears processing.
     } catch (e) {
+      // A transport failure cannot establish whether the server accepted the
+      // query. Keep its identity for history reconciliation; never resend it.
+      if (!sameOwner()) return;
+      if (entry.messages.some(message => confirmsTurn(message, turn))) return;
+      if (turn.submission_state !== 'accepted') turn.submission_state = 'uncertain';
+      savePendingTurns(owner, id, entry.pending);
+      if (entry.latestClientTurnId !== turn.client_turn_id) return;
+      if (selectionRef.current.owner !== owner || selectionRef.current.convId !== id || selectionRef.current.epoch !== ticket.epoch) return;
+      setMessages(previous => previous.map(message => message.client_turn_id === turn.client_turn_id ? { ...message, ...turn } : message));
       setMessages(p => [...p, { role: 'assistant', content: e.message || 'Network error', error: true, timestamp: Date.now() / 1000 }]);
       setProcessing(false);
       setPartial(null);
@@ -1317,6 +1463,10 @@ export default function App() {
   };
 
   const doLogout = async () => {
+    authEpochRef.current = { owner: null, epoch: authEpochRef.current.epoch + 1 };
+    selectionRef.current = { owner: null, convId: '', epoch: selectionRef.current.epoch + 1 };
+    sessionStorage.removeItem(pendingTurnKey(user));
+    historiesRef.current.clear();
     try { await fetch(API + '/logout', { method: 'POST', headers: authHeaders() }); } catch (e) {}
     clearToken();
     sessionStorage.removeItem(USER_KEY);
@@ -1375,7 +1525,10 @@ export default function App() {
               return (
                 <div key={i} className={cls}>
                   {m.role === 'user' ? (
-                    <div className="message-content">{m.content}</div>
+                    <div className="message-content">{m.content}
+                      {m.submission_state === 'failed' && <small role="status">（发送失败，未自动重发）</small>}
+                      {m.submission_state === 'uncertain' && <small role="status">（发送状态待核对，未自动重发）</small>}
+                    </div>
                   ) : (
                     <React.Fragment>
                       <div className="message-header">

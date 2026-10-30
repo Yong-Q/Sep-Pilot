@@ -1,0 +1,24 @@
+# critical constants: Temperature [T], Pressure [Pa], and Acentric factor [-]. Created by AutoFF
+647.13
+22055007.45
+0.344861
+#Number Of Atoms
+3
+#Number Of Group
+1
+# h2o-group
+rigid
+#number of atoms
+3
+# atomic positions
+0      O001        -2.043   1.491   0.016
+1      H002         -2.326   2.152   0.677
+2      H002         -1.067   1.523   0.048
+# Chiral centers Bond  BondDipoles Bend  UrayBradley InvBend  Torsion Imp. Torsion Bond/Bond Stretch/Bend Bend/Bend Stretch/Torsion Bend/Torsion IntraVDW IntraCoulomb
+               0    2            0    0            0       0        0            0         0            0         0               0            0        0            0
+# Bond stretch: atom n1-n2, type, parameters
+               0 1 RIGID_BOND
+               1 2 RIGID_BOND
+# Number of config moves
+               0
+

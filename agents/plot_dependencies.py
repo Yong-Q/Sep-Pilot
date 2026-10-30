@@ -1,0 +1,2 @@
+"""Single native dependency closure for plot implementation identity; no cache grant."""
+PLOT_IMPLEMENTATIONS = ('agents/plot_render_audit.py', 'agents/plot_sandbox.py', 'agents/plot_sandbox_worker.py', 'agents/plot_input_adapter.py', 'agents/md_result_facts.py', 'agents/adsorption_summary.py', 'agents/workload_budget.py', 'agents/workspace.py', 'agents/result_guidance.py', 'agents/raspa_assets.py', '.claude/skills/result-guidance-manifest.json', 'agents/plot_dependencies.py')

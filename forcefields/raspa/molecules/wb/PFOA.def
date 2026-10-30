@@ -1,0 +1,62 @@
+# critical constants: Temperature [T], Pressure [Pa], and Acentric factor [-]. Created by AutoFF
+635
+ 1598999.895
+0.65
+#Number Of Atoms
+11
+#Number Of Group
+1
+# 1-group
+flexible
+#number of atoms
+11
+# atomic positions
+0      O_C         
+1      O=C       
+2      CF2        
+3      CF2        
+4      CF2        
+5      CF2         
+6      CF2        
+7      CF2_C        
+8      CF3        
+9      C_F2        
+10     H_O         
+# Chiralcenters Bond BondDipoles Bend UrayBradley InvBend Torsion Imp.Torsion Bond/Bond Stretch/Bend Bend/Bend Stretch/Torsion Bend/Torsion IntraVDW IntraCoulomb
+0  10  0  10  0  0  9  1  0  0  0  0  0  0
+# Bond stretch: atom n1-n2, type, parameters
+0          9          HARMONIC_BOND   388489.4488      1.3640
+0          10         HARMONIC_BOND   556556.5945      0.9700
+1          9          HARMONIC_BOND   573666.4195      1.2140
+2          3          HARMONIC_BOND   261676.9237      1.5400
+2          4          HARMONIC_BOND   261676.9237      1.5400
+3          5          HARMONIC_BOND   261676.9237      1.5400
+4          6          HARMONIC_BOND   261676.9237      1.5400
+5          7          HARMONIC_BOND   261676.9237      1.5400
+6          8          HARMONIC_BOND   261676.9237      1.5400
+7          9          HARMONIC_BOND   316025.5955      1.5200
+# Bond bending: atom n1-n2-n3, type, parameters
+9          0          10       HARMONIC_BEND    55400.1102    107.0000
+3          2          4        HARMONIC_BEND    62500.0301    114.0000
+2          3          5        HARMONIC_BEND    62500.0301    114.0000
+2          4          6        HARMONIC_BEND    62500.0301    114.0000
+3          5          7        HARMONIC_BEND    62500.0301    114.0000
+4          6          8        HARMONIC_BEND    62500.0301    114.0000
+5          7          9        HARMONIC_BEND    62500.0301    114.0000
+0          9          1        HARMONIC_BEND    80514.4291    123.0000
+0          9          7        HARMONIC_BEND    70450.7569    111.0000
+1          9          7        HARMONIC_BEND    62499.5490    126.0000
+# Torsion n1-n2-n3-n4 type
+10         0          9          1          SIX_COSINE_IMPROPER_DIHEDRAL     2767.7074      0.0000  -2767.7074      0.0000      0.0000      0.0000
+10         0          9          7          SIX_COSINE_IMPROPER_DIHEDRAL     3145.1221   -377.4147  -2767.7074      0.0000      0.0000      0.0000
+5          3          2          4          SIX_COSINE_IMPROPER_DIHEDRAL      940.4095   -282.6400   1355.2289   6799.9584  -7875.1933 -14167.8429
+6          4          2          3          SIX_COSINE_IMPROPER_DIHEDRAL      940.4095   -282.6400   1355.2289   6799.9584  -7875.1933 -14167.8429
+7          5          3          2          SIX_COSINE_IMPROPER_DIHEDRAL      940.4095   -282.6400   1355.2289   6799.9584  -7875.1933 -14167.8429
+8          6          4          2          SIX_COSINE_IMPROPER_DIHEDRAL      940.4095   -282.6400   1355.2289   6799.9584  -7875.1933 -14167.8429
+5          7          9          0          SIX_COSINE_IMPROPER_DIHEDRAL     1240.9702    826.0305    304.5296   -460.0418     -4.5703      0.0000
+9          7          5          3          SIX_COSINE_IMPROPER_DIHEDRAL      940.4095   -282.6400   1355.2289   6799.9584  -7875.1933 -14167.8429
+5          7          9          1          OPLS_DIHEDRAL        0.0000    -95.8571   1546.2214     -3.9690
+# improper torsion atom n1-n2-n3-n4
+9          0          1          7          CVFF_IMPROPER_DIHERAL    5283.8051      2.0000    180.0000
+# Number of config moves
+0

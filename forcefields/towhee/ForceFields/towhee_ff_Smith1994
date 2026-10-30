@@ -1,0 +1,70 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           2
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+LB or Geometric               
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.2350000000E+01
+    0.6541815800E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.2299000000E+02
+Element
+Na
+Bond Pattern
+ion  
+Base Charge 
+    0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Smith1994 
+Atom Names
+Na        
+null      
+null      
+null      
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.4400000000E+01
+    0.5032166000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3545300000E+02
+Element
+Cl
+Bond Pattern
+ion  
+Base Charge 
+   -0.1000000000E+01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Smith1994 
+Atom Names
+Cl        
+null      
+null      
+null      
+Number of Bonded Terms
+           0
+Number of Angle Terms
+           0
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

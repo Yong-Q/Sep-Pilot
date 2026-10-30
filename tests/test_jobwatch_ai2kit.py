@@ -22,9 +22,15 @@ def test_translate_squeue_state():
     assert slurm.translate_squeue_state("PD") == {"status": "PENDING", "terminal": False, "failed": False}
     assert slurm.translate_squeue_state("R") == {"status": "RUNNING", "terminal": False, "failed": False}
     assert slurm.translate_squeue_state("CD") == {"status": "COMPLETED", "terminal": True, "failed": False}
-    for code in ("CA", "F", "NF", "TO", "DL", "RV", "SE"):
+    for code in ("CA", "F", "NF", "TO", "DL", "RV"):
         s = slurm.translate_squeue_state(code)
         assert s["terminal"] is True and s["failed"] is True, code
+    # Slurm SPECIAL_EXIT is a held requeue flag, not a terminal outcome.
+    # https://slurm.schedmd.com/job_state_codes.html
+    assert slurm.translate_squeue_state('SE')=={'status':'SPECIAL_EXIT','terminal':False,'failed':False}
+    unknown=slurm.translate_squeue_state('UNRECOGNIZED_TEST_STATE')
+    assert unknown['status']=='UNRECOGNIZED_TEST_STATE'and unknown['terminal']is False and unknown['failed']is False
+    assert slurm.translate_squeue_state('UNKNOWN')=={'status':'UNKNOWN','terminal':False,'failed':False}
 
 
 def test_batch_fetch_states_cache():

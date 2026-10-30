@@ -34,10 +34,12 @@ def _tool(name):
 find_cif = _tool("find_cif")
 query_literature = _tool("query_literature")
 download_scientific_file = _tool("download_scientific_file")
+read_scientific_document = _tool("read_scientific_document")
 inspect_path = _tool("inspect_path")
 inspect_run = _tool("inspect_run")
 stage_cif_subset = _tool("stage_cif_subset")
 analyze_gcmc_screening = _tool("analyze_gcmc_screening")
+analyze_cdft_screening = _tool('analyze_cdft_screening')
 
 run_gcmc_isotherm = _tool("run_gcmc_isotherm")
 run_gcmc_batch = _tool("run_gcmc_batch")
@@ -68,6 +70,10 @@ submit_job = _tool("submit_job")
 run_henry_chain = _tool("run_henry_chain")
 run_isotherm_chain = _tool("run_isotherm_chain")
 generate_scientific_report = _tool("generate_scientific_report")
+plot_result_code = _tool("plot_result_code")
+run_analysis_sandbox = _tool("run_analysis_sandbox")
+read_result_guidance = _tool("read_result_guidance")
+
 validate_gcmc_results = _tool("validate_gcmc_results")
 
 read_file = _tool("read_file")
@@ -92,8 +98,12 @@ discard_workflow_patch = _tool('discard_workflow_patch')
 revalidate_workflow_node_outputs = _tool('revalidate_workflow_node_outputs')
 finish_workflow_node = _tool('finish_workflow_node')
 repair_workflow_runtime_inputs = _tool('repair_workflow_runtime_inputs')
+requeue_local_preparation = _tool('requeue_local_preparation')
+prepare_cdft_partial_recovery = _tool('prepare_cdft_partial_recovery')
 cancel_watched_job = _tool('cancel_watched_job')
 get_tool_schema = _tool('get_tool_schema')
+inspect_runtime = _tool('inspect_runtime')
+inspect_workflow_result = _tool('inspect_workflow_result')
 discover_forcefield = _tool('discover_forcefield')
 inspect_forcefield = _tool('inspect_forcefield')
 validate_framework_charges = _tool('validate_framework_charges')
@@ -104,9 +114,9 @@ request_user_decision = _tool('request_user_decision')
 reconcile_watched_job = _tool('reconcile_watched_job')
 
 # General-purpose file/shell tools — every agent gets these as base capability
-_GENERAL_TOOLS = [read_file, write_file, run_bash, grep_search, inspect_path, inspect_run,
-                  download_scientific_file, analyze_diffusion_msd,
-                  get_tool_schema, discover_forcefield, inspect_forcefield,
+_GENERAL_TOOLS = [read_file, read_scientific_document, write_file, run_bash, grep_search, inspect_path, inspect_run,
+                  find_cif, download_scientific_file, analyze_diffusion_msd,
+                  get_tool_schema, inspect_runtime, inspect_workflow_result, check_job, diagnose_job, list_my_jobs, discover_forcefield, inspect_forcefield,
                   validate_framework_charges, convert_physical_units, task_line_query,
                   task_line_update, recovery_state, prepare_retry, accept_recovered_result,
                   lifecycle_state, propose_workflow_patch]
@@ -117,8 +127,10 @@ _COMMON_RULES = """## 通用基础能力 · ReAct 工作循环 · 反思（所�
 - read_file(path, offset, limit) — 查看任意文件内容（分页/截断）
 - write_file(path, content, mode) — 生成/修改文件（自动建目录）。**只能写入项目根目录内**（如 runs/、tmp/、output/），禁止写项目外或覆盖后端源码/配置（会被拒绝并返回原因）
 - run_bash(command, timeout, cwd) — 执行 shell 命令（返回 exit_code + stdout/stderr）
+- 对需自行编写 Python 处理已有数据的任务，可由 analyst/communicator 使用 run_analysis_sandbox：读取当前会话的真实输入，隔离执行并产生声明的 CSV/JSON/文本；协调者先查真实 schema，再按授权编排，不能把沙盒产物自动视为科学验收。
 - grep_search(pattern, path, include) — 搜索文件内容
 - download_scientific_file(url, output_path, expected_sha256, max_bytes) — 受控 HTTPS 科学文件下载，自带 SSRF/大小/哈希/session 路径保护；禁止用 run_bash/curl 绕过
+- PDF/HTML文献必须用 read_scientific_document(path, expected_sha256, start_page, max_pages) 读取实际正文；保留页/段锚点和截断标记。query_literature(web_only=True) 可直接做Web元数据检索，下载原始publisher/PDF链接再读正文；不要把题录或摘要当作全文已核实。
 - analyze_diffusion_msd(trajectory_path, timestep_ps, ...) — 只从已经存在的真实、解缠坐标 CSV/LAMMPS 轨迹计算 MSD、拟合区间、R²、分块不确定度和 m²/s 扩散系数。当前 run_md_optimize 仅做裸框架松弛，不插入客体也不产轨迹，绝不能拿它报告 guest diffusion；没有其他真实轨迹来源时应形成能力缺口证据，不得编造。
 - task_line_query(...) — 读取当前结构化计划、依赖、参数、作业与产物
 - task_line_update(step_id, status, evidence, ...) — 非作业步骤完成/失败时用可核查证据更新节点；不得无证据标记 completed
@@ -277,6 +289,19 @@ def handoff_to_patcher(task: str = "", context: str = "") -> AgentResult:
         context_variables={"delegated_task": task, "delegation_context": context},
     )
 handoff_to_patcher.__name__ = "handoff_to_patcher"
+
+
+def handoff_to_operations(task: str = '', context: str = '') -> AgentResult:
+    """Delegate administrative recovery using the main Session's native authority."""
+    # Session replaces this function with _delegate_operations. Calling this
+    # function alone creates no authority and cannot execute an operation.
+    return AgentResult(value='Administrative delegation requires the bound Session.',agent=OPERATIONS,
+        context_variables={'delegated_task':task,'delegation_context':context})
+
+
+def _operations_return(task: str = '', context: str = '') -> AgentResult:
+    return AgentResult(value=task,agent=ORCHESTRATOR,context_variables={'operations_report':context})
+_operations_return.__name__='handoff_to_lead-orchestrator'
 
 
 # ── Lead Orchestrator ───────────────────────────────────────────────
@@ -444,7 +469,7 @@ ORCHESTRATOR = Agent(
 - 需要**诊断失败作业**（获取 stderr/run.log、RASPA 错误原因、修复建议）→ harness + diagnose_job
 - 目录/文件的常规查证无需委派：你直接使用 inspect_path、inspect_run、read_file、run_bash、grep_search；目录使用inspect_path，不用read_file。
 - 常规文件操作已是基础能力，仍须遵守会话路径、目标与资源租约门禁。复杂环境维护可委派harness。
-- **重要**：你没有 submit_job/check_job/diagnose_job 工具，真实作业提交/监控/诊断必须走已批准具体节点或对应专业角色，不编造job_id；“直接执行”不等于清除DAG或绕过防重复派发。
+- 真实作业提交由已批准DAG节点负责；可以直接用check_job/diagnose_job检查本会话作业，用inspect_runtime验证安装与执行器修复，再凭实际诊断和验证证据申请prepare_retry。不能编造job_id或绕过防重复派发。
 
 ### 需要同时路由到两个Agent的场景（按顺序）：
 - "电荷分析 + 吸附验证" → 先analyst（PACMOF/PACMAN 电荷）→ 再adsorption（GCMC验证）或 analyst（经典 cDFT），按用户指定方法执行
@@ -463,11 +488,12 @@ handoff_to_xxx(task="具体的、有针对性的任务描述", context="与任�
     functions=[
         handoff_to_adsorption, handoff_to_analyst,
         handoff_to_communicator, handoff_to_harness, handoff_to_monitor,
-        handoff_to_patcher, retarget_queued_job, cancel_watched_job, apply_workflow_patch, discard_workflow_patch, revalidate_workflow_node_outputs, finish_workflow_node, repair_workflow_runtime_inputs,
+        handoff_to_patcher, handoff_to_operations, retarget_queued_job, cancel_watched_job, apply_workflow_patch, discard_workflow_patch, revalidate_workflow_node_outputs, finish_workflow_node, repair_workflow_runtime_inputs, requeue_local_preparation, prepare_cdft_partial_recovery,
         *_GENERAL_TOOLS,
     ],
-    handoff_to=["adsorption", "analyst", "communicator", "harness", "monitor", "patcher"],
+    handoff_to=["adsorption", "analyst", "communicator", "harness", "monitor", "patcher", "operations"],
     max_turns=50,
+    skill_files=[".claude/skills/parallel-task-executor/SKILL.md"],
 )
 
 
@@ -535,7 +561,7 @@ ADSORPTION = Agent(
         check_job, diagnose_job, submit_job,
         run_henry_chain, run_isotherm_chain,
         generate_scientific_report, validate_gcmc_results,
-        analyze_gcmc_screening,
+        analyze_gcmc_screening, analyze_cdft_screening,
         *_GENERAL_TOOLS,
     ],
     max_turns=20,
@@ -562,7 +588,7 @@ ANALYST = Agent(
 - VASP calculation: run_vasp(cif=..., task='single_point')
 - Binding energy: calc_binding_energy(cif=..., gas=...)
 - Feature extraction: extract_features(cif_dir=...)
-- ML training: ml_train(data_csv=真实特征标签表, target=标签列, model_type='RF'|'GBR'|'Ridge', output_dir=session内新目录) — **必须用此工具训练模型，不要自己写代码**。缺数据、缺标签或样本不足会明确失败，绝不生成合成/随机标签；保存可复现 pipeline、交叉验证和留出集指标
+- ML training: ml_train(data_csv=真实特征标签表, target=标签列, model_type='RF'|'GBR'|'Ridge', output_dir=session内新目录) — **必须用此工具训练模型，不要自己写代码**。缺数据、缺标签或样本不足会明确失败，不补造标签；用户明确提供的工程 fixture 必须保留 synthetic_fixture 来源，不能冒称科学验证；保存原生 model.json、模型卡和来源分区指标；返回提交回执后先用 ml_inspect_result 核对真实终态
 - ML prediction: ml_predict(model_dir=..., cif_path=...) — **必须用此工具预测，不要自己写代码**
 - Feature importance: ml_feature_importance(model_dir=...)
 - Active learning: ml_active_learning(model_dir=..., cif_dir=...)
@@ -574,7 +600,7 @@ ANALYST = Agent(
 
 ## GA+ML 优化工作流程（必须按顺序执行）
 1. **确定目标值**: 根据用户应用场景、单位和文献/实验依据明确目标；未给出阈值时保留为待验证科学选择，不套用别的体系的固定数值。
-2. **训练ML模型**: ml_train(data_csv=真实表, target=真实标签列, model_type='RF', output_dir=session内新目录) — 生成 model.joblib、model_metadata.json、test_predictions.csv；主动学习不确定性必须使用 RF 集成
+2. **训练ML模型**: ml_train(data_csv=真实表, target=真实标签列, model_type='RF', output_dir=session内新目录) — 返回原生 Slurm 回执，先 ml_inspect_result，再使用实际 model.json/model_metadata.json/预测表；主动学习不确定性必须使用 RF 集成
 3. **候选选择**: ml_active_learning(model_dir=..., cif_dir=..., strategy='uncertainty')；只有 RF 集成可给不确定性
 4. **真实验证**: 对所选候选用一次合并计算获取真实标签，并把路径/job_id/单位写回 DAG
 5. **如果验证失败**: 如实保留失败分支，不得回退随机特征、手工公式或随机标签
@@ -623,15 +649,16 @@ ANALYST = Agent(
 - inspect_run is for workflow run_ids — for a SLURM job use check_job / diagnose_job with the numeric job_id.
 
 ## Output
+When existing functions cannot perform a bounded data transformation, use run_analysis_sandbox: read owned original inputs in isolation, author Python yourself, declare fresh CSV/JSON/text outputs and their structural constraints, and pass verified artifact paths through DAG input_bindings. A valid file or schema is not scientific acceptance; preserve unknowns and failure evidence.
 Provide concise, human-readable results: quantitative data (charge/energy/loading tables), a 1-2 sentence physical conclusion, and (when relevant) one line comparing to literature. No background padding or step-by-step narration. Keep the thinking chain ([思考]/[观察]) detailed — only the final report must be tight.""",
-    functions=[
+    functions=[plot_result_code, run_analysis_sandbox, read_result_guidance,
         inspect_path, inspect_run, find_cif,
         query_literature, run_pore_analysis, calc_binding_energy, extract_features,
         run_cdft, run_pacman_charge, run_vasp,
         ml_train, ml_predict, ml_feature_importance, ml_active_learning,
         ml_template_plan, ml_active_learning_plan,
         validate_ga_result, build_mof_database,
-        analyze_gcmc_screening,
+        analyze_gcmc_screening, analyze_cdft_screening,
         check_job, diagnose_job,
         *_GENERAL_TOOLS,
     ],
@@ -667,7 +694,7 @@ COMMUNICATOR = Agent(
 - 必须引用查询到的文献（标注来源）
 - 数据表格必须基于实际计算结果
 - 结构：背景→文献综述→方法→结果→讨论→结论→参考文献""",
-    functions=[
+    functions=[plot_result_code, run_analysis_sandbox, read_result_guidance,
         query_literature, inspect_path, find_cif,
         extract_features, run_pore_analysis,
         generate_scientific_report,
@@ -775,6 +802,7 @@ worker_recovery_ready携带结构化recovery能力时，明确要求主chat调�
                discover_forcefield, inspect_forcefield, validate_framework_charges, convert_physical_units,
                query_literature, supervisor_decision],
     max_turns=3,
+    skill_files=[".claude/skills/parallel-task-executor/SKILL.md"],
 )
 
 PATCHER = Agent(
@@ -789,9 +817,9 @@ PATCHER = Agent(
 - 委派消息会带缺陷描述 + 证据（报错、日志、文件路径）；以委派消息为准，不要擅自扩大范围
 
 ## 工作范围（只限框架仓库）
-- ✅ `/home/user/gcmc_agent/BiMemAgent-claude-sdk/**`（agents/*.py、api.py、tools/cdft/**、frontend/、config 等）
+- ✅ 当前运行时注入的项目根目录（agents/*.py、api.py、tools/cdft/**、frontend/、config 等）；使用该根目录或项目相对路径，不把示例安装路径当成真实目录。
 - ✅ SDK 内置数据文件（如 tools/cdft/cDFT_Initialization/Molecule_FF/UFF/*.def、data_ff_Coarsening_gas）
-- ❌ 绝不修改外部软件/用户数据：/home/user/RASPA2/、High_Batch_tool、用户 CIF/数据/输出目录
+- ❌ 绝不修改项目外部软件安装、High_Batch_tool、用户 CIF/数据/输出目录
 - ❌ 绝不 submit_job / scancel / 运行任何科学计算程序
 
 ## 工作流程（诊断→定位→修补→验证→收尾）
@@ -808,7 +836,7 @@ PATCHER = Agent(
 - 不要为了"显得做了事"而过度改动；最小修复 + 验证通过即收尾。""",
     functions=[
         read_file, write_file, run_bash, grep_search, inspect_path,
-        check_job, restart_backend, run_project_regressions, build_project_frontend,
+        check_job, inspect_runtime, get_tool_schema, restart_backend, run_project_regressions, build_project_frontend,
     ],
     max_turns=20,
     skill_files=[".claude/skills/software-delivery/SKILL.md"],
@@ -816,6 +844,26 @@ PATCHER = Agent(
 
 
 # ── Agent Registry ──────────────────────────────────────────────────
+
+OPERATIONS = Agent(
+    name='operations',
+    instructions='''你是应用管理员与任务运维恢复智能体。主chat通过原生授权委派你，负责当前用户任务的技术恢复。
+复用正式控制接口处理暂停后恢复、作业取消与终态对账、资源预算更新、执行器切换、技术DAG修复和幂等重新激活。
+先读取当前任务与原生作业证据；取消请求不等于已取消，UNKNOWN不能释放租约或触发重复计算。
+科学方法、材料、气体、温度、压力、力场及已有验证门槛保持用户授权。资源由统一评审计算，不猜节点和核数。
+已完成结果保留，仅修受影响分支。代码接口缺陷委派patcher，使用现有诊断、验证与重试许可，不绕过恢复账本。
+你拥有应用控制面权限，调用仍受原生用户/会话/目标/回执校验。科学计算由批准的执行节点提交，科学验收和最终交付交回主chat。
+完成或遇到需要改变科学范围的决定时，带真实操作回执交回主chat。''',
+    functions=[task_line_query,recovery_state,lifecycle_state,inspect_runtime,resource_health,
+        assess_job_resources,check_job,diagnose_job,list_my_jobs,read_file,grep_search,get_tool_schema,
+        cancel_watched_job,retarget_queued_job,reconcile_watched_job,propose_workflow_patch,
+        apply_workflow_patch,discard_workflow_patch,revalidate_workflow_node_outputs,
+        repair_workflow_runtime_inputs,requeue_local_preparation,prepare_cdft_partial_recovery,prepare_retry,_tool('execute_workflow'),
+        _tool('message_workflow_node'),restart_backend,handoff_to_patcher,_operations_return],
+    max_turns=16,
+)
+
+ORCHESTRATOR.instructions += '\n遇到需要执行的调度、暂停恢复、预算变更、取消后重新激活或执行器衔接问题，可handoff_to_operations委派应用管理员；原生控制接口验证当前用户授权和任务归属，主chat继续负责科学条件与最终交付。'
 
 AGENT_REGISTRY: Dict[str, Agent] = {
     "lead-orchestrator": ORCHESTRATOR,
@@ -826,6 +874,7 @@ AGENT_REGISTRY: Dict[str, Agent] = {
     "monitor": MONITOR,
     "supervisor": SUPERVISOR,
     "patcher": PATCHER,
+    "operations": OPERATIONS,
 }
 
 # Alias map for flexible routing
@@ -838,6 +887,8 @@ AGENT_ALIASES: Dict[str, str] = {
     "harness-maintainer": "harness",
     "job-monitor": "monitor",
     "framework-patcher": "patcher",
+    "root": "operations",
+    "admin": "operations",
     "修补": "patcher",
     "code-fixer": "patcher",
 }
@@ -935,6 +986,8 @@ ORCHESTRATOR.functions.extend([ml_template_plan, ml_active_learning_plan])
 ORCHESTRATOR.functions.extend([_tool('execute_workflow'), _tool('message_workflow_node')])
 ORCHESTRATOR.functions.append(_tool('resolve_local_workflow_write'))
 ORCHESTRATOR.functions.append(_tool('record_workflow_draft'))
+ORCHESTRATOR.functions.append(_tool('resolve_preparation_defaults'))
+ORCHESTRATOR.instructions += '\n用户已明确授权计算并检查必要准备时，先查原生工具schema.default和缺项恢复链。已存在且不冲突用户约束的准备默认不是新增科学条件，不要让用户重复选；例如先准备、验证再计算。若已因默认路线产生待答问题，且唯一未决项确为该准备默认，调用resolve_preparation_defaults绑定decision_id/tool_name/parameter记录真实默认来源，再编译完整DAG。无原生默认、真实物理条件缺失、明确禁准备/指定其他方法、外部身份或撤回审批仍须协商；不得默认跳过准备或校验。'
 ORCHESTRATOR.instructions += '\n提出科研方案前，先record_workflow_draft保存从输入/准备到验证、分析、结论/报告的完整节点、agent、依赖、缺失参数和最终completion_criteria；严禁先保存或执行第一步、再承诺后续追加。已明确的科学方法不得重复询问。草案不提交计算，参数完整后必须一次propose_workflow_patch编译全部草案节点；运行中只有真实错误或用户改变科学合同才建立版本化局部补丁。图和文字必须来自同一份持久化方案。'
 ORCHESTRATOR.instructions += '''
 ## 混合串并行执行器
@@ -966,3 +1019,72 @@ ORCHESTRATOR.instructions += '''
 ANALYST.instructions += '''
 Uni-MOF族方案先检查真实manifest的来源哈希、固定划分和训练集归一化，再用ml_template_plan；主动学习用ml_active_learning_plan，只传已揭示的TRAIN标签。模板不执行训练；不得把吸附标签当膜渗透率。
 '''
+
+
+for _result_agent in (ANALYST, COMMUNICATOR):
+    _result_agent.instructions += """
+## 原生绘图与DAG交付
+当任务需要图时，自己根据真实结果表编写Python代码，调用plot_result_code；不是固定图形模板。
+先读实际CSV列/单位/方法/缺值，脚本读/inputs/tableN.csv和/inputs/audit.json，仅写/output/*.png。
+必须标注单位/方法/来源，缺值不能补零或伪造；未知单位明确写unspecified，异方法分组并说明适用限制。
+将绘图设为结果分析之后的独立DAG节点（analyst或communicator），依赖真实数据节点，声明会话内新output_dir及实际PNG和manifest.json expected_outputs；最终报告依赖绘图节点并引用真实产物。
+工具保留代码/来源SHA/输入快照/运行记录，收到rendered_needs_review后查看PNG并核对脚本和数据；需修正时用新目录重跑。图片生成不等于科学验收，未验收结果只能明确标为未验证/部分结果。
+若sandbox_unavailable，报告隔离条件缺失，不得退回run_bash或普通Python执行LLM绘图代码。
+"""
+
+for _result_agent in (ANALYST, COMMUNICATOR):
+    _result_agent.skill_files.append('.claude/skills/result-guidance/SKILL.md')
+
+# Evidence-grounded result delivery capabilities; normal user intent selects the graph.
+generate_result_figures = _tool('generate_result_figures')
+for _delivery_agent in (ANALYST, COMMUNICATOR):
+    _delivery_agent.functions.append(generate_result_figures)
+ORCHESTRATOR.instructions += """
+Scientific result delivery includes authored narrative, actual tables and requested figures.
+Delegate data analysis/LLM Python sandbox plotting to analyst and scientific prose to
+communicator. Compile these as normal dependency nodes; a request for a figure must
+appear in the graph, with a report depending on its actual PNG and manifest.
+For task-specific code that reads owned data and produces reusable CSV/JSON/text,
+discover run_analysis_sandbox and assign it to analyst or communicator. Declare
+actual artifacts and bind downstream inputs using the schema; use sandbox feedback
+to repair code without routing generated Python through a general shell. The
+ordinary user approval and scientific constraint checks remain authoritative.
+For a figure node use generate_result_figures(source_steps, instructions, output_dir):
+the runtime analyst writes Python code after reading actual data, so the planner
+must not generate a fixed script or schedule a shell for plotting.
+Read current tool schemas rather than falling back to run_bash Python. Existing
+evidence-index files are audit artifacts, not a complete scientific manuscript.
+"""
+COMMUNICATOR.instructions += """
+generate_scientific_report(source_steps=...) invokes an isolated writing/review stage
+inside the owned DAG worker. It reads actual output tables and existing figures,
+not only submit receipts. Use new output paths for regenerated fragments; preserve
+methods, units, uncertainty, unknown convergence and source provenance. Old report
+fragments that are only JSON indexes need reauthoring, not concatenation into a
+claimed final report. Figure gaps require normal plot nodes, never invented images.
+"""
+
+# Native ML result/dataflow controls; model execution stays with the analyst.
+ml_inspect_result = _tool('ml_inspect_result')
+ml_append_labels = _tool('ml_append_labels')
+for _native_ml_tool in (ml_inspect_result, ml_append_labels):
+    if _native_ml_tool not in ANALYST.functions: ANALYST.functions.append(_native_ml_tool)
+for _native_ml_observer in (ORCHESTRATOR, SUPERVISOR, MONITOR):
+    for _native_ml_tool in (ml_inspect_result, ml_feature_importance):
+        if _native_ml_tool not in _native_ml_observer.functions: _native_ml_observer.functions.append(_native_ml_tool)
+ANALYST.instructions += """
+## 原生 ML 作业与标签链路
+ml_train 支持 GBR（默认）、RF、Ridge，模型由经过资源审核的 Slurm worker 训练。
+输入是已有标签 CSV 或真实 dataset manifest；不为通过测试生成标签。用户已提供的工程 fixture 要保留 synthetic_fixture 标记。
+训练/预测/选样返回 job_id/work_dir 是提交回执，尚非结果；调用 ml_inspect_result(job_id=...) 或 work_dir 精确核验真实终态、原生模型路径、源和工件 SHA。
+不要假定 model.joblib 存在，不加载未经验证的 pickle。用实际 model_dir 调 ml_predict，输入可为单 CIF、CIF 目录或按训练列命名的 CSV。
+需要特征重要性时 ml_feature_importance 只读模型卡；不申请资源，不训练，不把相关性当因果证据。
+主动学习的 uncertainty 仅支持 RF 集成离散度；GBR/Ridge 用 max_prediction，不伪造置信度。
+选样后将真实收到的外部 labels_csv 送 ml_append_labels，再由新的 ml_train 作业重训；固定 VALID/TEST 不揭示/不回填，已标记与在途候选不重复领取。
+缺标签则报告所缺来源，等待真实验证或用户补充；沙盒用于适配缺失输入协议，不得生成假标签或绕过原生作业/结果验收。
+"""
+ORCHESTRATOR.instructions += """
+ML DAG 使用 analyst 的原生 train/predict/acquisition 工具，提交后把 ml_inspect_result 作为只读结果入口；主chat也可读回执。
+feature importance 是只读元数据，不是计算任务。labels append 改原生数据版本但不提交作业，随后按依赖启动新的训练节点。
+旧 model.joblib 迁移问题应从原来源表重训，不在后端盲目反序列化。保留训练算法 GBR/RF/Ridge 与已有 CIF/CSV 预测输入，不把交付缩成 RF-only。
+"""

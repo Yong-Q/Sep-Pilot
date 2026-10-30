@@ -1,0 +1,142 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           5
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+wild                          
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3404000000E+01
+    0.1177000000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3994800000E+02
+Element
+Ar
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1642000000E+01
+Force Field Name
+Shukla1987
+Atom Names
+Ar        
+null      
+null      
+null      
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3622000000E+01
+    0.1641100000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.8380000000E+02
+Element
+Kr
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.2484000000E+01
+Force Field Name
+Shukla1987
+Atom Names
+Kr        
+null      
+null      
+null      
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3948000000E+01
+    0.2278600000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1312900000E+03
+Element
+Xe
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.4017000000E+01
+Force Field Name
+Shukla1987
+Atom Names
+Xe        
+null      
+null      
+null      
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.3733000000E+01
+    0.1499200000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1604260000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.2600000000E+01
+Force Field Name
+Shukla1987
+Atom Names
+CH4       
+null      
+null      
+null      
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.3607000000E+01
+    0.1003100000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.2801400000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1740000000E+01
+Force Field Name
+Shukla1987
+Atom Names
+N2        
+null      
+null      
+null      
+Number of Bonded Terms
+           0
+Number of Angle Terms
+           0
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

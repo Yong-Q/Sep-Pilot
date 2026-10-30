@@ -17,6 +17,36 @@ _SHA256 = re.compile(r"[0-9a-fA-F]{64}\Z")
 _SPLITS = ("train", "valid", "test")
 
 
+def native_dataset_planner_mismatch(manifest, planner):
+    """Explain the executable/native versus legacy-template capability boundary.
+
+    Native dataset wrappers are not legacy planning manifests. Never fabricate
+    normalization/provenance, infer a trained model, select labels or dispatch a
+    replacement tool merely to make the older planner accept such a wrapper.
+    """
+    native = manifest.get('schema') if isinstance(manifest, Mapping) else None
+    if (not isinstance(native, Mapping) or not isinstance(native.get('split'), Mapping)
+            or not isinstance(native.get('features'), list) or not native.get('target')
+            or not manifest.get('feature_csv') or not manifest.get('label_csv')
+            or isinstance(manifest.get('split'), Mapping)):
+        return None
+    target = {'ml_active_learning_plan': 'ml_active_learning', 'ml_template_plan': 'ml_train'}.get(planner)
+    if target is None:
+        return None
+    return {'error': 'Native ML dataset manifest supplied to a legacy template-only planner. '
+                     'Use the executable native capability for training or candidate acquisition; '
+                     'a template is not a trained model, selected sample, or output file.',
+            'error_kind': 'ml_capability_mismatch', 'manifest_format': 'native_ml_dataset',
+            'requested_planner': planner, 'available_tool': target,
+            'next_action': {'tool': 'get_tool_schema', 'arguments': {'tool_name': target}},
+            'requires_user': False, 'executed': False, 'scientific_execution': False,
+            'retry_granted': False,
+            'workflow_requirements': ['Preserve the original held-out split and label provenance.',
+                'Acquisition depends on an owned verified model produced by native ml_train.',
+                'Preserve the user-requested selection count explicitly; do not guess it.',
+                'Use only real native result paths and a versioned authorized workflow repair.']}
+
+
 def _provenance(manifest: Mapping[str, Any]) -> str:
     digest = manifest.get("source_csv_sha256") or manifest.get("source_record_audit_sha256")
     if not isinstance(digest, str) or not _SHA256.fullmatch(digest):

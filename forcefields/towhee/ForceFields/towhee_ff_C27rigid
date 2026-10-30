@@ -1,0 +1,109 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           2
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.4000135231E+00
+    0.2314796360E+02
+    0.4000135231E+00
+    0.2314796360E+02
+Mass
+    0.1008000000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+C27rigid  
+Atom Names
+HT        
+HT        
+HT        
+HT        
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3150574216E+01
+    0.7653924486E+02
+    0.3150574216E+01
+    0.7653924486E+02
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+C27rigid  
+Atom Names
+OT        
+OT        
+OT        
+OT        
+Number of Bonded Terms
+           1
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.9572000000E+00
+Vibration Order
+wild      
+Force Field Name
+C27rigid  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+OT         HT        
+Number of Angle Terms
+           1
+Angle Type Number
+           1
+Angle Style
+           0
+Angle Coefficients
+    0.1045200000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+C27rigid  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HT         OT         HT        
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           1
+Bond Increment Type Number
+           1
+Bond Increment Value
+    0.4170000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+C27rigid  
+Atom Names
+HT         OT        

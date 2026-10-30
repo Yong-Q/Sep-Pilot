@@ -123,6 +123,9 @@ def test_resource_agent_budget_can_submit_to_busy_capacity(tool):
         'tool_profiles':{'run_cdft':{'default_cpus':4,'partition_preference':['compute']}}},
         'nodes':{'n':{'name':'n','partitions':['compute'],'states':['alloc'],'cpus':{'idle':0,'total':40},
                      'memory_mib':64000,'memory':{'verified':True,'available_for_scheduling_mib':0}}}}
+    if tool == 'run_string_tst':
+        # Busy GPU capacity is queueable; a CPU-only fixture is incompatible.
+        snapshot['nodes']['n']['gpus'] = {'verified': True, 'total': 1, 'allocated': 1, 'available': 0}
     session=SimpleNamespace(memory=SimpleNamespace(tool_call_log=[{'tool':'resource_health','call_id':'proof'}]),
                             _load_evidence_call=lambda c:{'result':json.dumps({'node_inventory':snapshot})})
     receipt=allocate_reviewed_resources(session, {'nodes':[{'step_id':'x','tool':tool,'arguments':{'action':'submit'}}]},

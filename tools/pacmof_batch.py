@@ -59,8 +59,6 @@ def main():
     parser.add_argument('--completion-policy', choices=('best_effort', 'strict'), default='best_effort')
     args = parser.parse_args()
 
-    import sys
-    sys.path.insert(0, '/home/user/pacmof')
     from pacmof.pacmof import get_charges_single_serial
 
     def charge_one(cif, output_dir):

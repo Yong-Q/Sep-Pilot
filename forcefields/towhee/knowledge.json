@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "scope": "Reviewed facts for the copied Towhee implementation, not universal atom assignment",
+  "framework_charge_policy": {
+    "default_source": "independently assigned and approved CIF charges (PACMAN/PACMOF or validated DFT charge workflow), not forcefield Base Charge/bond increments",
+    "requirements": ["complete per-site charges", "declared source and expected cell net charge", "charge-sum check consistent with symmetry/occupancy", "counterion/ionic-framework treatment approved when non-neutral"],
+    "forbidden_actions": ["infer framework charges from this forcefield catalog", "silently replace existing CIF charges", "fill missing framework charges with zero", "force significant residual onto one atom to make the sum zero"],
+    "guest_scope": "Guest molecular charges remain a separate validated molecular model; framework policy does not overwrite OPLS/TIP4P guest charges."
+  },
+  "groups": {
+    "water": ["TIP3P", "TIP4P", "TIP5P", "SPC-E"],
+    "OPLS": ["OPLS-aa", "OPLS-ua", "OPLS-1996", "OPLS-2001"]
+  },
+  "forcefields": {
+    "UFF": {
+      "sources": ["https://towhee.sourceforge.net/forcefields/uff.html", "towhee_ff_UFF"],
+      "type_label_convention": "The third character is a geometry code, NOT generally a coordination number or oxidation state: 1 linear, 2 trigonal, R resonant, 3 tetrahedral, 4 square planar, 5 trigonal bipyramidal, 6 octahedral. Suffixes distinguish additional states, including metal charge-state labels.",
+      "iron_type_labels": {"Fe3+2": "tetrahedral geometry code 3, +2 label", "Fe6+2": "octahedral geometry code 6, +2 label"},
+      "iron_coefficient_consistency": "In the copied towhee_ff_UFF, Fe3+2 and Fe6+2 have identical first two nonbond coefficients: 2.594297067 and 6.5418158. Their geometry coefficient at zero-based index 5 differs (109.47 versus 90.0); it is NOT an epsilon of 9.0 or 90.0 K. These records do not support a 27% well-depth difference. Preserve potential-dependent coefficient semantics; numeric arrays use the same zero-based order as raw arrays.",
+      "forbidden_inference": "Fe3+2 is not Fe(III), Fe6+2 is not Fe(VI), and geometry code 3 does not mean three-coordinate. The +2 label is not a final per-site partial charge. No automatic assignment to an unspecified structure is justified.",
+      "charge_scope": "Original UFF parameters were derived without atomic point charges; adding independently approved framework CIF charges defines an additional electrostatic model requiring validation, not original UFF charge assignment. Never infer zero or +2 partial charges from these labels or the catalog."
+    },
+    "COMPASSv1": {
+      "sources": ["https://towhee.sourceforge.net/forcefields/compass.html", "https://docs.lammps.org/pair_class2.html", "https://docs.lammps.org/pair_modify.html", "https://docs.lammps.org/pair_lj96.html", "towhee_ff_COMPASSv1"],
+      "potential_formula": "E(r) = epsilon * [2*(sigma/r)^9 - 3*(sigma/r)^6]; sigma is the minimum-energy distance in this convention, not the 12-6 LJ zero-crossing distance.",
+      "well_depth_check": "Both this COMPASS 9-6 convention and standard 4*epsilon*[(sigma/r)^12-(sigma/r)^6] have minimum E=-epsilon and well depth epsilon. The 12-6 prefactor 4 does NOT mean a well depth of 4*epsilon.",
+      "engine_unit_boundary": "Towhee raw epsilon is in kelvin (epsilon/k_B). LAMMPS lj/class2 epsilon must use the selected LAMMPS energy units. For real/metal units, raw kelvin values cannot be used unchanged: an explicit validated unit conversion is required. lj/class2 names only the pair potential, not a full bonded/electrostatic model or a project execution adapter.",
+      "sixthpower_mixing": {
+        "sigma_ij": "((sigma_i^6 + sigma_j^6)/2)^(1/6)",
+        "epsilon_ij": "2*sqrt(epsilon_i*epsilon_j)*sigma_i^3*sigma_j^3/(sigma_i^6+sigma_j^6)",
+        "self_pair_check": "When i=j, sigma_ij=sigma_i and epsilon_ij=epsilon_i. A harmonic-mean expression without the sqrt prefactor fails this check."
+      },
+      "lammps_reference": "lj/class2 is the documented COMPASS 9-6 style with sixthpower epsilon/sigma mixing. lj96/cut uses a different normalization and cannot consume these raw parameters unchanged. A named engine style is not an implemented project adapter.",
+      "conversion_limits": "9-6 and 12-6 cannot be made identical at every distance by changing two coefficients. A fitted approximation changes the model and needs scientific validation and explicit user approval; do not silently replace the forcefield.",
+      "charge_scope": "Towhee supports guest bond-increment assignment with verified types/connectivity. This project's copied increment table is not yet parsed/assigned; it never overrides the independent approved framework CIF charge workflow."
+    },
+    "OPLS-aa": {
+      "sources": ["https://towhee.sourceforge.net/forcefields/oplsaa.html", "towhee_ff_OPLS-aa"],
+      "atom_environments": {
+        "C k": "carbonyl carbon in C=O, not bonded to N, not an acid group; not a benzene or propane carbon type"
+      },
+      "molecular_charge_assignment": "Requires the chosen molecule's validated OPLS charge model or literature evidence. This copied file has zero Bond Increments; Base Charge cannot supply a complete increment-based charge assignment.",
+      "forbidden_inference": "Do not invent a bond-increment table or assume all OPLS molecular charges are Base Charge plus increments."
+    },
+    "TIP4P": {
+      "sources": ["https://towhee.sourceforge.net/forcefields/tip4p.html", "towhee_ff_TIP4P"],
+      "representation": "original rigid four-site TIP4P implementation; not automatically TIP4P/2005 or TIP4P/ice",
+      "site_charges_e": {"H": 0.52, "O": 0.0, "M": -1.04},
+      "charge_source": "Towhee official TIP4P documentation, not the zero Base Charge fields",
+      "geometry_in_original_file": {"O-H_angstrom": 0.9572, "O-M_angstrom": 0.15, "H-O-H_degrees": 104.52},
+      "virtual_site": "M lies on the H-O-H bisector; oxygen is the LJ site, M carries the negative point charge",
+      "forbidden_inference": "Do not put -1.04 on oxygen or claim the original file lacks geometry. Unparsed bonded sections are not absent sections."
+    }
+  },
+  "global_limits": [
+    "Preserved original bonded coefficients are not a parsed/assigned bonded model.",
+    "Exact chemical environments, coordination, oxidation state and charge sources must be checked before atom assignment.",
+    "A substring query with zero matches does not establish absence of a whole scientific model family.",
+    "Larger atom-type counts or element presence do not establish applicability."
+  ]
+}

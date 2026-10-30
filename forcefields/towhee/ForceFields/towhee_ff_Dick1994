@@ -1,0 +1,145 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           1
+Potential Type
+12-6 plus 12-10 H-bond        
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.2850875888E+01
+    0.1006433200E+03
+    0.2850875888E+01
+    0.5032166000E+02
+Mass
+    0.1400700000E+02
+Element
+ N
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Weiner1986
+Atom Names
+NN        
+NN        
+NN        
+NN        
+Number of Bonded Terms
+           2
+Bond Type Number
+           1
+Bond Style
+           2
+Bond Coefficients
+    0.1195500000E+01
+    0.2264474700E+06
+Vibration Order
+wild      
+Force Field Name
+Weiner1986
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NN         O         
+Bond Type Number
+           2
+Bond Style
+           2
+Bond Coefficients
+    0.1402600000E+01
+    0.1509649800E+06
+Vibration Order
+wild      
+Force Field Name
+Weiner1986
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+OS         NN        
+Number of Angle Terms
+           3
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1150000000E+03
+    0.3522516200E+05
+Angle Order
+wild           
+Force Field Name
+Weiner1986
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+O          NN         OS        
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1303300000E+03
+    0.3522516200E+05
+Angle Order
+wild           
+Force Field Name
+Weiner1986
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+O          NN         O         
+Angle Type Number
+           3
+Angle Style
+           1
+Angle Coefficients
+    0.1132000000E+03
+    0.3522516200E+05
+Angle Order
+wild           
+Force Field Name
+Weiner1986
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+NN         OS         CT        
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+          19
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.4528949400E+03
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+Weiner1986
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       NN         OS         wild      
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0
+Number of H-bond Types
+           0

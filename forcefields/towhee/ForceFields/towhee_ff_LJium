@@ -1,0 +1,129 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           2
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+LB or Geometric               
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.1000000000E+01
+    0.1000000000E+01
+    0.1000000000E+01
+    0.1000000000E+01
+Mass
+    0.6022045700E+00
+Element
+lj
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+LJium     
+Atom Names
+lj1.0     
+lj        
+lj        
+lj        
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.1000000000E+01
+    0.1000000000E+01
+    0.1000000000E+01
+    0.1000000000E+01
+Mass
+    0.6022045700E+00
+Element
+lj
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+LJium     
+Atom Names
+lj1.0_FENE
+ljFENE    
+lj        
+lj        
+Number of Bonded Terms
+           2
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.1000000000E+01
+Vibration Order
+wild      
+Force Field Name
+LJium     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lj         lj        
+Bond Type Number
+           2
+Bond Style
+          12
+Bond Coefficients
+    0.1500000000E+01
+    0.3000000000E+02
+Vibration Order
+wild      
+Force Field Name
+LJium     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+ljFENE     ljFENE    
+Number of Angle Terms
+           1
+Angle Type Number
+           1
+Angle Style
+           6
+Angle Coefficients
+Angle Order
+wild           
+Force Field Name
+LJium     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lj         lj         lj        
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+           8
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Torsion Coefficients
+Torsion Order
+wild           
+Force Field Name
+LJium     
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+lj         lj         lj         lj        
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

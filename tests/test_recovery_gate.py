@@ -45,6 +45,35 @@ def test_persistent_single_claim_and_uncertain_outcome(tmp_path):
         b.approve('task', 'fp2', {})
 
 
+def test_verified_executor_repair_allows_same_inputs_but_invalidates_on_further_edit(tmp_path):
+    from agents.installations import executor_fingerprint
+    adapter = tmp_path / 'agents/registry.py'
+    adapter.parent.mkdir()
+    adapter.write_text('broken = True\n')
+    gate = RecoveryGate()
+    aid, _ = gate.claim('task', 'generate_structure', {}, 'inputs', project_root=tmp_path)
+    gate.outcome('task', aid, {'error': 'adapter failed'})
+    adapter.write_text('broken = False\n')
+    proof = {'ok': True, 'read_only': True, 'verified_tool': 'generate_structure', 'checked_arguments': {},
+             'runtime_fingerprint': executor_fingerprint('generate_structure', tmp_path)}
+    gate.approve('task', 'inputs', {}, runtime_verification=proof)
+    adapter.write_text('another = True\n')
+    assert gate.claim('task', 'generate_structure', {}, 'inputs', project_root=tmp_path)[0] is None
+    adapter.write_text('broken = False\n')
+    assert gate.claim('task', 'generate_structure', {}, 'inputs', project_root=tmp_path)[0]
+
+
+def test_unchanged_runtime_or_wrong_tool_cannot_approve_same_inputs(tmp_path):
+    from agents.installations import executor_fingerprint
+    gate = RecoveryGate()
+    aid, _ = gate.claim('task', 'generate_structure', {}, 'inputs', project_root=tmp_path)
+    gate.outcome('task', aid, {'error': 'failed'})
+    proof = {'ok': True, 'read_only': True, 'verified_tool': 'generate_structure', 'checked_arguments': {},
+             'runtime_fingerprint': executor_fingerprint('generate_structure', tmp_path)}
+    with pytest.raises(ValueError, match='changed executor'):
+        gate.approve('task', 'inputs', {}, runtime_verification=proof)
+
+
 def test_changed_interpreter_recovers_only_explicitly_unexecuted_preflight(tmp_path):
     gate = RecoveryGate()
     attempt, _ = gate.claim('structure', 'generate_structure', {}, 'inputs')
@@ -224,6 +253,57 @@ def test_full_review_allows_verified_file_only_fix(tmp_path):
     assert permit['ok'] and permit['single_use']
     attempt, reason = s.recovery_gate.claim(key, 'run_henry', args, input_fingerprint(args, tmp_path))
     assert attempt and not reason
+
+
+@pytest.mark.parametrize('reviewed_resources', [False, True])
+def test_prepare_retry_accepts_real_stdout_trace_and_native_runtime_verification(tmp_path, reviewed_resources):
+    from agents.installations import executor_fingerprint
+    s = Session(config=AgentConfig(api_key='test', project_root=tmp_path))
+    s.goal_contract = GoalContract.from_user_message('生成MOF')
+    args = {'material_type': 'MOF', 'n_structures': 1, 'output_dir': str(tmp_path / 'output')}
+    step_id = 'generate' if reviewed_resources else ''
+    if reviewed_resources:
+        s.goal_contract.approved_nodes = [{'step_id': step_id, 'tool': 'generate_structure', 'arguments': args.copy()}]
+        args.update(memory_mb=8192, cpus_per_task=1, nodelist='node1', partition='compute')
+    key = s.recovery_gate.key('generate_structure', args, s.goal_contract.version, node=step_id, project_root=tmp_path)
+    source = tmp_path / 'agents/registry.py'
+    source.parent.mkdir()
+    source.write_text('old = True\n')
+    aid, _ = s.recovery_gate.claim(key, 'generate_structure', args, input_fingerprint(args, tmp_path), project_root=tmp_path)
+    s.recovery_gate.outcome(key, aid, {'job_id': '42', 'failed': True, 'error': 'missing database'})
+    s.memory.record_tool_call('lead-orchestrator', 'diagnose_job', {'job_id': '42'},
+                             json.dumps({'terminal': True, 'failed': True, 'stdout_tail': 'Traceback: missing database'}))
+    diag = s.memory.tool_call_log[-1]['call_id']
+    source.write_text('repaired = True\n')
+    proof = {'ok': True, 'read_only': True, 'verified_tool': 'generate_structure', 'checked_arguments': args,
+             'runtime_fingerprint': executor_fingerprint('generate_structure', tmp_path)}
+    s.memory.record_tool_call('lead-orchestrator', 'inspect_runtime', {'tool_name': 'generate_structure', 'arguments': args}, json.dumps(proof))
+    verify = s.memory.tool_call_log[-1]['call_id']
+    if reviewed_resources:
+        with pytest.raises(ValueError, match='approved task identity'):
+            s._prepare_retry(key, 'generate_structure', {**args, 'n_structures': 2}, 'Database path was wrong', diag,
+                             'Configured database path is now resolved', verify)
+        assert s.recovery_gate.snapshot()[key]['approved_fingerprint'] is None
+    retry_args = {k: v for k, v in args.items() if k not in {'memory_mb', 'cpus_per_task', 'nodelist', 'partition'}} if reviewed_resources else args
+    assert s._prepare_retry(key, 'generate_structure', retry_args, 'Database path was wrong', diag,
+                            'Configured database path is now resolved', verify)['ok']
+    assert s.recovery_gate.snapshot()[key]['approved_fingerprint'] == input_fingerprint(args, tmp_path)
+
+
+def test_legacy_science_only_permit_can_reuse_only_original_resources(tmp_path):
+    source = tmp_path / 'input.cif';source.write_text('original input')
+    args = {'cif': str(source), 'gas': 'Kr', 'memory_mb': 8192, 'cpus_per_task': 1}
+    gate = RecoveryGate()
+    aid, _ = gate.claim('task', 'run_henry', args, input_fingerprint(args, tmp_path), project_root=tmp_path)
+    gate.outcome('task', aid, {'error': 'failed'})
+    science = {'cif': str(source), 'gas': 'Kr'}
+    gate.approve('task', input_fingerprint(science, tmp_path), {}, arguments=science)
+    changed = {**args, 'memory_mb': 16384}
+    assert gate.claim('task', 'run_henry', changed, input_fingerprint(changed, tmp_path), project_root=tmp_path)[0] is None
+    source.write_text('unverified edit')
+    assert gate.claim('task', 'run_henry', args, input_fingerprint(args, tmp_path), project_root=tmp_path)[0] is None
+    source.write_text('original input')
+    assert gate.claim('task', 'run_henry', args, input_fingerprint(args, tmp_path), project_root=tmp_path)[0]
 
 
 def test_cosmetic_and_ignored_argument_changes_are_not_fixes(tmp_path):

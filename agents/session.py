@@ -16,7 +16,9 @@ from .agent import Agent, AgentResult
 from .goal_contract import GoalContract
 from .registry import ToolRegistry, get_registry
 from .config import AgentConfig, get_config
-from .recovery import RecoveryGate, failure_reason, input_fingerprint, is_submission, result_object
+from .recovery import RecoveryGate, failure_reason, input_fingerprint, is_submission, result_object, tool_failure_reason
+from .codex_provider import CodexToolArgumentError
+from .provider_tool_json import malformed_tool_json, MalformedProviderToolJSON
 
 
 class LLMUnavailableError(Exception):
@@ -102,7 +104,7 @@ class SessionMemory:
             "time": time.time(),
             "agent": agent_name, "tool": tool_name,
             "params": copy.deepcopy(params or {}), "result_preview": result[:500],
-            "result": result[:50000],
+            "result": result, "result_sha256": hashlib.sha256(result.encode('utf-8')).hexdigest(),
             "failed": bool(failed),
         }
         self.tool_call_log.append(entry)
@@ -351,8 +353,11 @@ class Session:
         self._on_workflow_message = None
         self._on_workflow_resolve = None
         self._on_workflow_revalidate = None
+        self._on_workflow_result_inspect = None
         self._on_workflow_finish = None
         self._on_workflow_runtime_repair = None
+        self._on_local_preparation_requeue = None
+        self._on_cdft_partial_prepare = None
         self._runtime_snapshot = None
         self._on_tool_guard = None
         self._control_source = None
@@ -488,7 +493,7 @@ class Session:
         _tool_n = len(self.memory.agent_memories.get(agent_name, {}).get("tool_call_log", []))
         lines = [
             f"[{agent_name} 退场报告]",
-            f"· 委派任务完成。本轮工具调用: {_tool_n} 次。",
+            f"· 委派回合已返回；任务完成情况以执行与验收证据为准。累计工具调用: {_tool_n} 次。",
             f"· 已提交/跟踪作业: {'; '.join(job_lines) if job_lines else '无'}",
             f"· 交付内容摘要: {final_text[:800] if final_text else '(无文本交付)'}",
         ]
@@ -511,31 +516,54 @@ class Session:
                 pass  # Don't let callback errors break execution
 
     def _checkpoint(self, reason: str, partial_results=None):
-        """Persist after each tool and before submission; never silently ignore I/O failure."""
+        """Durable evidence first; optional display runs in its own owner lane."""
         if not self._on_checkpoint:
             return
-        state = self.export_state()
-        if partial_results is not None:
-            messages = self._json_safe(self.messages)
-            if messages and messages[-1].get('role') == 'assistant':
-                results = self._json_safe(partial_results)
-                have = {r.get('tool_use_id') for r in results}
-                for block in messages[-1].get('content', []):
-                    if block.get('type') == 'tool_use' and block.get('id') not in have:
-                        results.append({'type': 'tool_result', 'tool_use_id': block['id'],
-                                        'content': '[CHECKPOINT] call not executed or outcome unknown; inspect recovery ledger before resuming'})
-                messages.append({'role': 'user', 'content': results})
-            state['messages'] = self._pair_trimmed_blocks(self._trim_messages(messages, max_tokens=100000))
-        state['checkpoint_reason'] = reason
-        self._on_checkpoint(state, reason)
-        self._persist_chain(reason, state)
-        if getattr(self, '_on_chain_committed', None):
-            self._on_chain_committed()
-        self._last_checkpoint_at = state['checkpoint_at']
+        checkpoint_started = time.monotonic()
+        import threading
+        lock=self.__dict__.setdefault('_durable_checkpoint_lock',threading.Lock())
+        with lock:
+            locked_at = time.monotonic()
+            state=self.export_state()
+            if partial_results is not None:
+                messages=self._json_safe(self.messages)
+                if messages and messages[-1].get('role')=='assistant':
+                    results=self._json_safe(partial_results)
+                    have={r.get('tool_use_id') for r in results}
+                    for block in messages[-1].get('content',[]):
+                        if block.get('type')=='tool_use' and block.get('id')not in have:
+                            results.append({'type':'tool_result','tool_use_id':block['id'],
+                                'content':'[CHECKPOINT] call not executed or outcome unknown; inspect recovery ledger before resuming'})
+                    messages.append({'role':'user','content':results})
+                state['messages']=self._pair_trimmed_blocks(self._trim_messages(messages,max_tokens=100000))
+            state['checkpoint_reason']=reason
+            exported_at = time.monotonic()
+            self._on_checkpoint(state,reason)
+            saved_at = time.monotonic()
+            self._last_checkpoint_at=state['checkpoint_at']
+        self._persist_chain(reason,state)
+        projected_at = time.monotonic()
+        if getattr(self,'_on_chain_committed',None):self._on_chain_committed()
+        timings = self.context.setdefault('checkpoint_timings', [])
+        timings.append({'reason': str(reason)[:128], 'time': time.time(),
+            'lock_wait_seconds': round(locked_at-checkpoint_started, 6),
+            'export_seconds': round(exported_at-locked_at, 6),
+            'save_seconds': round(saved_at-exported_at, 6),
+            'display_request_seconds': round(projected_at-saved_at, 6),
+            'total_seconds': round(time.monotonic()-checkpoint_started, 6)})
+        del timings[:-8]
 
     def _persist_chain(self, reason, state=None):
         if not (self._evidence_root and self._current_line_id and self._runtime_snapshot):
             return
+        request=getattr(self,'_on_display_request',None)
+        if callable(request):
+            try:return request(reason)
+            except Exception as error:
+                # Evidence is already durable. A later request or Runtime
+                # reconstruction recovers the latest primary checkpoint.
+                self._last_display_error=type(error).__name__
+                return {'display_pending':True,'error':type(error).__name__}
         from .orchestration_chain import sync_chain
         from .task_line import get_store
         # Only the main conversation owns goals, branches and pending decisions.
@@ -587,7 +615,7 @@ class Session:
         from .workflow_view import authoritative_line
         line = get_store().get_line(self._current_line_id) if self._current_line_id else {}
         runtime = self._runtime_snapshot() if self._runtime_snapshot else {}
-        return authoritative_line(line, runtime)
+        return authoritative_line(line, runtime,self.goal_contract.to_dict())
 
     def _restore_workflow_approval(self, runtime, owner):
         from .workflow_view import restore_approved_nodes
@@ -608,7 +636,7 @@ class Session:
         if self.goal_contract.approved_plan_version and not self.goal_contract.approved_nodes:
             return {'ok': False, 'reason': 'approved_contract_missing', 'blockers': []}
         return workflow_completion(line, runtime, self.goal_contract.approved_nodes,
-                                   self.goal_contract.approved_plan_version)
+                                   self.goal_contract.approved_plan_version,self.goal_contract.to_dict())
 
     def _task_line_query(self, **params):
         from .registry import _exec_task_line_query
@@ -616,7 +644,7 @@ class Session:
         if result.get('ok') and 'steps' in result:
             from .workflow_view import authoritative_line
             line = {**result, **{k: self._workflow_view().get(k) for k in ('username', 'conv_id')}}
-            view = authoritative_line(line, self._runtime_snapshot() if self._runtime_snapshot else {})
+            view = authoritative_line(line, self._runtime_snapshot() if self._runtime_snapshot else {},self.goal_contract.to_dict())
             result.update({k: v for k, v in view.items() if k not in {'username', 'conv_id'}})
             runtime = self._runtime_snapshot() if self._runtime_snapshot else {}
             if runtime:
@@ -627,6 +655,18 @@ class Session:
                 result['steps'] = [n for n in result['steps'] if n['step_id'] in actual_ids]
                 result['execution_completion'] = self._workflow_completion_state()
                 result['note'] = 'steps are the current executable DAG; diagnostic/historical records are not delegations and cannot be removed with a DAG patch.'
+        if params.get('step_id') is not None and result.get('ok'):
+            requested=params['step_id']
+            if not isinstance(requested,str) or not requested:
+                return {'ok':False,'error':'step_id must be one current owned workflow node'}
+            matches=[node for node in result.get('steps',[]) if node.get('step_id')==requested]
+            if len(matches)!=1:
+                return {'ok':False,'error':'step_id is absent from the current owned executable workflow',
+                    'line_id':result.get('line_id'),'step_id':requested,'plan_version':result.get('plan_version')}
+            return {'ok':True,'line_id':result.get('line_id'),'plan_version':result.get('plan_version'),
+                'step_id':requested,'steps':matches,'full_typed_contract':True,
+                'execution_completion':result.get('execution_completion'),
+                'note':'Full current scoped node, including arguments, effective inputs and expected outputs. Read-only metadata, not execution authority.'}
         return result
 
     def _task_line_update(self, **params):
@@ -639,15 +679,65 @@ class Session:
         from .registry import _exec_task_line_update
         return _exec_task_line_update(params)
 
+    def _workflow_reply_context_required(self):
+        """Pure task-context probe; ordinary chat needs no executor handoff."""
+        from .recovery import SUBMISSION_TOOLS
+        from .scientific_review import SCIENCE_TOOLS
+        start=self.context.get('scientific_tool_start',len(self.memory.tool_call_log))
+        if type(start)is not int or start<0:return False
+        relevant=self._CHAIN_CONTROL_TOOLS | SUBMISSION_TOOLS | SCIENCE_TOOLS | {'run_cdft','inspect_workflow_result'}
+        return any(call.get('tool')in relevant for call in self.memory.tool_call_log[start:])
+
+    def workflow_reply_facts(self, *, username, conv_id, task_related_only=True, observed_state=None):
+        """Current owned execution status, separate from scientific proof.
+
+        An ordinary no-tool conversation takes no additional runtime snapshot.
+        Failed diagnostic calls still establish task context; their prose and
+        results are never used to manufacture a diagnosis here.
+        """
+        if task_related_only and not self._workflow_reply_context_required():return None
+        from .workflow_reply_facts import current_task_status
+        runtime=observed_state if observed_state is not None else (self._runtime_snapshot() if self._runtime_snapshot else {})
+        goal=self.goal_contract.to_dict()
+        facts=current_task_status(runtime,username=username,conv_id=conv_id,
+            goal=goal,evidence_root=self._evidence_root)
+        if facts is None and goal.get('execution_authorized')is True and goal.get('approved_nodes'):
+            # No foreign/stale node data enters this marker. A related task
+            # cannot silently become an ordinary "complete" reply on mismatch.
+            return {'schema_version':1,'scope':{'username':username,'conv_id':conv_id},
+                'goal_version':goal['version'],'plan_version':goal.get('approved_plan_version'),
+                'available':False,'complete':False}
+        return facts
+
     def scientific_review_event(self, question, answer):
-        from .scientific_review import SCIENCE_TOOLS, digest, knowledge_fingerprint, is_source_result, canonical_source_inputs
+        from .scientific_review import SCIENCE_TOOLS, digest, knowledge_fingerprint, is_source_result, canonical_source_inputs, EVIDENCE_FAMILIES, FAMILY_TOOLS, native_result_sources, native_inspection_sources, referenced_native_steps
         start = int(self.context.get('scientific_tool_start', 0))
         if self.context.get('scientific_correction_scope'):
             start = 0  # The correction can rely on its initial, unchanged evidence.
         calls = [c for c in self.memory.tool_call_log[start:] if c.get('tool') in SCIENCE_TOOLS
-                 and is_source_result(c['tool'], result_object(self._load_evidence_call(c).get('result')))]
-        if not calls:
+                 and not c.get('failed')]
+        runtime = self._runtime_snapshot() if self._runtime_snapshot else {}
+        native_sources = native_result_sources(runtime, self._evidence_root, answer)
+        native_sources += native_inspection_sources(self.memory.tool_call_log[start:], runtime, self._evidence_root)
+        native_sources += native_inspection_sources(self.memory.tool_call_log[:start], runtime, self._evidence_root, answer)
+        native_sources = list({item['path']: item for item in native_sources}.values())
+        proven_steps={item['step_id'] for item in native_sources}
+        source_gaps=[{'step_id':step,'reason':'referenced native evidence could not be verified'}
+                     for step in referenced_native_steps(runtime,self._evidence_root,answer) if step not in proven_steps]
+        native_bindings = []
+        for source in native_sources:
+            current_node = runtime.get('nodes',{}).get(source['step_id'],{})
+            native_bindings.append({'step_id':source['step_id'],'token':current_node.get('token'),
+                'attempt_id':source.get('attempt_id'),'job_ids':source.get('job_ids',[]),
+                'dossier_call_id':current_node.get('validation_dossier',{}).get('evidence_call_id')})
+        if not calls and not native_sources and not source_gaps:
             return None
+        workflow_status=None
+        if self._evidence_root:
+            from pathlib import Path
+            scope=Path(self._evidence_root).absolute().parent
+            workflow_status=self.workflow_reply_facts(username=scope.parent.name,conv_id=scope.name,
+                task_related_only=False,observed_state=runtime)
         active = self.context.get('active_scientific_review_scope')
         states = self.context.setdefault('scientific_reviews', {})
         state = states.get(active, {})
@@ -657,22 +747,31 @@ class Session:
                      'initial_answer': answer, 'corrections': 0, 'verification_retries': 0, 'status': 'pending'}
             states[active] = state
         self.context['active_scientific_review_scope'] = active
-        inputs = []
+        inputs = []; document_inputs = []
         for call in calls:
             loaded = self._load_evidence_call(call)
             obj = result_object(loaded.get('result'))
+            if call.get('tool')=='read_scientific_document':
+                source=obj.get('source_document')or{}
+                if source.get('path')and source.get('sha256'):
+                    item={'path':source['path'],'sha256':source['sha256']}
+                    inputs.append(item);document_inputs.append(item)
             path = obj.get('cif_path') or obj.get('asset_path')
             if path and obj.get('sha256'):
                 inputs.append({'path': path, 'sha256': obj['sha256']})
-        tools = (['validate_framework_charges'] if any(c['tool'] == 'validate_framework_charges' for c in calls)
-                 else ['inspect_forcefield'] if any(c['tool'] == 'inspect_forcefield' for c in calls)
-                 else [calls[-1]['tool']])
+        families = sorted({EVIDENCE_FAMILIES[c['tool']] for c in calls}
+                          | ({'native_results'} if native_sources or source_gaps else set()))
+        tools = sorted({FAMILY_TOOLS[family] for family in families})
         return {'event_id': f'science:{active}:{digest(answer)}', 'kind': 'scientific_review', 'payload': {
             'scope_id': active, 'origin_goal_version': state['goal_version'], 'question': state['question'], 'answer': answer,
-            'verification_tools': tools, 'source_inputs': canonical_source_inputs(inputs),
+            'verification_tools': tools, 'required_evidence_families': families,
+            'native_result_sources': native_sources, 'source_gaps':source_gaps, 'native_bindings':native_bindings,
+            'workflow_status':workflow_status,
+            'document_inputs':canonical_source_inputs(document_inputs),
+            'runtime_completed':runtime.get('status')=='completed', 'source_inputs': canonical_source_inputs(inputs),
             'knowledge_fingerprint': knowledge_fingerprint(self.config.project_root),
             'main_already_handling': True,
-            'instruction': '审核当前调查回答而不是完整可运行模型。自主调用正式科学工具核实实际主张。有具体类型/数值就必须inspect，不能用discover摘要替代。metadata_status=indexed_not_scientifically_assigned是未完成化学分配，不是未解析；实际atom_types和numeric/raw系数就是已查证数值，读取parsed_sections判断解析范围。错误必须引用原回答和相反证据；监督未查证不是主任务失败。公式/单位/原始数值也要核对，不输出私有思维链。'}}
+            'instruction': '分别核对每个required_evidence_families及全部native_result_sources原生事实，不得用电荷核验代替采样统计或文献核验。统计块数、单位、完成和收敛是不同事实；原生未证明的一律保持未知。文献比较必须有支持该具体材料/条件/数值的实际证据与可核对引用；仅题名/DOI不是数值证据，缺证据时删去比较或明确未核验，不编造引用，不重新计算。审核当前调查回答而不是完整可运行模型。自主调用正式科学工具核实实际主张。有具体类型/数值就必须inspect，不能用discover摘要替代。metadata_status=indexed_not_scientifically_assigned是未完成化学分配，不是未解析；实际atom_types和numeric/raw系数就是已查证数值，读取parsed_sections判断解析范围。错误必须引用原回答和相反证据；监督未查证不是主任务失败。公式/单位/原始数值也要核对，不输出私有思维链。'}}
 
     def scientific_input_receipt(self):
         """Machine-verified immutable input receipt, not a model promise."""
@@ -711,12 +810,67 @@ class Session:
                 return receipt
         return receipt
 
+    def _recover_committed_initial_pending(self, wake_after_restore=False):
+        """Invalidate old initial metadata only against the real committed DAG.
+
+        This is not execution permission or a start-time pending bypass. A
+        current/future proposal, different science, foreign line or changed
+        committed contract keeps its ordinary negotiation gate.
+        """
+        pending=self._pending_workflow_patch or {}
+        goal=self.goal_contract
+        version=goal.approved_plan_version
+        if (not pending or not self._current_line_id or not goal.execution_authorized
+                or type(version)is not int or version<1
+                or goal.pending_plan_version!=version or self._awaiting_plan_approval
+                or type(pending.get('new_version'))is not int or pending['new_version']>=version
+                or type(pending.get('goal_version'))is not int or pending['goal_version']>=goal.version
+                or pending.get('base_version')!=0 or not goal.approved_nodes):
+            return None
+        from .requested_parameters import proposal_goal_scope
+        previous=pending.get('goal_scope')
+        current=proposal_goal_scope(goal)
+        fields=('method','gases','parameters','execution_mode')
+        if not isinstance(previous,dict)or any(previous.get(key)!=current.get(key)for key in fields):return None
+        from .watch_context import get_context
+        from .task_line import get_store
+        from .workflow_patch import execution_contract
+        owner=get_context();line=get_store().get_line(self._current_line_id)or{}
+        if((line.get('username'),line.get('conv_id'))!=(owner.get('username'),owner.get('conv_id'))
+                or not owner.get('username')or not owner.get('conv_id')
+                or line.get('plan_version')!=version):return None
+        committed={node['step_id']:execution_contract(node)for node in line.get('steps',[])
+            if 'expected_outputs'in node and not node.get('branch_parent')and node.get('status')!='superseded'}
+        approved={node['step_id']:execution_contract(node)for node in goal.approved_nodes}
+        if committed!=approved:return None
+        self.context.setdefault('superseded_initial_proposals',[]).append({
+            key:copy.deepcopy(pending.get(key))for key in('base_version','new_version','goal_version','reason')})
+        self.context['superseded_initial_proposals']=self.context['superseded_initial_proposals'][-16:]
+        self._pending_workflow_patch=None
+        interaction=self._pending_user_interaction or {};params=interaction.get('params')or{}
+        related=set(params.get('related_nodes')or[])
+        blocked_start=any(call.get('tool')=='execute_workflow'and call.get('failed')is True
+            and (call.get('params')or{}).get('plan_version')==version
+            for call in self.memory.tool_call_log[-12:])
+        if (interaction.get('tool')in{'workflow_patch_decision','user_decision'}
+                and not params.get('recovery_key')and not params.get('candidate_job_id')
+                and (interaction.get('tool')=='workflow_patch_decision'or blocked_start and bool(related))
+                and (not related or related<=set(approved))):
+            self._pending_user_interaction=None;self._waiting_for_user_input=False
+        receipt={'ok':True,'status':'committed_initial_plan_ready','plan_version':version,
+            'superseded_pending_version':pending['new_version'],'next_action':'execute_workflow',
+            'execution_authority_unchanged':True,'science_arguments_unchanged':True}
+        if wake_after_restore:self.context['preflight_recovery_ready']=copy.deepcopy(receipt)
+        return receipt
+
     def _recover_validated_preflight_draft(self, wake_after_restore=False):
         # A validated preflight draft is enough to resume planning. It is an
         # internal checkpoint, not a scientific choice or external identity
         # decision, so recover it rather than handing a framework deadlock to
         # the user. This also repairs sessions created before workflow-draft
         # controls were exempted from the legacy force-handoff guard.
+        committed=self._recover_committed_initial_pending(wake_after_restore)
+        if committed:return committed
         if (self.goal_contract.execution_authorized and not self.goal_contract.approved_nodes
                 and self._current_line_id):
             from .task_line import get_store
@@ -750,18 +904,62 @@ class Session:
                 return receipt
         return None
 
-    def _request_user_decision(self, question, reason, related_nodes, recovery_key='', candidate_job_id=''):
+    def _resolve_preparation_defaults(self, decision_id, tool_name, parameter):
+        if getattr(self.current_agent, 'name', '') != 'lead-orchestrator':
+            raise PermissionError('main chat owns preparation choice review')
+        pending=self._pending_user_interaction or {};params=pending.get('params') or {}
+        if (pending.get('tool')!='user_decision' or params.get('decision_id')!=decision_id
+                or params.get('candidate_job_id') or params.get('withdrawn_reconsideration')):
+            return {'blocked':True,'executed':False,'planning_required':True,
+                    'reason':'Decision is not the current owned preparation review',
+                    'next_action':'inspect current pending decision; preserve real user choices'}
+        from .preparation_defaults import preparation_default_evidence
+        evidence=preparation_default_evidence(self,tool_name,parameter,params.get('related_nodes')or[])
+        if not evidence:
+            return {'blocked':True,'executed':False,'planning_required':True,
+                    'reason':'No compatible native default route or a user constraint/missing input remains',
+                    'next_action':'retain user question or revise the complete draft without changing protected science'}
+        receipt={'ok':True,'status':'native_preparation_default_selected','decision_id':decision_id,
+                 **evidence,'executed':False,'submitted':False,'next_action':'propose_workflow_patch'}
+        self.context.setdefault('preparation_default_receipts',[]).append(copy.deepcopy(receipt))
+        self.context['preparation_default_receipts']=self.context['preparation_default_receipts'][-16:]
+        self._pending_user_interaction=None;self._waiting_for_user_input=False
+        self._checkpoint('native_preparation_default_selected')
+        return receipt
+
+    def _request_user_decision(self, question, reason, related_nodes, recovery_key='', candidate_job_id='', withdrawn_plan_version=None):
         if self.current_agent and self.current_agent.name != 'lead-orchestrator':
             raise ValueError('main chat owns user negotiation')
-        if not recovery_key and not candidate_job_id:
+        reconsideration = None
+        if withdrawn_plan_version is not None:
+            from .control_policy import require_user_control_source
+            from .watch_context import get_context
+            from .workflow_proposals import reconsideration_binding
+            source=self._operation_control_source()
+            require_user_control_source(source,get_context())
+            runtime=self._runtime_snapshot() if self._runtime_snapshot else {}
+            reconsideration,summary,withdrawal_reason=reconsideration_binding(self,withdrawn_plan_version,runtime,source['owner'])
+            question=('您此前撤回的候选涉及这些变更：'+json.dumps(summary,ensure_ascii=False)
+                +'。撤回原因：'+withdrawal_reason+'。本次问题只用于确认是否重新讨论。\n'+question)
+        if withdrawn_plan_version is None and not recovery_key and not candidate_job_id:
             recovered = self._recover_validated_preflight_draft()
             if recovered:
                 return recovered
         decision_id = uuid.uuid4().hex
         params = {'decision_id': decision_id, 'question': question, 'reason': reason,
                   'related_nodes': related_nodes, 'recovery_key': recovery_key, 'candidate_job_id': candidate_job_id}
+        if reconsideration is not None:
+            params['withdrawn_reconsideration']=reconsideration
+            self.context.setdefault('withdrawn_reconsideration_questions',{})[decision_id]=copy.deepcopy(reconsideration)
         self._waiting_for_user_input = True
         self._pending_user_interaction = {'tool': 'user_decision', 'params': params, 'prompt': question}
+        if withdrawn_plan_version is None and not candidate_job_id:
+            from .preparation_defaults import pending_default_review
+            review=pending_default_review(self)
+            if review:
+                self._waiting_for_user_input=False
+                self._checkpoint('native_preparation_default_review')
+                return review
         self._emit_lifecycle_event('user_decision_required', {**params, 'requires_user': True})
         return {'ok': True, 'status': 'needs_user', 'decision_id': decision_id, 'negotiation_owner': 'lead-orchestrator'}
 
@@ -769,7 +967,7 @@ class Session:
         from .job_watch import get_watch
         from .watch_context import get_context
         from datetime import datetime
-        if self.current_agent and self.current_agent.name != 'lead-orchestrator':
+        if self.current_agent and not self._has_workflow_control_authority():
             raise ValueError('main chat owns dispatch reconciliation')
         decision = self.memory.user_preferences.get('decision:' + decision_id, {})
         answer = str(decision.get('answer', ''))
@@ -814,6 +1012,38 @@ class Session:
         self._control_source = {'origin': 'system' if _is_automated_message(user_message) else 'user',
             'turn_id': uuid.uuid4().hex, 'owner': {'username': owner.get('username'), 'conv_id': owner.get('conv_id')},
             'goal_version': self.goal_contract.version}
+        if self._control_source['origin']=='user':
+            self._operations_authority=None
+
+    def _has_workflow_control_authority(self):
+        from .control_policy import controller_authorized
+        from .watch_context import get_context
+        return controller_authorized(getattr(self.current_agent,'name',''),self._control_source,
+            get_context(),self.goal_contract.version,getattr(self,'_operations_authority',None))
+
+    def _operation_control_source(self):
+        if getattr(self.current_agent,'name','')=='operations' and self._has_workflow_control_authority():
+            return self._operations_authority['source']
+        return self._control_source
+
+    def _delegate_operations(self, task, context=''):
+        from .defns import OPERATIONS
+        from .control_policy import issue_operations_authority, controller_authorized
+        from .watch_context import get_context
+        if getattr(self.current_agent,'name','')!='lead-orchestrator':
+            raise PermissionError('only main chat may delegate administrative recovery')
+        authority=getattr(self,'_operations_authority',None)
+        if not controller_authorized('operations',self._control_source,get_context(),
+                self.goal_contract.version,authority):
+            authority=issue_operations_authority(self._control_source,get_context(),self.goal_contract.version)
+        self._operations_authority=authority
+        audit={'owner':authority['owner'],
+            'goal_version':authority['goal_version'],'source_turn_id':authority['source']['turn_id'],
+            'allowed_tools':authority['tools'],'task':str(task),'delegated_at':time.time()}
+        self.context['operations_audit']=(self.context.get('operations_audit',[])+[audit])[-32:]
+        self._checkpoint('operations_delegated')
+        return AgentResult(value='Administrative recovery delegated within the current authorized task.',
+            agent=OPERATIONS,context_variables={'delegated_task':task,'delegation_context':context})
 
     def _cancel_watched_job(self, job_id):
         from .watch_context import get_context
@@ -823,10 +1053,10 @@ class Session:
         job = watch.get(str(job_id)) or {}
         if not owner.get('username') or not owner.get('conv_id') or (job.get('username'), job.get('conv_id')) != (owner['username'], owner['conv_id']):
             raise PermissionError('cancellation is restricted to the executing user/session')
-        if getattr(self.current_agent, 'name', '') != 'lead-orchestrator':
+        if not self._has_workflow_control_authority():
             return {'blocked': True, 'executed': False, 'reason': 'only main chat may cancel an owned job'}
         from .control_policy import require_user_control_source
-        require_user_control_source(self._control_source, owner)
+        require_user_control_source(self._operation_control_source(), owner)
         from .job_control import pause_owned_workflow
         pause_owned_workflow(self.config.project_root, owner['username'], owner['conv_id'])
         result = watch.cancel(str(job_id), control_root=self.config.project_root / 'runs' / owner['username'] / owner['conv_id'])
@@ -838,7 +1068,7 @@ class Session:
 
     def _retarget_queued_job(self, job_id, nodelist, partition, memory_mb=None):
         from .defns import ORCHESTRATOR
-        if self.current_agent and self.current_agent.name!='lead-orchestrator':
+        if self.current_agent and not self._has_workflow_control_authority():
             return AgentResult(value='调度变更交回主chat核对真实用户授权，不执行shell取消/重提。',agent=ORCHESTRATOR,
                 context_variables={'job_retarget_proposal':{'job_id':job_id,'nodelist':nodelist,'partition':partition}})
         if self.goal_contract.execution_mode in {'read_only','prepare_only'}:
@@ -847,7 +1077,8 @@ class Session:
         from .job_control import retarget_queued_job
         owner=get_context()
         from .control_policy import require_user_control_source
-        if not self._control_source or self._control_source.get('origin') != 'user':
+        control_source=self._operation_control_source()
+        if not control_source or control_source.get('origin') != 'user':
             # A background lifecycle turn may only apply the exact resource
             # patch produced from fresh monitor evidence and an operator-owned
             # tool profile. It cannot invent a node, RAM value, or science edit.
@@ -861,9 +1092,9 @@ class Session:
                    and self.goal_contract.execution_mode=='workflow'
                    and self.goal_contract.execution_authorized)
             if not exact:
-                require_user_control_source(self._control_source, owner)
+                require_user_control_source(control_source, owner)
         else:
-            require_user_control_source(self._control_source, owner)
+            require_user_control_source(control_source, owner)
         result=retarget_queued_job(job_id,nodelist,partition,owner.get('username',''),owner.get('conv_id',''),self.config.project_root,memory_mb=memory_mb)
         self.context['job_retarget']=result
         if result.get('ok'):
@@ -897,8 +1128,10 @@ class Session:
         self._checkpoint('workflow_draft_saved')
         return {'ok': True, **draft}
 
-    def _propose_workflow_patch(self, base_version: int, reason: str, changes: List[Dict]):
-        if self.current_agent and self.current_agent.name != 'lead-orchestrator':
+    def _propose_workflow_patch(self, base_version: int, reason: str, changes: List[Dict], *, control_valid=None):
+        if control_valid is not None and not control_valid():
+            raise ValueError('workflow control was superseded before proposal')
+        if self.current_agent and not self._has_workflow_control_authority():
             from .defns import ORCHESTRATOR
             return AgentResult(value='专业Agent编排补丁建议交回主chat审核协商，未应用。', agent=ORCHESTRATOR,
                                context_variables={'workflow_patch_proposal': {'base_version': base_version, 'reason': reason, 'changes': changes}})
@@ -913,8 +1146,14 @@ class Session:
         # authoritative JobWatch receipts before recompiling; a terminal job is
         # history, not a live-node lock. This never changes or resubmits a job.
         watched = {str(job.get('job_id')): job for job in self._pending_jobs_for_conv() if job.get('job_id')}
+        runtime_history = self._runtime_snapshot() if self._runtime_snapshot else {}
         reconciled = False
         for history in line.get('steps', []):
+            # Native DAG state and per-attempt scheduler receipts are already
+            # authoritative. Legacy labels may contain older failed attempts;
+            # aggregating those must not overwrite a verified current result.
+            if 'expected_outputs' in history or history['step_id'] in runtime_history.get('nodes', {}):
+                continue
             job_ids = [str(job_id) for job_id in history.get('job_ids', []) if str(job_id)]
             records = [watched.get(job_id) for job_id in job_ids]
             if not job_ids or not all(records) or not all(record.get('terminal') is True for record in records):
@@ -933,7 +1172,6 @@ class Session:
         if reconciled:
             line = get_store().get_line(self._current_line_id)
         ledger = self.recovery_gate.snapshot()
-        runtime_history = self._runtime_snapshot() if self._runtime_snapshot else {}
         for history in line.get('steps', []):
             tool = history.get('tool')
             validation = history.get('validation', {})
@@ -955,6 +1193,7 @@ class Session:
         if current != int(base_version):
             raise ValueError('patch base version is stale')
         changes = copy.deepcopy(changes)
+        submitted_changes = copy.deepcopy(changes)
         from .workspace import validate_scope_component
         from .watch_context import get_context
         owner_context = get_context()
@@ -968,12 +1207,25 @@ class Session:
             step for step in line.get('steps', [])
             if 'expected_outputs' in step and not step.get('branch_parent')
         ]
+        from .presentation_transition import retire_unproved_presentation_history
+        changes, retired_presentation_steps = retire_unproved_presentation_history(
+            executable_steps, changes, runtime=runtime_history, session_root=conversation_root)
+        from .sandbox_execution_policy import validate_sandbox_changes
+        validate_sandbox_changes(self.goal_contract,changes)
         from .workflow_compiler import compile_workflow_changes
         compilation = compile_workflow_changes(
             changes, self.registry, self.config.project_root, conversation_root,
             existing_steps=executable_steps,
+            target_plan_version=max(current + 1, self.goal_contract.pending_plan_version + 1),
+            source_evidence=runtime_history.get('nodes', {}),
         )
         changes = compilation.changes
+        validate_sandbox_changes(self.goal_contract,changes)
+        from .workflow_proposals import withdrawn_conflict
+        conflict = withdrawn_conflict(self, {'changes':changes}, runtime_history, requested_changes=submitted_changes)
+        if conflict:
+            from .workflow_proposals import proposal_state
+            return {**conflict,'proposal_state':proposal_state(self)}
         compiler_receipt = {'defaults_applied': compilation.defaults_applied}
         for change in changes:
             if change['operation'] != 'upsert':
@@ -1034,8 +1286,31 @@ class Session:
                 })
             missing_parameters = {item.get('step_id'): item.get('missing_parameters', [])
                                   for item in draft_nodes if item.get('missing_parameters')}
-            compiled = {item.get('step_id'): item for item in nodes}
             outlined = {item.get('step_id'): item for item in draft_nodes}
+            from .workflow_compiler import draft_report_coverage
+            compiled = draft_report_coverage(nodes, outlined, compilation.defaults_applied)
+            # Mechanical preparation preserves the draft's scientific task.
+            # Only this compiler invocation's exact receipt may add a node;
+            # model-supplied role labels alone never exempt draft coverage.
+            for entry in compilation.defaults_applied:
+                if (entry.get('source') != 'workflow_compiler'
+                        or entry.get('parameter') != 'cdft_pipeline_expansion'):
+                    continue
+                parent_id, prepare_id = entry['step_id'], entry['prepare_step_id']
+                parent, prepare = compiled.get(parent_id, {}), compiled.get(prepare_id, {})
+                original_deps = entry['original_depends_on']
+                if (parent.get('tool') == prepare.get('tool') == 'run_cdft'
+                        and parent.get('arguments', {}).get('action') == 'submit'
+                        and prepare.get('arguments', {}).get('action') == 'inputs'
+                        and parent.get('agent') == prepare.get('agent')
+                        and prepare.get('depends_on', []) == original_deps
+                        and parent.get('depends_on', []) == original_deps + [prepare_id]
+                        and parent.get('arguments', {}).get('input_dir') == entry['value']
+                        and prepare.get('arguments', {}).get('input_dir') == entry['value']
+                        and parent.get('expected_outputs') == entry['original_expected_outputs']
+                        and prepare_id not in outlined):
+                    compiled.pop(prepare_id)
+                    compiled[parent_id] = {**parent, 'depends_on':original_deps}
             structural_mismatch = []
             if set(compiled) != set(outlined):
                 structural_mismatch.append({
@@ -1120,9 +1395,14 @@ class Session:
                         ),
                     },
                 )
-        resource_nodes=[{**c['node'], 'step_id': c['step_id']} for c in changes if c.get('operation')=='upsert' and c.get('node',{}).get('tool')=='run_cdft' and c['node'].get('arguments',{}).get('action','pipeline') in {'pipeline','submit'}]
+        new_version = max(current + 1, self.goal_contract.pending_plan_version + 1)
+        from .workflow_metadata_alignment import session_transition_proof
+        native_metadata=session_transition_proof(self,nodes,affected,new_version)
+        carried_terminal=set(native_metadata.get('covered_terminal_nodes',[]))
+        resource_nodes=[{**c['node'], 'step_id': c['step_id']} for c in changes if c.get('operation')=='upsert' and c.get('step_id') not in carried_terminal and c.get('node',{}).get('tool')=='run_cdft' and c['node'].get('arguments',{}).get('action','pipeline') in {'pipeline','submit'}]
         if self._on_resource_review and resource_nodes:
-            resource_receipt=self._on_resource_review({'kind':'before_submission','nodes':resource_nodes,'goal_version':self.goal_contract.version})
+            resource_receipt=self._on_resource_review({'kind':'before_submission','review_phase':'planning',
+                'nodes':resource_nodes,'goal_version':self.goal_contract.version})
             self.context['resource_review']=resource_receipt
             if resource_receipt.get('status')!='ready':
                 if resource_receipt.get('status')=='review_retry':
@@ -1136,19 +1416,23 @@ class Session:
                 if change.get('operation')=='upsert' and change.get('node',{}).get('tool')=='run_cdft':
                     change['node']['arguments']['resource_review_id']=resource_receipt['resource_review_id']
                     allocation = resource_receipt.get('resource_allocations', {}).get(change['step_id'], {})
-                    for key in ('memory_mb', 'nodelist', 'partition'):
-                        if allocation.get(key) is not None:
-                            change['node']['arguments'].setdefault(key, allocation[key])
+                    if allocation.get('budget_final') is False:
+                        # The prepared workload does not exist yet. A plan may
+                        # proceed to preparation, but its hint is not a lease.
+                        change['node']['arguments'].pop('resource_review_id', None)
+                        continue
+                    from .resource_policy import apply_resource_allocation
+                    properties = self.registry.get(change['node']['tool']).input_schema.get('properties', {})
+                    apply_resource_allocation(change['node']['arguments'], allocation, properties)
             nodes, affected=patched_graph(executable_steps,changes,self.config.project_root)
-        if self._runtime_snapshot:
-            from .parallel_workflow import ACTIVE
-            runtime = self._runtime_snapshot()
-            if any(key in affected and value['status'] in ACTIVE for key, value in runtime.get('nodes', {}).items()):
-                raise ValueError('affected runtime node still owns running/unknown resources; reconcile before patching')
-        new_version = max(current + 1, self.goal_contract.pending_plan_version + 1)
+        session_transition_proof(self,nodes,affected,new_version)
+        from .requested_parameters import proposal_goal_scope
         patch = {'base_version': current, 'new_version': new_version, 'changes': changes,
+                 'goal_version': self.goal_contract.version,
+                 'goal_scope':proposal_goal_scope(self.goal_contract),
                  'reason': reason, 'affected_nodes': sorted(affected), 'proposed_nodes': nodes,
-                 'compiler_receipt': compiler_receipt}
+                 'compiler_receipt': compiler_receipt,
+                 'retired_presentation_steps': retired_presentation_steps}
         self.context.pop('workflow_patch_proposal', None)
         # Initial compilation may use the user's explicit "直接执行" authority;
         # later repairs always go back through main-chat negotiation.
@@ -1181,8 +1465,26 @@ class Session:
         plan_authorized = self.goal_contract.execution_authorized or (
             self.goal_contract.execution_mode in {'read_only', 'prepare_only'} and non_submission_plan
         )
-        if initial and plan_authorized and within_goal and complete_gas_scope:
-            applied = get_store().apply_workflow_patch(self._current_line_id, changes, current, new_version, reason, self.config.project_root)
+        prior_initial_pending=self._pending_workflow_patch
+        # Only an older, same-science initial candidate may be superseded by
+        # this already-authorized complete initial commit. A current/future
+        # candidate or different scientific scope remains ordinary negotiation.
+        prior_initial_scope=(prior_initial_pending or {}).get('goal_scope')
+        current_initial_scope=proposal_goal_scope(self.goal_contract)
+        scope_without_authority=lambda value:{key:item for key,item in value.items()if key!='execution_authorized'}
+        superseded_initial_pending=bool(prior_initial_pending
+            and type(prior_initial_pending.get('goal_version'))is int
+            and prior_initial_pending['goal_version']<self.goal_contract.version
+            and prior_initial_pending.get('base_version')==current
+            and type(prior_initial_pending.get('new_version'))is int
+            and prior_initial_pending['new_version']<new_version
+            and isinstance(prior_initial_scope,dict)
+            and scope_without_authority(prior_initial_scope)==scope_without_authority(current_initial_scope))
+        if (initial and plan_authorized and within_goal and complete_gas_scope
+                and not self._awaiting_plan_approval
+                and (not prior_initial_pending or superseded_initial_pending)):
+            options = {'control_valid': control_valid} if control_valid is not None else {}
+            applied = get_store().apply_workflow_patch(self._current_line_id, changes, current, new_version, reason, self.config.project_root, **options)
             self.goal_contract.approved_nodes = [
                 n for n in applied['steps']
                 if n.get('arguments') is not None
@@ -1191,28 +1493,91 @@ class Session:
             ]
             self.goal_contract.approved_plan_version = new_version
             self.goal_contract.pending_plan_version = new_version
+            # A previous unapproved initial proposal is history once this
+            # complete, current-user-authorized initial graph commits. Leaving
+            # its Session pointer alive makes native start reject the approved
+            # graph as though the user had not granted execution.
+            prior_pending=self._pending_workflow_patch
+            if prior_pending:
+                self.context.setdefault('superseded_initial_proposals',[]).append({
+                    key:copy.deepcopy(prior_pending.get(key))for key in
+                    ('base_version','new_version','goal_version','reason')})
+                self.context['superseded_initial_proposals']=self.context['superseded_initial_proposals'][-16:]
+            self._pending_workflow_patch=None
+            self._awaiting_plan_approval=False
+            self._pending_user_interaction=None
+            self._waiting_for_user_input=False
             self._plan_steps_created = True
             self.context.pop('workflow_recompile_required', None)
             self._emit_lifecycle_event('plan_patch_applied', {'patch': patch, 'main_already_handling': True, 'initial_user_authorized': True})
-            activation = self._activate_approved_workflow()
+            activation = self._activate_approved_workflow(**options)
             return {'ok': True, 'status': 'approved', 'patch': patch, 'applied': True,
                     'execution': activation, 'proposed_nodes': nodes,
                     'compiler_receipt': compiler_receipt}
+        if control_valid is not None and not control_valid():
+            raise ValueError('workflow control was superseded during proposal')
         self._pending_workflow_patch = patch
         self.goal_contract.pending_plan_version = new_version
         # A repair inside an already approved execution scope is staged for the
         # main model to apply, not automatically turned into another user veto.
         from .workflow_patch import operational_patch
+        from .requested_parameters import requested_parameter_patch
+        parameter_edit = requested_parameter_patch(line.get('steps', []), changes, self.goal_contract, self.config.project_root)
+        # A typed user constraint already authorizes its exact parameter delta.
+        # A background observer cannot create a human control turn, and unrelated
+        # scientific changes still follow ordinary plan negotiation.
+        if parameter_edit:
+            from .control_policy import require_user_control_source
+            try:
+                require_user_control_source(self._control_source, get_context())
+            except PermissionError:
+                parameter_edit = None
         runtime = self._runtime_snapshot() if self._runtime_snapshot else {}
+        from .presentation_transition import canonical_presentation_runtime
+        presentation_runtime = canonical_presentation_runtime(runtime, self.goal_contract.to_dict(), conversation_root, watched)
+        from .presentation_continuation import classify_presentation_continuation
+        presentation_receipt = classify_presentation_continuation(
+            executable_steps, changes, project_root=self.config.project_root,
+            owner={key: get_context().get(key) for key in ('username', 'conv_id')},
+            goal=self.goal_contract.to_dict(), runtime=presentation_runtime)
+        presentation_edit = None
+        if presentation_receipt['technical_delivery_only'] and self._has_workflow_control_authority():
+            from .control_policy import require_user_control_source
+            source = self._operation_control_source() or {}
+            try:
+                require_user_control_source(source, get_context())
+            except PermissionError:
+                pass
+            else:
+                if source.get('turn_id') and source.get('goal_version') == self.goal_contract.version:
+                    presentation_edit = {**presentation_receipt, 'control_turn_id': source['turn_id']}
+        # A pure presentation delta must use the same authenticated source
+        # regardless of whether the older operational comparator also matches.
+        mechanical_edit = (not presentation_receipt['technical_delivery_only'] and
+            operational_patch(line.get('steps', []), changes, self.config.project_root))
         if (self.goal_contract.execution_authorized and within_goal and not runtime.get('user_paused')
-                and operational_patch(line.get('steps', []), changes, self.config.project_root)):
+                and (mechanical_edit or parameter_edit or presentation_edit)):
+            if parameter_edit:
+                parameter_edit['control_turn_id'] = self._control_source.get('turn_id')
+                patch['requested_parameter_edit'] = parameter_edit
+            if presentation_edit:
+                patch['presentation_continuation'] = presentation_edit
             self._pending_user_interaction = None
             self._waiting_for_user_input = False
             self._emit_lifecycle_event('plan_patch_proposed', {'patch': patch, 'requires_user': False,
-                'main_already_handling': True, 'basis': 'unchanged scientific contract, existing execution scope'})
+                'main_already_handling': True, 'basis': ('current authenticated user presentation continuation' if presentation_edit else
+                    'explicit typed user parameter constraint' if parameter_edit else
+                    'unchanged scientific contract, existing execution scope')})
             return {'ok': True, 'status': 'ready_to_apply', 'patch': patch, 'applied': False,
                     'proposed_nodes': nodes, 'compiler_receipt': compiler_receipt,
                     'next_action': 'Main chat applies this pending version under the existing user instruction; do not repeat the same confirmation.'}
+        if (getattr(self.current_agent,'name','')=='operations' and self._has_workflow_control_authority()
+                and self.goal_contract.execution_authorized and within_goal):
+            self._pending_user_interaction=None
+            self._waiting_for_user_input=False
+            return {'ok':True,'status':'ready_for_controller_review','patch':patch,'applied':False,
+                'proposed_nodes':nodes,'requires_controller_review':True,'requires_user':False,
+                'next_action':'Review the actual delta under the delegated user instruction, then apply or discard this pending version. No scientific validation or execution gate was bypassed.'}
         diff_lines=[]
         for change in changes:
             if change['operation']=='remove':diff_lines.append('移除节点：'+change['step_id'])
@@ -1230,7 +1595,22 @@ class Session:
 
     def _finish_workflow_node(self,step_id,evidence_call_ids,conclusion):
         if not self._on_workflow_finish:raise ValueError('no owned workflow runtime')
-        receipt=self._on_workflow_finish(step_id,evidence_call_ids,conclusion)
+        try:
+            receipt=self._on_workflow_finish(step_id,evidence_call_ids,conclusion)
+        except ValueError as error:
+            from .workflow_feedback import current_workflow_feedback
+            current = current_workflow_feedback(self, step_id)
+            original_details = getattr(error, 'details', None)
+            details = dict(original_details) if isinstance(original_details, dict) else {}
+            if original_details is not None and not isinstance(original_details, dict):
+                details.update(error=str(error), native_details=original_details)
+            details.pop('current_workflow', None)
+            if current is not None:
+                details = {**details, 'error': str(error),
+                    'error_kind': details.get('error_kind', 'workflow_verification'),
+                    'current_workflow': current}
+            if details or hasattr(error, 'details'): error.details = details
+            raise
         if receipt.get('already_finished'):
             return receipt
         if receipt.get('phase')=='finish':
@@ -1257,17 +1637,73 @@ class Session:
         self._checkpoint('agent_repaired_workflow_runtime_inputs')
         return receipt
 
-    def _apply_workflow_patch(self, plan_version):
+    def _requeue_local_preparation(self, step_id, expected_token, failed_call_id, verification_call_id):
+        from .control_policy import require_user_control_source
+        from .watch_context import get_context
+        if not self._has_workflow_control_authority():
+            raise PermissionError('workflow recovery requires an authorized controller')
+        source = self._operation_control_source()
+        require_user_control_source(source, get_context())
+        if not self._on_local_preparation_requeue:
+            raise ValueError('no owned workflow runtime')
+        receipt = self._on_local_preparation_requeue(
+            step_id, expected_token, failed_call_id, verification_call_id,
+            control_source=source, authority_role=getattr(self.current_agent, 'name', ''),
+            operations_authority=getattr(self, '_operations_authority', None))
+        self._checkpoint('local_preparation_requeued')
+        return receipt
+
+    def _prepare_cdft_partial_recovery(self, step_id, timeout_seconds, walltime):
+        from .control_policy import require_user_control_source
+        from .watch_context import get_context
+        if not self._has_workflow_control_authority():
+            raise PermissionError('partial recovery requires an authorized controller')
+        source = self._operation_control_source()
+        require_user_control_source(source, get_context())
+        if not self._on_cdft_partial_prepare:
+            raise ValueError('no owned workflow runtime')
+        receipt = self._on_cdft_partial_prepare(
+            step_id, timeout_seconds, walltime, control_source=source,
+            authority_role=getattr(self.current_agent, 'name', ''),
+            operations_authority=getattr(self, '_operations_authority', None))
+        self._checkpoint('cdft_partial_recovery_prepared')
+        return receipt
+
+    def _apply_workflow_patch(self, plan_version, *, preserve_user_pause=False, control_valid=None):
         """Main model chooses the operation; kernel checks provenance/version."""
+        if control_valid is not None and not control_valid():
+            raise ValueError('workflow control was superseded before application')
         from .control_policy import require_user_control_source
         from .watch_context import get_context
         from .task_line import get_store
-        if getattr(self.current_agent,'name','')!='lead-orchestrator':
+        if not self._has_workflow_control_authority():
             raise PermissionError('main chat owns workflow negotiation')
-        require_user_control_source(self._control_source,get_context())
+        metadata_authority=None
+        try:
+            require_user_control_source(self._operation_control_source(),get_context())
+        except PermissionError:
+            from .metadata_recovery import metadata_application_authority
+            metadata_authority,metadata_valid=metadata_application_authority(self,copy.deepcopy(self._pending_workflow_patch),plan_version)
+            original_control=control_valid
+            control_valid=lambda:(original_control is None or original_control())and metadata_valid()
         patch=copy.deepcopy(self._pending_workflow_patch)
         if not patch or patch['new_version']!=plan_version:
-            raise ValueError('a matching pending structured patch is required; no text plan or inferred approval')
+            from .workflow_patch import WorkflowContractError
+            from .workflow_proposals import proposal_state
+            from .workflow_feedback import current_workflow_feedback
+            details={'error_kind':'stale_workflow_proposal','executed':False,'applied':False,
+                'proposal_state':proposal_state(self,plan_version),
+                'next_action':'Use the current proposal state. A withdrawn or absent candidate cannot be applied; continue the approved task and its actual diagnosis instead of replaying historical approval.'}
+            current=current_workflow_feedback(self)
+            if current is not None:details['current_workflow']=current
+            raise WorkflowContractError('a matching pending structured patch is required; no text plan or inferred approval',details)
+        from .requested_parameters import rebase_confirmed_proposal
+        patch=rebase_confirmed_proposal(patch,self.goal_contract)
+        for node in patch.get('proposed_nodes', []):
+            allowed, reason = self.goal_contract.guard_tool_call(
+                node.get('tool', ''), node.get('arguments', {}), enforce_approved_node=False)
+            if not allowed:
+                raise ValueError('pending plan contradicts current user constraints: ' + reason)
         # A patch may have been proposed before a hot upgrade normalized
         # project-anchored output contracts. Re-normalize at the actual apply
         # boundary so persisted ``runs/...`` paths cannot be joined twice.
@@ -1277,13 +1713,64 @@ class Session:
                 change['node']['expected_outputs'] = canonical_expected_outputs(
                     change['node'].get('expected_outputs', []), self.config.project_root)
         self._pending_workflow_patch = patch
-        if self._runtime_snapshot:
-            from .parallel_workflow import ACTIVE
-            if any(node.get('status') in ACTIVE for key,node in self._runtime_snapshot().get('nodes',{}).items() if key in patch['affected_nodes']):
-                raise ValueError('affected node still owns live/unknown resources; reconcile before applying')
+        from .workflow_metadata_alignment import session_transition_proof
+        session_transition_proof(self,patch.get('proposed_nodes',[]),patch['affected_nodes'],patch['new_version'])
         runtime = self._runtime_snapshot() if self._runtime_snapshot else {}
+        parameter_edit = patch.get('requested_parameter_edit')
+        if parameter_edit:
+            from .requested_parameters import requested_parameter_patch
+            latest = get_store().get_line(self._current_line_id)
+            fresh = requested_parameter_patch(latest.get('steps', []), patch['changes'],
+                                               self.goal_contract, self.config.project_root)
+            source = self._control_source or {}
+            if (not source.get('turn_id') or source.get('turn_id') != parameter_edit.get('control_turn_id')
+                    or source.get('goal_version') != self.goal_contract.version or not fresh
+                    or {k: v for k, v in parameter_edit.items() if k != 'control_turn_id'} != fresh):
+                raise ValueError('parameter proposal no longer matches the current user turn or unexecuted node contract')
+            if any(node.get('status') not in {None, 'pending'}
+                   or any(node.get(field) for field in ('attempt_id', 'job_ids', 'tool_returned', 'dispatch_phase'))
+                   for key, node in runtime.get('nodes', {}).items() if key in patch['affected_nodes']):
+                raise ValueError('parameter update requires unexecuted nodes; an affected node has already started')
+        presentation_edit = patch.get('presentation_continuation')
+        presentation_valid = None
+        if presentation_edit:
+            from .presentation_continuation import classify_presentation_continuation
+            latest = get_store().get_line(self._current_line_id)
+            existing = [node for node in latest.get('steps', [])
+                        if 'expected_outputs' in node and not node.get('branch_parent')]
+            def presentation_valid():
+                source = self._operation_control_source() or {}
+                try:
+                    require_user_control_source(source, get_context())
+                except PermissionError:
+                    return False
+                current = self._runtime_snapshot() if self._runtime_snapshot else {}
+                if (not self._has_workflow_control_authority() or not self.goal_contract.execution_authorized
+                        or current.get('user_paused') or not source.get('turn_id')
+                        or source.get('turn_id') != presentation_edit.get('control_turn_id')
+                        or source.get('goal_version') != self.goal_contract.version):
+                    return False
+                from .presentation_transition import canonical_presentation_runtime
+                native_jobs = {str(job['job_id']): job for job in self._pending_jobs_for_conv() if job.get('job_id')}
+                scoped_root = self.config.project_root / 'runs' / get_context()['username'] / get_context()['conv_id']
+                current = canonical_presentation_runtime(current, self.goal_contract.to_dict(), scoped_root, native_jobs)
+                fresh = classify_presentation_continuation(existing, patch['changes'],
+                    project_root=self.config.project_root,
+                    owner={key: get_context().get(key) for key in ('username', 'conv_id')},
+                    goal=self.goal_contract.to_dict(), runtime=current)
+                return (fresh['technical_delivery_only'] and
+                    {key:value for key,value in presentation_edit.items() if key != 'control_turn_id'} == fresh)
+            if not presentation_valid():
+                raise ValueError('presentation continuation no longer matches current user authority, goal or scientific source evidence')
+        options = {'control_valid': control_valid} if control_valid is not None else {}
+        if presentation_valid is not None:
+            # TaskLine calls this before and immediately before durable commit.
+            # The classifier's positive receipt alone grants no authority.
+            options['control_valid'] = lambda: (control_valid is None or control_valid()) and presentation_valid()
         line=get_store().apply_workflow_patch(self._current_line_id,patch['changes'],patch['base_version'],plan_version,patch['reason'],self.config.project_root,
-                                            runtime_nodes=runtime.get('nodes', {}))
+                                            runtime_nodes=runtime.get('nodes', {}), **options)
+        if control_valid is not None and not control_valid():
+            raise ValueError('control changed after plan commit; workflow remains paused and requires reconciliation')
         # Old diagnostic tool receipts are audit history, not delegated nodes.
         self.goal_contract.approved_nodes=[n for n in line['steps'] if n.get('arguments') is not None and 'expected_outputs' in n]
         from .goal_contract import _TOOL_METHOD
@@ -1299,23 +1786,58 @@ class Session:
         self._pending_workflow_patch=None
         self._pending_user_interaction=None
         self._waiting_for_user_input=False
+        from .parallel_workflow import _approval_digest
+        owner = get_context()
+        self.context['approved_execution_proof'] = {
+            'schema_version': 1, 'kind': 'main_model_applied_plan',
+            'owner': {'username': owner.get('username'), 'conv_id': owner.get('conv_id')},
+            'goal_version': self.goal_contract.version, 'plan_version': plan_version,
+            'base_plan_version': patch['base_version'],
+            'approval_sha256': _approval_digest(self.goal_contract.to_dict()),
+            'control_source': copy.deepcopy(self._operation_control_source()), 'approved_at': time.time(),
+        }
+        if metadata_authority is not None:
+            self.context['approved_execution_proof'].update(kind='native_metadata_continuation',
+                metadata_continuation=metadata_authority)
+        if presentation_edit:
+            # A native typed receipt is recorded only after the original CAS
+            # checks. It permits retaining exact accepted history, never new
+            # science, model-result cache hits or unauthenticated execution.
+            self.context['approved_execution_proof']['presentation_transition'] = {
+                'receipt': copy.deepcopy(presentation_edit), 'changes': copy.deepcopy(patch['changes'])}
+        self._checkpoint('approved_plan_before_activation')
         self._emit_lifecycle_event('plan_patch_applied',{'patch':patch,'main_already_handling':True})
-        activation=self._activate_approved_workflow()
+        options = {'preserve_user_pause': True} if preserve_user_pause else {}
+        if control_valid is not None: options['control_valid'] = control_valid
+        activation=self._activate_approved_workflow(**options)
         if activation.get('scheduled'):
             self.context['pending_control_delivery'] = '执行安排已保存并交给执行器，尚不能确认计算已经启动；实际提交以作业回执为准。'
         self._checkpoint('model_applied_workflow_patch')
-        return {'ok':bool(activation.get('scheduled')),'applied':True,'plan_version':plan_version,
-                'status': 'execution_staged' if activation.get('scheduled') else 'activation_blocked', 'execution':activation,
-                'next_action': 'Await actual dispatch receipt.' if activation.get('scheduled') else
+        return {'ok':bool(activation.get('scheduled') or activation.get('plan_staged')),'applied':True,'plan_version':plan_version,
+                'status': 'staged_paused' if activation.get('plan_staged') else 'execution_staged' if activation.get('scheduled') else 'activation_blocked', 'execution':activation,
+                'next_action': 'Review the staged graph, then resume it explicitly.' if activation.get('plan_staged') else 'Await actual dispatch receipt.' if activation.get('scheduled') else
                     'Plan was saved, execution was NOT started. Diagnose the returned blocked nodes and restore/repair them; do not ask for the same approval again.'}
 
     def _discard_workflow_patch(self, plan_version, reason):
-        if getattr(self.current_agent, 'name', '') != 'lead-orchestrator':
+        if not self._has_workflow_control_authority():
             raise PermissionError('main chat owns candidate plan decisions')
+        return self._discard_current_workflow_proposal(plan_version, reason)
+
+    def _discard_workflow_patch_as_user(self, plan_version, reason, *, control_source, owner):
+        from .control_policy import require_user_control_source
+        require_user_control_source(control_source, owner)
+        if not control_source.get('turn_id'):
+            raise PermissionError('proposal withdrawal requires an authenticated control request')
+        return self._discard_current_workflow_proposal(plan_version, reason, control_source=control_source)
+
+    def _discard_current_workflow_proposal(self, plan_version, reason, *, control_source=None):
         patch = self._pending_workflow_patch
         if not patch or patch['new_version'] != plan_version:
             raise ValueError('only the exact current pending proposal can be withdrawn')
-        self.context.setdefault('withdrawn_workflow_patches', []).append({'patch': patch, 'reason': reason})
+        from .workflow_proposals import withdrawal_record
+        runtime=self._runtime_snapshot() if self._runtime_snapshot else {}
+        record=withdrawal_record(self,patch,reason,runtime,control_source or self._operation_control_source())
+        self.context.setdefault('withdrawn_workflow_patches', []).append(record)
         self._pending_workflow_patch = None
         if (self._pending_user_interaction or {}).get('tool') == 'workflow_patch_decision':
             self._pending_user_interaction = None
@@ -1325,24 +1847,54 @@ class Session:
         self._checkpoint('model_withdrew_workflow_proposal')
         return {'ok': True, 'discarded': True, 'plan_version': plan_version, 'execution_unchanged': True}
 
-    def _activate_approved_workflow(self):
+    def _activate_approved_workflow(self, *, preserve_user_pause=False, control_valid=None):
         """Approval commits before scheduling; never fall back to legacy dispatch."""
         if not self._on_workflow_start:
             return {'status': 'not_attached', 'scheduled': False}
         self._checkpoint('approved_workflow_before_activation')
         try:
-            runtime = self._on_workflow_start(self.goal_contract.approved_plan_version)
+            if control_valid is not None and not control_valid():
+                raise ValueError('workflow control was superseded before activation')
+            options = {'preserve_user_pause': True} if preserve_user_pause else {}
+            if control_valid is not None: options['control_valid'] = control_valid
+            runtime = self._on_workflow_start(self.goal_contract.approved_plan_version, **options)
+            if runtime.get('plan_staged'):
+                return {'status': 'staged_paused', 'scheduled': False, 'plan_staged': True, 'runtime': runtime}
             if runtime.get('scheduled') is False or runtime.get('status') in {'needs_recovery', 'activation_blocked'}:
-                return {'status': 'activation_blocked', 'scheduled': False, 'reason': runtime.get('reason', 'Execution requires recovery'), 'runtime': runtime}
+                receipt = {'status': 'activation_blocked', 'scheduled': False,
+                    'reason': runtime.get('reason', 'Execution requires recovery'), 'runtime': runtime}
+                from .workflow_feedback import current_workflow_feedback
+                current = current_workflow_feedback(self)
+                if current is not None: receipt['current_workflow'] = current
+                return receipt
             return {'status': 'scheduled', 'scheduled': True, 'runtime': runtime}
         except Exception as error:
             receipt = {'status': 'activation_blocked', 'scheduled': False, 'reason': str(error),
                        'next_action': 'reconcile_legacy_dispatch_or_propose_workflow_patch',
                        'legacy_fallback_allowed': False}
+            from .workflow_feedback import current_workflow_feedback
+            current = current_workflow_feedback(self)
+            if current is not None:
+                receipt['current_workflow'] = current
+                receipt['next_action'] = 'Inspect the current workflow facts before choosing a recovery action; an earlier rejection may no longer apply.'
+            if isinstance(getattr(error, 'details', None), dict):
+                receipt['guard_details'] = copy.deepcopy(error.details)
+                receipt['guard_details'].pop('current_workflow', None)
             self._emit_lifecycle_event('workflow_activation_blocked', {**receipt, 'main_already_handling': True})
             return receipt
 
     def resume_lifecycle_event(self, event):
+        from .metadata_recovery import orient_metadata_event
+        metadata_orientation=orient_metadata_event(self,event)
+        if metadata_orientation:
+            from .watch_context import get_context
+            owner=get_context()
+            self._control_source={'origin':'lifecycle','turn_id':event['event_id'],
+                'owner':{'username':owner.get('username'),'conv_id':owner.get('conv_id')},
+                'goal_version':self.goal_contract.version}
+            self._operations_authority=None
+        from .executor_recovery import refresh_executor_event
+        event = refresh_executor_event(self, event)
         from .defns import ORCHESTRATOR
         resource_receipt=event.get('supervisor_receipt',{}).get('resource_review',{})
         if event.get('kind')=='job_pending_warning' and resource_receipt:
@@ -1363,7 +1915,9 @@ class Session:
         if receipt.get('review_action') == 'correct_main':
             self.context['active_scientific_review_scope'] = receipt['scope_id']
             self.context['scientific_correction_scope'] = receipt['scope_id']
-        if review and review.get('passed') is False:
+        if (review and review.get('passed') is False
+                and (event.get('kind') in {'scientific_review', 'scientific_review_failed'}
+                     or receipt.get('review_action') == 'correct_main')):
             event = copy.deepcopy(event)
             audit_incomplete = event.get('supervisor_receipt', {}).get('review_status') == 'insufficient_evidence'
             event.setdefault('payload', {})['correction_contract'] = {
@@ -1389,10 +1943,101 @@ class Session:
         self.current_agent = ORCHESTRATOR
         self.messages.append({'role': 'user', 'content': '[生命周期事件]\n' + json.dumps(event, ensure_ascii=False, default=str)})
         self.task_complete = False
+        from .preparation_defaults import preparation_review_binding
+        default_review=preparation_review_binding(self,event)
+        default_review_id=default_review['decision_id']if default_review else None
+        if default_review_id:
+            self.context['native_default_review_window']={'decision_id':default_review_id,'remaining_rounds':3}
+            self._waiting_for_user_input=False
+        if metadata_orientation:
+            self.context['native_metadata_capability_window']=metadata_orientation
         try:
             return self._execute_loop(ORCHESTRATOR)
         finally:
+            self.context.pop('native_metadata_capability_window',None)
+            if default_review_id:
+                self.context.pop('native_default_review_window',None)
+                remaining=self._pending_user_interaction or{}
+                if (remaining.get('tool')=='user_decision'
+                        and (remaining.get('params')or{}).get('decision_id')==default_review_id):
+                    self._waiting_for_user_input=True
             self.context.pop('scientific_correction_scope', None)
+
+    def run_workflow_review_stage(self, event, *, control_valid=None):
+        """Bounded native-evidence review; controller alone applies the finish gate."""
+        from .scientific_owner_runner import run_owner_review
+        return run_owner_review(self, event, control_valid=control_valid)
+
+    def run_failure_repair_stage(self, event):
+        """Bounded repair planning and native validation, never scientific authority.
+
+        This isolated actor can inspect and run fixed project checks. Arbitrary
+        shell/file edits are not capabilities of this stage; a proposal requires
+        a separately controlled patch executor and independently verified result.
+        """
+        from .agent import Agent
+        from .defns import PATCHER, _tool
+        stage = (event.get('payload') or {}).get('failure_recovery') or {}
+        if (event.get('kind') != 'worker_failure_recovery' or stage.get('stage') != 'repair'
+                or stage.get('role') != 'repair_planner' or not stage.get('incident_id')):
+            raise ValueError('repair stage requires a native failure-recovery incident')
+        allowed = frozenset({'read_file', 'grep_search', 'inspect_path', 'get_tool_schema',
+            'inspect_runtime', 'diagnose_job', 'check_job', 'run_project_regressions',
+            'build_project_frontend'})
+        role = Agent(name='patcher', instructions=(
+            'Investigate this owned failure incident and propose a minimal framework repair. '
+            'Use only the exposed native inspection and fixed project-validation tools. '
+            'Do not submit, cancel, finish, change scientific inputs, delegate, or grant retry. '
+            'Arbitrary shell and file writes are unavailable. Return the exact repair request, '
+            'observed evidence, validation results and remaining limitations; never claim a '
+            'proposed change is applied. Existing scientific approval remains unchanged.'),
+            functions=[_tool(name) for name in sorted(allowed)], model=PATCHER.model, max_turns=3)
+        self.current_agent = role
+        start = len(self.memory.tool_call_log)
+        self.messages.append({'role': 'user', 'content': '[NATIVE FAILURE REPAIR STAGE]\n' +
+                              json.dumps(event, ensure_ascii=False, default=str)})
+        summary = ''; status = 'budget_exhausted'; used = 0
+        for _ in range(3):
+            if self._interrupt_requested():
+                raise ValueError('repair stage interrupted before provider call')
+            response = self._call_api(role)
+            content = response.content
+            self.messages.append({'role': 'assistant', 'content': content})
+            calls = [block for block in content if getattr(block, 'type', '') == 'tool_use']
+            if not calls:
+                summary = '\n'.join(getattr(block, 'text', '') for block in content
+                                    if getattr(block, 'type', '') == 'text')[:16000]
+                status = 'proposed' if summary.strip() else 'blocked'
+                break
+            results = []
+            for call in calls:
+                if self._interrupt_requested():
+                    raise ValueError('repair stage interrupted before native tool')
+                if used >= 8:
+                    raw = {'blocked': True, 'reason': 'native repair tool budget exhausted'}
+                elif call.name not in allowed:
+                    raw = {'blocked': True, 'reason': 'repair role cannot write, submit, cancel, finish, authorize retry or hand off'}
+                    used += 1
+                else:
+                    used += 1
+                    raw = self.registry.execute_dict(call.name, call.input)
+                encoded = json.dumps(raw, ensure_ascii=False, default=str)
+                self.memory.record_tool_call('patcher', call.name, call.input, encoded,
+                    failed=bool(isinstance(raw, dict) and (raw.get('error') or raw.get('blocked') or raw.get('isError'))))
+                results.append({'type': 'tool_result', 'tool_use_id': call.id, 'content': encoded})
+            self.messages.append({'role': 'user', 'content': results})
+            self._checkpoint('failure_repair_native_calls')
+            if used >= 8:
+                break
+        calls = self.memory.tool_call_log[start:]
+        result = {'status': status, 'reason': summary or 'Bounded repair investigation did not produce an executable verified repair.',
+            'proposal': {'target_role': 'patcher', 'request': summary, 'execution_required': True},
+            'evidence_call_ids': [call['call_id'] for call in calls],
+            'repair_applied': False, 'repair_verified': False, 'retry_granted': False,
+            'scientific_acceptance': False, 'tool_calls_used': used,
+            'limitations': ['No controlled framework patch executor has applied this proposal.']}
+        self._checkpoint('failure_repair_stage_receipt')
+        return result
 
     def observe_lifecycle_event(self, event):
         """Independent, durable, bounded read-only supervisor loop."""
@@ -1402,17 +2047,21 @@ class Session:
         start = len(self.memory.tool_call_log)
         verification_tools = set(event.get('payload', {}).get('verification_tools', []))
         self._scientific_verification_tools = verification_tools if event.get('kind') == 'scientific_review' else set()
-        from .scientific_review import knowledge_fingerprint, is_source_result, canonical_source_inputs
+        from .scientific_review import knowledge_fingerprint, is_source_result, canonical_source_inputs, verified_evidence_family
         from .watch_context import get_context
         owner = get_context()
         source_scope = hashlib.sha256(json.dumps({'question': event.get('payload', {}).get('question'),
             'owner': [owner.get('username'), owner.get('conv_id')],
             'knowledge': knowledge_fingerprint(self.config.project_root), 'inputs': canonical_source_inputs(event.get('payload', {}).get('source_inputs', [])),
-            'goal_version': self.goal_contract.version, 'verification_tools': sorted(verification_tools)},
+            'goal_version': self.goal_contract.version, 'verification_tools': sorted(verification_tools),
+            'families': event.get('payload', {}).get('required_evidence_families', []),
+            'native_sources': event.get('payload', {}).get('native_result_sources', [])},
             sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        required_families = set(event.get('payload', {}).get('required_evidence_families', []))
+        native_sources = event.get('payload', {}).get('native_result_sources', [])
         prior_source = self.context.get('scientific_review_source', {})
         existing_calls = {c['call_id'] for c in self.memory.tool_call_log if c.get('tool') in verification_tools
-            and is_source_result(c['tool'], result_object(self._load_evidence_call(c).get('result')))}
+            and (is_source_result(c['tool'], result_object(self._load_evidence_call(c).get('result'))) or c['tool'] == 'read_file')}
         verified_sources = [cid for cid in prior_source.get('call_ids', []) if cid in existing_calls] if prior_source.get('scope') == source_scope else []
         from pathlib import Path
         for item in event.get('payload', {}).get('source_inputs', []):
@@ -1420,8 +2069,31 @@ class Session:
             if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
                 verified_sources = []
                 break
+        def missing_families():
+            if not required_families:
+                return []
+            covered, native_paths = set(), set(); document_inputs=set()
+            for source_id in verified_sources:
+                call = next((c for c in self.memory.tool_call_log if c.get('call_id') == source_id), None)
+                if not call: continue
+                loaded = self._load_evidence_call(call)
+                params = loaded.get('params', call.get('params', {}))
+                family = verified_evidence_family(call['tool'], params, result_object(loaded.get('result')),
+                                                 native_sources, self._evidence_root)
+                if family:
+                    covered.add(family)
+                    if family == 'native_results': native_paths.add(params.get('path'))
+                    if family == 'document_text':
+                        source=result_object(loaded.get('result')).get('source_document')or{}
+                        document_inputs.add((source.get('path'),source.get('sha256')))
+            if native_sources and not {item['path'] for item in native_sources}.issubset(native_paths):
+                covered.discard('native_results')
+            expected_documents={(item['path'],item['sha256'])for item in event.get('payload',{}).get('document_inputs',[])}
+            if 'document_text'in required_families and (not expected_documents or not expected_documents<=document_inputs):
+                covered.discard('document_text')
+            return sorted(required_families - covered)
         delivered_verdict = False
-        self._scientific_source_required = bool(verification_tools and not verified_sources)
+        self._scientific_source_required = bool(missing_families()) if required_families else bool(verification_tools and not verified_sources)
         default_actions = {'job_completed': 'advance_dependencies', 'tool_failed': 'diagnose_and_fix',
                            'tool_outcome': 'diagnose_and_fix', 'plan_patch_proposed': 'diagnose_and_fix',
                            'tool_uncertain': 'wait_existing', 'user_paused': 'wait_existing', 'stalled': 'wait_existing', 'waiting_jobs': 'wait_existing', 'result_verified': 'advance_dependencies'}
@@ -1438,7 +2110,11 @@ class Session:
                     self.messages.append({'role': 'user', 'content':
                         '只读观察预算的最后一轮：现在仅能调用supervisor_decision交付，不再查询生命周期或其他工具。'
                         'scientific_review事件必须填写scientific_review.passed/issues；证据不足就passed=false并说明实际缺项，不得默认通过。'})
-                response = self._call_api(SUPERVISOR)
+                try:
+                    response = self._call_api(SUPERVISOR)
+                except CodexToolArgumentError as error:
+                    self._record_tool_protocol_error(SUPERVISOR, error)
+                    continue
                 calls = [b for b in response.content if getattr(b, 'type', '') == 'tool_use']
                 if not calls:
                     self.messages.append({'role': 'assistant', 'content': response.content})
@@ -1459,11 +2135,12 @@ class Session:
                         elif call.name == 'supervisor_decision':
                             missing_verdict = event.get('kind') == 'scientific_review' and 'scientific_review' not in call.input
                             missing_source = (event.get('kind') == 'scientific_review' and verification_tools
-                                and not verified_sources and (call.input.get('scientific_review', {}).get('passed') is True
+                                and (bool(missing_families()) if required_families else not verified_sources) and (call.input.get('scientific_review', {}).get('passed') is True
                                     or not self._supervisor_finalizing))
                             if missing_verdict or missing_source:
                                 raw = {'error': 'scientific_review requires a structured verdict backed by successful independent source evidence' if missing_source else 'scientific_review event requires a structured passed/issues verdict',
                                        'required_verification_tools': sorted(verification_tools),
+                                       'missing_evidence_families': missing_families(),
                                        'input_schema': self.registry.get('supervisor_decision').input_schema}
                                 content = json.dumps(raw, ensure_ascii=False)
                                 self.memory.record_tool_call('supervisor', call.name, call.input, content, failed=True)
@@ -1484,9 +2161,10 @@ class Session:
                     content = json.dumps(raw, ensure_ascii=False, default=str)
                     self.memory.record_tool_call('supervisor', call.name, call.input, content,
                                                  failed=bool(failure_reason(raw)))
-                    if call.name in verification_tools and is_source_result(call.name, raw):
+                    if call.name in verification_tools and (verified_evidence_family(call.name, call.input, raw, native_sources, self._evidence_root)
+                            if required_families else is_source_result(call.name, raw)):
                         verified_sources.append(self.memory.tool_call_log[-1]['call_id'])
-                        self._scientific_source_required = False
+                        self._scientific_source_required = bool(missing_families()) if required_families else False
                     results.append({'type': 'tool_result', 'tool_use_id': call.id, 'content': content})
                 self.messages.append({'role': 'user', 'content': results})
                 self._checkpoint('supervisor_observation')
@@ -1506,8 +2184,11 @@ class Session:
         if verification_tools:
             self.context['scientific_review_source'] = {'scope': source_scope, 'call_ids': verified_sources}
             decision['independent_source_call_ids'] = verified_sources
-            decision['review_status'] = ('insufficient_evidence' if not verified_sources or not delivered_verdict else
+            decision['review_status'] = ('insufficient_evidence' if not verified_sources or not delivered_verdict or missing_families() else
                 'verified' if decision.get('scientific_review', {}).get('passed') is True else 'rejected_content')
+        if required_families:
+            decision['missing_evidence_families'] = missing_families()
+            decision['verified_evidence_families'] = sorted(required_families - set(missing_families()))
         self.memory.record_step('supervisor_decision', 'done', json.dumps(decision, default=str), 'supervisor')
         self.memory.record_exit_report('supervisor', json.dumps(decision, ensure_ascii=False, default=str))
         self._checkpoint('supervisor_receipt')
@@ -1579,23 +2260,26 @@ class Session:
         return '监控只读检查达到上限；请查看实际工具状态，未知状态不能视为正常。'
 
     _CHAIN_CONTROL_TOOLS = frozenset({
-        'record_workflow_draft',
-        'get_tool_schema', 'task_line_query', 'task_line_update', 'check_job',
+        'record_workflow_draft', 'resolve_preparation_defaults',
+        'get_tool_schema', 'inspect_runtime', 'task_line_query', 'task_line_update', 'check_job',
         'list_my_jobs', 'diagnose_job', 'recovery_state', 'prepare_retry',
         'accept_recovered_result', 'lifecycle_state', 'propose_workflow_patch',
         'apply_workflow_patch', 'discard_workflow_patch', 'request_user_decision',
         'reconcile_watched_job', 'execute_workflow', 'message_workflow_node',
         'resolve_local_workflow_write', 'retarget_queued_job', 'cancel_watched_job',
         'revalidate_workflow_node_outputs', 'finish_workflow_node',
-        'repair_workflow_runtime_inputs',
+        'repair_workflow_runtime_inputs', 'requeue_local_preparation', 'prepare_cdft_partial_recovery',
     })
 
     def _chain_required_block(self, tool: str) -> str:
         """Require a session-owned DAG before production tools or handoffs."""
+        from .parallel_workflow import READ_ONLY
+        if tool in READ_ONLY:
+            return ''
         # Framework maintenance must remain reachable when the DAG compiler
         # itself is broken. Patcher capabilities and workspace guards still
         # enforce its ban on user scientific jobs.
-        if tool == 'handoff_to_patcher' or getattr(self.current_agent, 'name', '') == 'patcher':
+        if tool in {'handoff_to_patcher','handoff_to_operations'} or getattr(self.current_agent, 'name', '') == 'patcher':
             return ''
         if (not self._current_line_id or not self._on_workflow_start
                 or tool in self._CHAIN_CONTROL_TOOLS):
@@ -1676,15 +2360,24 @@ class Session:
                                                   goal_version=self.goal_contract.version, project_root=self.config.project_root)
         return key, attempt, reason
 
-    def _recovery_state(self):
-        self.recovery_gate.sync_jobs(self._pending_jobs_for_conv())
+    def _recovery_evidence_calls(self):
+        """Detached observation metadata; no job sync or executor inspection.
+
+        This is not a recovery permit or a current source-verification result.
+        Actual recovery_state/prepare_retry retain their authoritative checks.
+        """
         evidence = [
             {'call_id': c.get('call_id'), 'time': c.get('time'), 'tool': c.get('tool'),
              'params': c.get('params'), 'result_preview': c.get('result_preview'), 'evidence_path': c.get('evidence_path')}
             for c in self.memory.tool_call_log[-50:]
-            if c.get('tool') in {'diagnose_job', 'read_file', 'inspect_path', 'run_bash', 'validate_method', 'validate_gcmc_results'}
+            if c.get('tool') in {'inspect_runtime', 'diagnose_job', 'read_file', 'inspect_path', 'run_bash', 'validate_method', 'validate_gcmc_results'}
         ]
         evidence.extend(self.context.get('main_evidence_calls', []))
+        return copy.deepcopy(evidence)
+
+    def _recovery_state(self):
+        self.recovery_gate.sync_jobs(self._pending_jobs_for_conv())
+        evidence = self._recovery_evidence_calls()
         attempts = self.recovery_gate.snapshot()
         candidates = {}
         for key, entry in attempts.items():
@@ -1696,23 +2389,34 @@ class Session:
                 'actual_result': entry.get('last_result', {}),
                 'next_action': 'diagnose_and_verify_repair' if entry.get('status') == 'failed' else
                                'collect_and_validate_actual_job_outputs' if entry.get('status') == 'completed_unverified' else 'reconcile_existing_dispatch'}
+            if entry.get('status') == 'failed' and entry.get('attempts', 3) < 3:
+                from .installations import IMPLEMENTATIONS, changed_executor
+                if entry.get('tool') in IMPLEMENTATIONS and changed_executor(entry, self.config.project_root):
+                    candidates[key]['executor_change_observed'] = True
+                    candidates[key]['verification_capability'] = {'tool': 'inspect_runtime', 'arguments': {
+                        'tool_name': entry['tool'], 'arguments': entry.get('params', {})},
+                        'scope': 'Read current installation and adapter syntax; this does not claim a successful scientific result or grant a retry.'}
         return {'attempts': attempts, 'evidence_calls': evidence, 'recovery_guidance': candidates,
                 'note': 'Use evidence_ref.call_id from real tool replies, NEVER recovery_key/tool_use_id/invented strings. A successful cDFT collect of the SAME job is output verification. Do not use the same call as diagnosis and verification. submitted/UNKNOWN are not success.'}
 
     def _prepare_retry(self, recovery_key: str, tool_name: str, arguments: Dict,
                        diagnosis: str, diagnosis_call_id: str, fix_summary: str,
-                       verification_call_id: str):
+                       verification_call_id: str, *, control_valid=None):
         """Grant a single-use permit only from real, fresh tool evidence."""
+        if control_valid is not None and (not callable(control_valid) or control_valid() is not True):
+            raise ValueError('native retry control changed before evidence review')
         self.recovery_gate.sync_jobs(self._pending_jobs_for_conv())
         entry = self.recovery_gate.snapshot().get(recovery_key)
         if not entry or entry.get('tool') != tool_name:
             raise ValueError('unknown recovery key/tool; read recovery_state first')
+        from .parallel_workflow import RESOURCE_ARGUMENTS
+        arguments = {**{k: v for k, v in entry.get('params', {}).items() if k in RESOURCE_ARGUMENTS}, **arguments}
         if len(diagnosis.strip()) < 10 or len(fix_summary.strip()) < 10:
             raise ValueError('root cause and concrete fix summary are required')
         calls = {c.get('call_id'): c for c in self.memory.tool_call_log if c.get('call_id')}
         diag = self._load_evidence_call(calls.get(diagnosis_call_id))
         verify = self._load_evidence_call(calls.get(verification_call_id))
-        evidence_tools = {'read_file', 'inspect_path', 'run_bash', 'validate_method', 'validate_gcmc_results'}
+        evidence_tools = {'inspect_runtime', 'read_file', 'inspect_path', 'run_bash', 'validate_method', 'validate_gcmc_results'}
         if not diag or diag.get('tool') not in evidence_tools | {'diagnose_job'}:
             raise ValueError('diagnosis must reference an actual diagnostic/inspection tool call')
         failed_at = entry.get('failed_at', entry['started_at'])
@@ -1723,7 +2427,7 @@ class Session:
             if (diag.get('tool') != 'diagnose_job'
                     or str(diag.get('params', {}).get('job_id')) not in entry['job_ids']
                     or dobj.get('terminal') is not True or dobj.get('failed') is not True
-                    or not any(dobj.get(k) for k in ('error', 'stderr_tail', 'run_log_tail', 'diagnosis'))):
+                    or not any(dobj.get(k) for k in ('error', 'stderr_tail', 'stdout_tail', 'run_log_tail', 'diagnosis'))):
                 raise ValueError('diagnose the failed job ID with terminal failure and real error evidence; UNKNOWN is insufficient')
         elif failure_reason(diag.get('result', '')) or not dobj:
             raise ValueError('diagnostic tool failed or returned no structured evidence')
@@ -1734,6 +2438,11 @@ class Session:
         vobj = result_object(verify.get('result', ''))
         if not vobj or any(vobj.get(k) is False for k in ('valid', 'passed', 'validation_passed', 'ok')):
             raise ValueError('verification did not pass')
+        if verify.get('tool') == 'inspect_runtime':
+            from .installations import installation_profile
+            if (vobj.get('verified_tool') != tool_name
+                    or installation_profile(tool_name, vobj.get('checked_arguments') or {}) != installation_profile(tool_name, arguments)):
+                raise ValueError('native verification must check this tool and its required installation profile')
         if verify.get('tool') == 'run_bash':
             command = str(verify.get('params', {}).get('command', '')).strip()
             if vobj.get('exit_code') != 0 or re.match(r'^(echo|printf|true)\b', command):
@@ -1746,15 +2455,51 @@ class Session:
             if targets and not any(t in verification_text for t in targets):
                 raise ValueError('verification must reference the corrected input or work directory')
         issues = self.registry.validate_params(tool_name, arguments)
-        allowed, reason = self.goal_contract.guard_tool_call(tool_name, arguments)
-        expected_key = self.recovery_gate.key(tool_name, arguments, self.goal_contract.version,
-                                              node=self._workflow_node_for_call(tool_name, arguments).get('step_id', ''), project_root=self.config.project_root)
+        allowed, reason = self.goal_contract.guard_tool_call(tool_name, arguments, enforce_approved_node=False)
+        retry_node = ''
+        if self.goal_contract.approved_nodes:
+            from .parallel_workflow import RESOURCE_ARGUMENTS
+            science = lambda values: {k: v for k, v in values.items() if k not in RESOURCE_ARGUMENTS}
+            runtime = self._runtime_snapshot() if self._runtime_snapshot else {}
+            matches = []
+            for node in self.goal_contract.approved_nodes:
+                if node.get('tool') != tool_name:
+                    continue
+                declared = node.get('arguments') or {}
+                current = (runtime or {}).get('nodes', {}).get(node.get('step_id'), {})
+                candidates = [declared]
+                if (current.get('recovery_key') == recovery_key
+                        and (runtime or {}).get('goal_contract', {}).get('version') == self.goal_contract.version
+                        and (runtime or {}).get('plan_version') == self.goal_contract.approved_plan_version
+                        and current.get('attempt_id') == entry.get('attempt_id')
+                        and current.get('contract', {}).get('tool') == tool_name
+                        and current.get('contract', {}).get('arguments') == declared
+                        and current.get('effective_arguments')):
+                    candidates.append(current['effective_arguments'])
+                from .workflow_execution_identity import bound_retry_identity
+                stable = bound_retry_identity(self,tool_name,arguments,node.get('step_id',''))
+                identity = stable['key'] if stable else self.recovery_gate.key(tool_name, arguments,
+                    self.goal_contract.version,node=node.get('step_id',''),project_root=self.config.project_root)
+                if identity == recovery_key and any(science(candidate) == science(arguments) for candidate in candidates):
+                    matches.append(node)
+            if len(matches) != 1:
+                allowed, reason = False, 'retry requires one matching approved scientific node and original attempt identity'
+            else:
+                retry_node = matches[0]['step_id']
+        else:
+            retry_node = self._workflow_node_for_call(tool_name, arguments).get('step_id', '')
+        from .workflow_execution_identity import bound_retry_identity
+        stable = bound_retry_identity(self,tool_name,arguments,retry_node)
+        expected_key = stable['key'] if stable else self.recovery_gate.key(tool_name, arguments,
+            self.goal_contract.version,node=retry_node,project_root=self.config.project_root)
         if issues or not allowed or expected_key != recovery_key:
             raise ValueError(f'retry must keep the approved task identity and valid scientific parameters: {issues or reason}')
         fingerprint = input_fingerprint(arguments, self.config.project_root)
         review = {'diagnosis': diagnosis, 'fix_summary': fix_summary,
                   'diagnosis_call_id': diagnosis_call_id, 'verification_call_id': verification_call_id}
-        permit = self.recovery_gate.approve(recovery_key, fingerprint, review)
+        permit = self.recovery_gate.approve(recovery_key, fingerprint, review,
+            runtime_verification=vobj if verify.get('tool') == 'inspect_runtime' else None, arguments=arguments,
+            expected_attempt_id=entry['attempt_id'], control_valid=control_valid)
         self.memory.record_step('recovery_review', 'done', json.dumps(review, ensure_ascii=False),
                                 agent_name=self.current_agent.name if self.current_agent else '')
         return permit
@@ -2186,6 +2931,9 @@ class Session:
             if branch["resolution"]:
                 lines.append(f"   解决: {branch['resolution'][:100]}")
             lines.append(f"   修复尝试: {len(branch['fix_attempts'])} 次")
+            window=self.context.get('native_metadata_capability_window')or{}
+            if bid in window.get('historical_active_branches',[]):
+                lines.append('   当前原生能力事件已证明另一个精确receipt-only候选可进入普通提案；此历史ACTIVE拒绝不证明新候选不可用。历史提案未获追认，原错误和科学预算均保留。')
 
         return "\n".join(lines)
 
@@ -2240,9 +2988,9 @@ class Session:
             name = id_to_name.get(tr.get("tool_use_id"))
             # If the call cannot be attributed, do not invent a tool failure.
             # Query results may describe failed JOBS or contain arbitrary files.
-            if not name or name in self._DIAGNOSTIC_TOOLS or name.startswith('handoff_to_'):
+            if not name or name.startswith('handoff_to_'):
                 continue
-            reason = failure_reason(tr.get('content', ''))
+            reason = tool_failure_reason(name,tr.get('content', ''))
             if reason:
                 failures.append((name, reason))
         return failures
@@ -2419,10 +3167,14 @@ class Session:
                       (block.get('name') if isinstance(block, dict) else getattr(block, 'name', None))
                       for block in assistant_content}
         contract_errors = set()
+        contract_feedback = {}
         for reply in tool_results:
             obj = result_object(reply.get('content'))
             if obj.get('error_kind') in {'workflow_contract', 'schema_validation'} and obj.get('executed') is not True:
-                contract_errors.add(call_names.get(reply.get('tool_use_id')))
+                name=call_names.get(reply.get('tool_use_id'))
+                contract_errors.add(name)
+                fields=('contract_code','step_id','parameter','issues','missing_parameters','required_outputs','next_action')
+                contract_feedback.setdefault(name,[]).append({key:obj[key] for key in fields if key in obj})
             call = evidence.get(obj.get('evidence_ref', {}).get('call_id'))
             if call and (failure_reason(reply.get('content')) or obj.get('error')):
                 correlated.setdefault(call['tool'], []).append(call)
@@ -2521,14 +3273,16 @@ class Session:
             _branch_summary = self._get_error_branch_summary()
 
             if contract_failure:
+                details=(contract_feedback.get(fname) or [{}]).pop(0)
+                detail_text=json.dumps(details,ensure_ascii=False,default=str)[:4000] if details else '{}'
                 recovery = (
                     f"[系统·参数合同修复] {fname} 在执行前被拒绝；没有提交作业，也没有产生科研失败。\n"
-                    f"校验信息: {ferr[:1200]}\n\n"
+                    f"校验信息: {ferr[:1200]}\n结构化反馈: {detail_text}\n\n"
                     "直接按 issues、missing_parameters 和 input_schema 修正节点。"
                     "可由 expected_outputs、depends_on 或会话目录唯一推导的路径字段必须自行补全。"
                     "只有缺少气体、温度、压力、方法等新的科研选择时才询问用户。"
                     "本错误不占用计算重试额度，不得因格式错误删掉交付物、改科学方案或宣称无法继续。"
-                    + ("同一参数合同已多次修复未果：立即 handoff_to_patcher，附上完整 issues/input_schema 和失败参数，修复框架后继续原节点。"
+                    + ("同一参数合同已多次修复未果：交由 patcher 核对当前提案与实际 schema；仅在有证据表明实现与 schema 不一致时修改框架，普通参数错误应直接修订提案后继续。"
                        if n >= 3 else "")
                 )
                 if n >= 3 and agent_name != 'patcher' and not self._pending_handoff:
@@ -2538,7 +3292,7 @@ class Session:
                         '修复阻塞当前DAG的参数/schema/路径合同缺陷；不要运行用户科研任务。'
                         f'失败工具={fname}；节点={last_call.get("workflow_step_id") or "unknown"}；'
                         f'失败参数={json.dumps(last_call.get("params", {}), ensure_ascii=False, default=str)}；'
-                        f'错误={ferr[:4000]}。修复框架并运行定向测试后交回主chat，从原DAG继续。'
+                        f'错误={ferr[:4000]}；结构化反馈={detail_text}。先核对提案与实际 schema；仅对有证据的实现缺陷修改并测试，普通参数错误直接建议修订，从原DAG继续。'
                     )
             elif n >= 3:
                 recovery = (
@@ -3168,37 +3922,76 @@ class Session:
             )
         return out
 
+    def _record_tool_protocol_error(self, agent, error):
+        """Persist a wholly unexecuted proposal batch for bounded correction."""
+        self.messages.append({'role': 'assistant', 'content': [
+            {'type': 'tool_use', 'id': item.call_id, 'name': item.name, 'input': {}}
+            for item in error.tool_errors]})
+        self.messages.append({'role': 'user', 'content': [
+            {'type': 'tool_result', 'tool_use_id': item.call_id, 'is_error': True,
+             'content': json.dumps({'error_kind': 'tool_argument_protocol',
+                 'error': item.error, 'executed': False})}
+            for item in error.tool_errors]})
+        record = {'agent': agent.name, 'time': time.time(), 'executed': False,
+                  'calls': [{'call_id': item.call_id, 'tool': item.name, 'error': item.error}
+                            for item in error.tool_errors]}
+        history = self.context.setdefault('tool_protocol_errors', [])
+        history.append(record)
+        del history[:-30]
+        self.memory.record_step('tool_argument_protocol', 'failed', json.dumps(record), agent_name=agent.name)
+        self._progress(agent_name=agent.name, status='工具参数格式有误，正在自动修正',
+                       log='模型提案未执行，已返回参数格式错误供修正')
+        self._checkpoint('tool_argument_protocol_error')
+
     def _call_api(self, agent: Agent) -> anthropic.types.Message:
+        request_assembly_started = time.monotonic()
         model = self.config.model if self.config.force_model_override else (agent.model or self.config.model)
         system = agent.get_instructions(self.context)
+        from .coordinator_custody import custody_policy,request_tools,prompt_contract
+        coordinator_policy=custody_policy(self,agent)
+        if coordinator_policy is not None:system+=prompt_contract()
+        live_context = ''
+        if agent.name == 'lead-orchestrator' and (self._pending_workflow_patch or self.context.get('withdrawn_workflow_patches')):
+            from .workflow_proposals import proposal_state
+            live_context += '\n[CURRENT WORKFLOW CANDIDATES: diagnostic, not authorization]\n'+json.dumps(proposal_state(self),ensure_ascii=False)
+            system += '\n撤回记录与当前候选是当前状态，历史工具回复不是当前批准。普通继续不复活已撤回的同语义方案；先按撤回原因继续原任务诊断。不得仅换版本、资源回执或描述重提，不得自动再问已拒问题。真实用户改变要求应由goal-contract记录为typed范围，或由用户明确结构化命令重议；讨论回答本身不授重开许可。不能可靠识别原话授权时透明说明保守边界，不假装已经获得同意。'
         if self._runtime_snapshot:
             runtime = self._runtime_snapshot()
             if runtime:
                 from .parallel_workflow import runtime_summary
-                system += '\n[PARALLEL RUNTIME: main chat retains lifecycle ownership]\n' + json.dumps(runtime_summary(runtime), ensure_ascii=False, default=str)
+                from .model_context import compact_runtime_metadata
+                from .request_context_view import project_runtime_context
+                from .watch_context import get_context as request_context_owner
+                scoped_owner=request_context_owner()
+                projected_runtime=project_runtime_context(runtime_summary(runtime),runtime,
+                    owner={key:scoped_owner.get(key)for key in ('username','conv_id')},
+                    evidence_root=self._evidence_root,agent_name=agent.name)
+                live_context += '\n[PARALLEL RUNTIME: main chat retains lifecycle ownership]\n' + json.dumps(compact_runtime_metadata(projected_runtime), ensure_ascii=False, default=str)
 
         # The goal contract is the authoritative source of truth.  Always inject
         # it, even when chat history is trimmed or the active specialist has no
         # private memory yet.  This is the runtime protection against the
         # evaluator4 failure (Kr/Xe+cDFT silently drifting to CO2/SO2+GCMC).
         if self.goal_contract.original_goal:
-            system = system + "\n\n" + self.goal_contract.prompt_block()
+            live_context += "\n\n" + self.goal_contract.prompt_block()
+        from .sandbox_planning_contract import current_sandbox_contract
+        system += current_sandbox_contract(self.registry,self.goal_contract,agent.name)
         if self.context.get('execution_budget'):
-            system += '\n[调用预算信息，不是执行授权]\n' + json.dumps(self.context['execution_budget'], ensure_ascii=False)
+            live_context += '\n[调用预算信息，不是执行授权]\n' + json.dumps(self.context['execution_budget'], ensure_ascii=False)
             system += '\n保留一次答复机会交付已查事实、具体缺项与下一步。预算即将耗尽时不要继续无关查询或重新猜参数；未完成不得宣称完成，也不得为了赶进度编造数据。'
         if self.context.get('reflection_required'):
-            system += '\n[ACTUAL FAILURE / NO-PROGRESS REFLECTION]\n' + json.dumps(self.context['reflection_required'], ensure_ascii=False, default=str)
+            live_context += '\n[ACTUAL FAILURE / NO-PROGRESS REFLECTION]\n' + json.dumps(self.context['reflection_required'], ensure_ascii=False, default=str)
         if agent.name == 'lead-orchestrator' and self.context.get('workflow_patch_proposal'):
-            system += '\n[待主chat审核的专业Agent结构化补丁建议；不是批准命令]\n' + json.dumps(self.context['workflow_patch_proposal'], ensure_ascii=False, default=str)[:12000]
+            live_context += '\n[待主chat审核的专业Agent结构化补丁建议；不是批准命令]\n' + json.dumps(self.context['workflow_patch_proposal'], ensure_ascii=False, default=str)[:12000]
         if agent.name == 'lead-orchestrator' and self._pending_workflow_patch:
-            system += '\n[PENDING PATCH, NOT YET APPLIED]\n' + json.dumps({k: self._pending_workflow_patch.get(k)
+            live_context += '\n[PENDING PATCH, NOT YET APPLIED]\n' + json.dumps({k: self._pending_workflow_patch.get(k)
                 for k in ('base_version', 'new_version', 'changes', 'reason')}, ensure_ascii=False, default=str)
             system += '\n这只是候选方案，不是必须应用的命令。理解当前真实用户要求后选择应用、修改、撤回或恢复既有结果。拒绝/暂缓不能被当同意；恢复已完成节点应查证历史结果，不能靠upsert把状态变为完成或重新生成。不要从历史提案猜当前版本。'
         if agent.name == 'lead-orchestrator' and self.context.get('user_decision_proposal'):
-            system += '\n[专业Agent交回的协商建议；尚未向用户发问/未批准]\n' + json.dumps(self.context['user_decision_proposal'], ensure_ascii=False, default=str)[:8000]
+            live_context += '\n[专业Agent交回的协商建议；尚未向用户发问/未批准]\n' + json.dumps(self.context['user_decision_proposal'], ensure_ascii=False, default=str)[:8000]
         if (agent.name == 'lead-orchestrator' and self._current_line_id and self._on_workflow_start
-                and not self.goal_contract.approved_nodes):
-            system += '\n[EXECUTABLE WORKFLOW REQUIRED] 除纯对话外，任何真实工具或委派之前都必须先用record_workflow_draft持久化从输入/准备一直到验证、分析和用户最终交付物的完整DAG及completion_criteria，再读所需get_tool_schema，并用一次propose_workflow_patch编译草案中的全部节点：每个节点包含agent/tool/完整arguments/depends_on/expected_outputs。禁止只编译第一步并称后续再追加。未知的运行期文件用目录/模式产物合同表达；不得用编号文本、旧式handoff或直接工具绕过。执行后只有真实故障或用户改变科学合同才产生版本化局部补丁。'
+                and not self.goal_contract.approved_nodes and self.goal_contract.execution_mode != 'read_only'):
+            system += '\n[EXECUTABLE WORKFLOW REQUIRED] 只读状态查询、日志检查、文件读取和schema查阅直接调用当前只读工具，无需创建DAG或审批。写文件、提交计算或执行多步骤科研前，必须先用record_workflow_draft持久化从输入/准备一直到验证、分析和用户最终交付物的完整DAG及completion_criteria，再读所需get_tool_schema，并用一次propose_workflow_patch编译草案中的全部节点：每个节点包含agent/tool/完整arguments/depends_on/expected_outputs。禁止只编译第一步并称后续再追加。未知的运行期文件用目录/模式产物合同表达；不得用编号文本、旧式handoff或直接工具绕过。执行后只有真实故障或用户改变科学合同才产生版本化局部补丁。'
         if agent.name == 'lead-orchestrator' and not self.goal_contract.approved_nodes:
             # Read the live registry once for the known draft. A separate model
             # round per get_tool_schema adds latency without new information.
@@ -3215,14 +4008,17 @@ class Session:
                 system += '\n[CURRENT DRAFT TOOL SCHEMAS]\n' + json.dumps(schemas, ensure_ascii=False, separators=(',', ':'))
                 system += '\n以上来自当前注册表，已完成这些草案工具的 schema 查阅，无需再次调用 get_tool_schema。直接用真实定义编译完整计划；只有新增或未提供定义的工具才需查询。这些定义不授予执行权限，原有审批和运行时校验仍然生效。'
         if self._lifecycle_store and agent.name != 'supervisor':
+            from .lifecycle import superseded_runtime_event, current_goal_runtime_event
+            mailbox_runtime = self._runtime_snapshot() if self._runtime_snapshot else {}
             notices = [
                 {'event_id': e['event_id'], 'kind': e['kind'],
                  'supervisor': {k:v for k,v in e.get('supervisor_receipt', {}).items() if k != 'evidence_calls'}}
                 for e in list(self._lifecycle_store.snapshot().get('events', {}).values())[-5:] if e.get('supervisor_receipt')
-                and e.get('main_chat') not in {'obsolete'}
-                and e.get('payload', {}).get('origin_goal_version', self.goal_contract.version) == self.goal_contract.version
+                and e.get('main_chat') not in {'delivered', 'obsolete'}
+                and not superseded_runtime_event(e, mailbox_runtime)
+                and current_goal_runtime_event(self,e,mailbox_runtime)
             ]
-            system += '\n[SUPERVISOR MAILBOX]\n' + json.dumps(notices, ensure_ascii=False, default=str)[:8000]
+            live_context += '\n[SUPERVISOR MAILBOX]\n' + json.dumps(notices, ensure_ascii=False, default=str)[:8000]
         system += '\n\n[RECOVERY GATE] Failed submissions require recovery_state → fresh diagnosis → concrete fix → successful verification → prepare_retry → one resubmission. Use evidence_ref.call_id from actual replies, NEVER recovery keys/provider tool_use IDs. Diagnosis and verification need DIFFERENT calls, verification later. A successful run_cdft(action=collect, job_work_dir=ACTUAL receipt work_dir) is output evidence. A prose reflection is not permission. Never launch scheduler commands through run_bash or nest sbatch in submit_job. Approved DAGs activate automatically; activation failure requires reconciliation, not serial fallback. expected_outputs must be actual files or {kind:directory,path:...,pattern:*.dat,min_count:N}, never prose. Independent cDFT gases require disjoint explicit job_work_dir/input_dir and exact inputs→submit directory agreement.'
 
         from .watch_context import get_context
@@ -3231,16 +4027,17 @@ class Session:
             root = self.config.project_root / 'runs' / owner_context['username'] / owner_context['conv_id']
             system += '\n[SESSION WORKSPACE]\n' + json.dumps({'username': owner_context['username'],
                 'conv_id': owner_context['conv_id'], 'absolute_root': str(root),
+                'evidence_directory': str(self._evidence_root) if self._evidence_root else None,
                 'directory_tool': 'inspect_path', 'shell_cwd': 'own session root by default',
                 'cdft_contract': 'pipeline/submit collects results.csv; empty expected_outputs and absent job_work_dir are completed before approval with distinct per-node directories. Never clear an approved DAG to bypass execution.'}, ensure_ascii=False)
         from datetime import datetime
-        system += '\n[SERVER CLOCK] 当前服务端时间：'+datetime.now().astimezone().isoformat()+'。日期差和预计等待时长引用工具计算结果，不用模型默认日期；预计启动时间不是保证。'
+        live_context += '\n[SERVER CLOCK] 当前服务端时间：'+datetime.now().astimezone().isoformat()+'。日期差和预计等待时长引用工具计算结果，不用模型默认日期；预计启动时间不是保证。'
         system += ('\n[SCHEDULING CONTROL] 主chat使用retarget_queued_job调整同一个自有PENDING作业；不必让用户手动scancel，也不要经run_bash改产物目录或取消重提。'
                    '通常保留CPU/内存申请；若resource_review给出带实际证据且与operator tool profile完全一致的suggested_resources，可在自动科研模式就地修正隐式整节点内存并迁移。'
                    '不得自行猜RAM或节点，RUNNING/UNKNOWN不得直接迁移。科学方法/输入/力场/产物合同不变时，这是调度操作，不是方法切换或DAG科学补丁。')
         system += '\n[ROLE CONTROL] 计算目录租约不阻塞只读诊断或主chat的正式调度控制。用户明确取消某个自有作业时使用cancel_watched_job，停止后继派发，核验调度器终态；request_sent不等于cancelled。主chat不是OS root，不能跨会话写入或绕锁改结果。monitor/supervisor只读查证和提建议，不直接取消、重提或改科学合同。'
         system += '\n[RESULT HANDOFF] worker_prefinish表示任务运行结束但尚未验收。优先把事件携带的当前DAG节点合同和validation_dossier交给负责该计算的专家一次判断：其中已有完整目录清单摘要、原生格式事实、确定性抽样、执行回执stdout/stderr和有限长度文件片段。验收只能读取该workflow_id/step_id/attempt_id/job_ids对应的执行器自有结果根目录和预期产物，禁止搜索、引用或混入其他节点、其他attempt、其他session或历史任务结果。parser verdict只是提示，不能代替专家结合任务合同、单位和文件语义得出结论；普通日志词语本身不构成失败。证据充分时直接用dossier的evidence_call_id调用finish_workflow_node，不得逐层inspect_path或重复读取目录；只有dossier为invalid或缺少作出科学判断所需内容时才在该节点结果根目录内做一次针对性补查。所有批量计算都记录attempted/succeeded/failed实际数量，失败项保留证据，下游只接收成功产物。验收比例或数量优先来自当前用户要求或已批准任务合同；未明确时采用通用的60%成功率门槛，不得把某次任务的具体目标数量硬编码成全局规则。非关键参数缺失自行补默认值；个例输入失败保留记录并继续；系统性参数错误先修参数并仅重算失败项；方法不适用时自动切换可用后备方法。低于验收门槛时必须自主恢复，不得直接中断让用户处理；只有科学条件或方法边界确实不清楚时才询问。用户明确要求strict时才要求完整数量。结构生成例外：n_structures本身表示成功写出的结构数，仍按该成功目标生成。生成器分组CIF与输出匹配不符时用revalidate_workflow_node_outputs修合同，不能重跑完成的作业，不能用cDFT专属CSV恢复入口验证生成日志。若已停止的重复尝试覆盖了节点状态，可传completed_job_id恢复原自有已完成作业的历史验收合同；程序冻结原始文件集合，不纳入重复尝试的额外文件。查证通过后finish_workflow_node引用实际evidence_call_ids结束节点，依赖队列自动继续；task_line_update显示完成不能替代真实节点验收。已有科学合同完全不变时，主模型可选择execute_workflow恢复原计划，普通对话版本变化无需重新询问科学条件。向用户只说结构生成/正在检查/准备下一步，不要求用户提供工具或版本术语。'
-        system += '\n[RUNTIME RECOVERY] worker_recovery_ready事件给出已验证的恢复能力时，先读取lifecycle_state确认当前失败节点和直接上游result_paths，再调用事件recovery.tool指定的工具（当前为repair_workflow_runtime_inputs(step_id)）。不要用execute_workflow重复旧参数，不要为内部派生值询问用户。worker_failed中的runtime_input_repair可作为同一机制的兼容提示。'
+        system += '\n[RUNTIME RECOVERY] worker_recovery_ready事件给出已验证的恢复能力时，先读取lifecycle_state确认当前失败节点和直接上游result_paths，再调用事件recovery.tool指定的工具；verify_changed_executor必须使用当前原生inspection与loaded executor收据，不以历史失败堆栈断言新执行器仍失败，不凭旧修复建议重复改源码。历史错误保留为诊断来源，不能冒充当前验证。不要用execute_workflow重复旧参数，不要为内部派生值询问用户。worker_failed中的runtime_input_repair可作为同一机制的兼容提示。'
         system += '\n[CONTROL RESPONSIBILITY] 主chat依据真实用户回合、历史问题和决策原文理解意图，选择具体操作；不输出授权分类bool，不依赖限定词。询问能力、描述错误、引用他人命令不等于要求执行；意图不明时request_user_decision，明确后直接控制，不重复协商。待定编排补丁由你理解用户回答后调用apply_workflow_patch(plan_version)，应用成功会激活执行器；不要先execute尚未应用的版本。程序仅查证来源、归属、权限、状态和回执。reconcile_watched_job仅绑定未决派发身份，不能取消/解锁；取消请求call_id不是诊断证据。编排/工具能力以当前get_tool_schema为准。'
         system += '\n[USER INTERACTION] 向用户默认提供简明节点/执行者/依赖/状态及具体变更摘要，不粘贴整个编排JSON要求用户读代码。完整JSON仅在用户明确请求或高级详情中呈现。换节点说明是否更新原job、是否需要确认、失败实际原因；不把内部守卫失败转成用户手动shell责任。'
         # Shared blackboard: every agent sees the same structured workflow
@@ -3251,9 +4048,9 @@ class Session:
                 from .workflow_view import line_digest
                 graph = self._workflow_view()
                 digest = line_digest(graph)
-                system = system + "\n\n[SHARED WORKFLOW MEMORY]\n" + digest[:8000]
+                live_context += "\n\n[SHARED WORKFLOW MEMORY]\n" + digest[:8000]
                 if self._runtime_snapshot and self._runtime_snapshot():
-                    system += '\n[CURRENT EXECUTION COMPLETION]\n' + json.dumps(
+                    live_context += '\n[CURRENT EXECUTION COMPLETION]\n' + json.dumps(
                         self._workflow_completion_state(), ensure_ascii=False)
                     system += '\nThis is executable-DAG completion, not a claim of scientific answer quality. Diagnostic history is not a delegation. Use recorded actual output/evidence paths; do not rediscover the entire workspace or clear historical records to deliver existing results.'
                 from .defns import resolve_agent
@@ -3264,7 +4061,7 @@ class Session:
                 envelope = {'workflow_id': self._current_line_id, 'version': self.goal_contract.approved_plan_version,
                             'agent': agent.name, 'nodes': assigned}
                 encoded = json.dumps(envelope, ensure_ascii=False, default=str)
-                system += '\n[EXECUTABLE NODE ENVELOPE]\n' + (encoded if len(encoded) < 12000 else
+                live_context += '\n[EXECUTABLE NODE ENVELOPE]\n' + (encoded if len(encoded) < 12000 else
                           json.dumps({'workflow_id': self._current_line_id, 'read_required': 'task_line_query contains full arguments; do not guess truncated params'}))
             except Exception:
                 pass
@@ -3279,11 +4076,19 @@ class Session:
         _has_agent_mem = bool(_agent_data.get("tool_call_log")) or bool(_agent_data.get("exit_reports"))
         compact = self.memory.compact_summary(agent_name=agent.name)
         if compact and _has_agent_mem:
-            system = system + "\n\n" + compact
+            live_context += "\n\n" + compact
+        if agent.name == 'lead-orchestrator':
+            from .requested_parameters import parameter_reconciliation
+            reconciliation = parameter_reconciliation(self.goal_contract,
+                self._runtime_snapshot() if self._runtime_snapshot else {})
+            if reconciliation:
+                live_context += '\n[CURRENT USER PARAMETERS VS APPROVED DAG]\n' + json.dumps(
+                    reconciliation, ensure_ascii=False, default=str)
 
         tools = self.registry.claude_tools(
             [f.__name__ for f in agent.functions]
         ) if agent.functions else []
+        tools=request_tools(coordinator_policy,tools)
 
         # Hard guard: strip any assistant tool_use blocks not immediately followed by tool_result
         self._sanitize_messages()
@@ -3317,8 +4122,16 @@ class Session:
             _sanitized.append(msg)
         self.messages = _sanitized
 
-        # Trim messages to fit context window
-        trimmed = self._trim_messages(self.messages)
+        # Request-only receipt projection precedes trimming: large repeated
+        # control bookkeeping must not evict authentic user requirements.
+        from .request_projection import project_control_history
+        from .watch_context import get_context
+        request_owner = get_context()
+        request_messages, control_compaction = project_control_history(self._json_safe(self.messages),
+            evidence_root=self._evidence_root,
+            owner={key: request_owner.get(key, '') for key in ('username', 'conv_id')},
+            trusted_calls=self.memory.tool_call_log)
+        trimmed = self._trim_messages(request_messages)
 
         # Post-trim cleanup: middle-removal can break tool_use↔tool_result pairing
         # in BOTH directions:
@@ -3333,8 +4146,22 @@ class Session:
         # tool_use.
         trimmed = self._pair_trimmed_blocks(trimmed)
 
-        from .model_context import compact_state_snapshots
-        trimmed, history_compaction = compact_state_snapshots(self._json_safe(trimmed), evidence_root=self._evidence_root)
+        from .model_context import compact_state_snapshots, compact_lifecycle_events
+        trimmed, history_compaction = compact_state_snapshots(self._json_safe(trimmed),
+            evidence_root=self._evidence_root, project_root=self.config.project_root)
+        history_compaction['control_receipts'] = control_compaction
+        if self._lifecycle_store:
+            trimmed, compacted_events = compact_lifecycle_events(trimmed,
+                self._lifecycle_store.snapshot().get('events', {}),
+                self._runtime_snapshot() if self._runtime_snapshot else {})
+            history_compaction['historical_events'] = compacted_events
+
+        from .cache_context import with_runtime_context
+        trimmed = with_runtime_context(trimmed, live_context)
+        # Provider compatibility is a request-only projection: never erase
+        # persisted history, user input, or unmatched tool-result evidence.
+        from .request_projection import drop_empty_assistant_messages
+        trimmed = drop_empty_assistant_messages(trimmed)
 
         kwargs: Dict[str, Any] = {
             "model": model,
@@ -3363,6 +4190,14 @@ class Session:
                 # actual exposed capability as well as requesting the tool.
                 kwargs['tools'] = [tool for tool in tools if tool['name'] == 'supervisor_decision']
                 kwargs['tool_choice'] = {'type': 'tool', 'name': 'supervisor_decision'}
+
+        from .provider_compat import apply_provider_compat
+        from .coordination_profile import coordinator_effort
+        kwargs = apply_provider_compat(kwargs, self.config,
+            coordination_effort=coordinator_effort(self, agent.name))
+
+        from .request_budget import ensure_request_budget
+        ensure_request_budget(kwargs)
 
         # DEBUG: dump message structure before sending
         try:
@@ -3418,6 +4253,7 @@ class Session:
                 model_call = lambda: self._stream_api(**kwargs)
             started = time.monotonic()
             succeeded = False
+            response = None
             try:
                 response = call_model(
                     model_call,
@@ -3431,10 +4267,17 @@ class Session:
             finally:
                 elapsed = round(time.monotonic() - started, 3)
                 metric = {'agent': agent.name, 'provider': self.config.model_provider,
+                    'request_assembly_seconds': round(started - request_assembly_started, 3),
                           'elapsed_seconds': elapsed, 'succeeded': succeeded,
                           'input_characters': len(json.dumps(kwargs, ensure_ascii=False, default=str)),
                           'tool_count': len(kwargs.get('tools', []))}
                 metric['history_compaction'] = history_compaction
+                from .model_gate import last_call_timing
+                metric.update(last_call_timing())
+                from .provider_metrics import provider_usage_metrics
+                usage = provider_usage_metrics(response)
+                if usage:
+                    metric['usage'] = usage
                 metrics = self.context.setdefault('model_call_metrics', [])
                 metrics.append(metric)
                 del metrics[:-100]
@@ -3449,7 +4292,11 @@ class Session:
         except ProviderRateLimited as limited:
             raise LLMRateLimitError(str(limited)) from limited
         except Exception as error:
+            if malformed_tool_json(error):
+                raise MalformedProviderToolJSON('模型工具参数 JSON 格式无效；本次未执行任何工具。') from None
             from .codex_provider import CodexProviderError
+            if isinstance(error, CodexToolArgumentError):
+                raise
             if isinstance(error, CodexProviderError):
                 raise LLMUnavailableError(str(error)) from error
             raise
@@ -3594,6 +4441,10 @@ class Session:
         # Track consecutive skips across ALL rounds (not just within one round)
         total_consecutive_skips = 0
         max_consecutive_skips = 5
+        coordinator_denials=0
+        self.context.pop('coordinator_custody_stop',None)
+        from .failure_budget import CrossDelegationFailureBudget
+        repeated_failures = CrossDelegationFailureBudget()
         # Track user interaction requests
         _pending_user_interaction = None
 
@@ -3657,10 +4508,19 @@ class Session:
         # 上限），_segment_rounds 是当前段内轮次（切换 Agent 时归零）。
         _loop_round = 0
         _segment_rounds = 0
+        _malformed_provider_tool_retries = 0
         from .reflection_progress import ReflectionProgress
         reflection_progress = ReflectionProgress()
         _TOTAL_ROUND_SAFETY = 500  # 整轮安全上限，防死循环
         for _loop_round in range(_TOTAL_ROUND_SAFETY):
+            review=self.context.get('native_default_review_window')or{}
+            question=self._pending_user_interaction or{}
+            if (review and question.get('tool')=='user_decision'
+                    and (question.get('params')or{}).get('decision_id')==review.get('decision_id')):
+                if review.get('remaining_rounds',0)<=0:
+                    self._waiting_for_user_input=True
+                    break
+                review['remaining_rounds']-=1
             # 段内轮次耗尽处理：子Agent 交回调度器继续总方案；调度器段耗尽才
             # break 走强制报告。
             if _segment_rounds >= max_rounds:
@@ -3746,6 +4606,23 @@ class Session:
                     self.task_complete = True
                     self.last_text = final
                     return final
+            except CodexToolArgumentError as error:
+                # The provider rejected the entire proposal batch before any
+                # dispatch. Pair safe observations for model correction, never
+                # route placeholder {} inputs through executable functions.
+                self._record_tool_protocol_error(agent, error)
+                continue
+            except MalformedProviderToolJSON:
+                _malformed_provider_tool_retries += 1
+                self.context.setdefault('provider_tool_json_errors',[]).append({'agent':agent.name,'executed':False,'attempt':_malformed_provider_tool_retries})
+                if _malformed_provider_tool_retries > 1:
+                    self.task_complete = False
+                    self.last_text = '模型连续两次返回无效工具参数，本轮未完成；这些提案没有执行，原任务和已有结果已保留。'
+                    self._checkpoint('provider_tool_json_exhausted')
+                    return self.last_text
+                self.messages.append({'role':'user','content':'[系统·工具格式错误] 上次模型工具参数不是有效 JSON，提案未执行。请对照工具 schema 修正参数后继续；保留已有任务与结果。'})
+                self._progress(agent_name=agent.name,status='模型工具参数格式有误，正在自动修正',log='provider_tool_json_retry')
+                continue
             except ExecutionBudgetExceeded as error:
                 self.task_complete = False
                 self._waiting_for_user_input = True
@@ -3928,15 +4805,23 @@ class Session:
                 if agent.name != "lead-orchestrator":
                     finished_agent = agent.name
                     from .defns import ORCHESTRATOR
-                    print(f"  🔄 {finished_agent} finished → returning to orchestrator", flush=True)
+                    from .delegation_result import delegation_outcome, delegation_progress
+                    _finished_text = "\n".join(text_parts) if text_parts else ""
+                    _delegation_outcome = delegation_outcome(finished_agent,
+                        self.memory.tool_call_log[_segment_tool_log_start:], _finished_text,
+                        evidence_root=self._evidence_root)
+                    self.context.setdefault('delegation_outcomes', {})[finished_agent] = _delegation_outcome
+                    if finished_agent == 'patcher':
+                        self.context['framework_repair_feedback'] = copy.deepcopy(_delegation_outcome)
+                        _finished_text = _delegation_outcome['label'] + '。以下为未验证的修复建议：\n' + _finished_text
+                    print(f"  🔄 {finished_agent} returned → orchestrator ({_delegation_outcome['status']})", flush=True)
                     self._progress(
                         agent_name=finished_agent,
                         reasoning="",
-                        status=f"✅ {finished_agent} 完成任务",
-                        log=f"{finished_agent} 已完成，返回调度器"
+                        status=f"{finished_agent}：{_delegation_outcome['label']}",
+                        log=f"{finished_agent} 已返回：{_delegation_outcome['status']}"
                     )
                     # Emit partial result: sub-agent's final text in real-time
-                    _finished_text = "\n".join(text_parts) if text_parts else ""
                     if _finished_text:
                         self._report_partial(finished_agent, _finished_text)
                     # ── AGENT EXIT PROTOCOL ───────────────────────────────
@@ -3974,7 +4859,7 @@ class Session:
                         # Coverage is advisory. Four agent receipts do not prove
                         # completion of the executable DAG or verified outputs.
                         self.messages.append({"role": "user", "content":
-                            f"[系统] 所有被调用的专业Agent都已完成任务。"
+                            f"[系统] 本轮已收到所调用专业Agent的返回说明；这不证明任务已完成。"
                             "**但如果你的总体研究方案还有后续步骤（如：材料已构建→还差赋电荷→"
                             "还差cDFT/GCMC计算→还差选择性与物理特征分析），必须继续委派下一步，"
                             "不能就此停手。**只有整体方案全部步骤都完成、结果都已读取并分析，"
@@ -3982,7 +4867,7 @@ class Session:
                         })
                     else:
                         self.messages.append({"role": "user", "content":
-                            f"[系统] {finished_agent} 已完成任务。"
+                            f"[系统] {finished_agent} 已返回，结构化状态：{json.dumps(_delegation_outcome, ensure_ascii=False)}。"
                             "**不要就此停手汇报'已完成'。**"
                             "请对照你向用户给出的整体方案：后续步骤（构建材料→赋电荷→计算→"
                             "选择性/特征分析…）还有哪些没执行？必须继续委派下一步骤，"
@@ -3992,26 +4877,11 @@ class Session:
                     # ── 监管清单：标记该子Agent本次委派为 done，并把整体进度注入给调度器 ──
                     for _d in reversed(_turn_delegations):
                         if _d["agent"] == finished_agent and _d["status"] == "pending":
-                            _d["status"] = "done"
+                            _d["status"] = _delegation_outcome['status']
+                            _d['outcome'] = copy.deepcopy(_delegation_outcome)
                             break
                     if _turn_delegations:
-                        _cl_lines = ["[系统·进度清单] 本轮研究方案的委派进度："]
-                        for _d in _turn_delegations:
-                            _mark = "✅ 已完成" if _d["status"] == "done" else "⬜ 待执行"
-                            _cl_lines.append(f"  {_d['agent']} {_mark}：{_d['task']}")
-                        _pending_left = [d for d in _turn_delegations if d["status"] == "pending"]
-                        if _pending_left:
-                            _cl_lines.append(
-                                f"还有 {len(_pending_left)} 个步骤未执行。"
-                                "请对照整体方案继续委派下一未完成步骤，直到全部 ✅ 完成，"
-                                "再输出最终报告。"
-                            )
-                        else:
-                            _cl_lines.append(
-                                "全部步骤已 ✅ 完成。若你给出的整体方案还有未列入清单的步骤，"
-                                "仍应继续执行；否则可输出最终报告。"
-                            )
-                        self.messages.append({"role": "user", "content": "\n".join(_cl_lines)})
+                        self.messages.append({"role": "user", "content": delegation_progress(_turn_delegations)})
 
                     # Main model reviews the specialist delivery against shared
                     # evidence; prose keywords never trigger reruns or method changes.
@@ -4087,14 +4957,15 @@ class Session:
                 # and must not manufacture a new execution/rewriting loop.
 
                 # Let the agent decide what to do next — no forced tool/agent requirements
-                self.task_complete = True
+                self._answer_completion_candidate = True
+                self.task_complete = not getattr(self, '_defer_scientific_delivery', False)
                 final_text = "\n".join(text_parts) if text_parts else "(no text)"
                 final_text += self.scientific_input_receipt()
                 self.last_text = final_text
                 self._progress(
                     agent_name=agent.name,
-                    reasoning=final_text[:500],
-                    status="✅ 任务完成",
+                    reasoning='' if getattr(self, '_defer_scientific_delivery', False) else final_text[:500],
+                    status='正在整理答复' if getattr(self, '_defer_scientific_delivery', False) else '✅ 任务完成',
                     log=f"{agent.name} 输出最终结果"
                 )
                 # Agent exit protocol: write a brief report before leaving so the
@@ -4103,7 +4974,7 @@ class Session:
                     agent.name,
                     self._build_agent_exit_report(agent.name, final_text),
                 )
-                if self._on_lifecycle_event:
+                if self._on_lifecycle_event and not getattr(self, '_defer_scientific_delivery', False):
                     question = self.context.get('scientific_review_question') or self.goal_contract.active_goal
                     event = self.scientific_review_event(question, final_text)
                     if event:
@@ -4138,7 +5009,7 @@ class Session:
             # otherwise the API rejects the history (tool_use without tool_result).
             consecutive_skips = 0  # init per-round counter BEFORE dedup can += 1
             seen_in_batch = {}
-            _batch_readonly = {'read_file', 'grep_search', 'inspect_path', 'inspect_run',
+            _batch_readonly = {'inspect_runtime', 'read_file', 'grep_search', 'inspect_path', 'inspect_run',
                 'task_line_query', 'recovery_state', 'lifecycle_state', 'check_job',
                 'diagnose_job', 'list_my_jobs', 'resource_health'}
             deduped_tool_calls = []
@@ -4210,6 +5081,20 @@ class Session:
                 continue
 
             for tc in tool_calls:
+                # Exposure is not authorization: an old transcript/provider may
+                # still emit a hidden tool. Recheck native custody before any
+                # schema, TaskLine mutation, executable binding or dispatch.
+                from .coordinator_custody import custody_feedback
+                planning_feedback=custody_feedback(self,agent,tc.name)
+                if planning_feedback is not None:
+                    coordinator_denials+=1
+                    tool_results.append({'type':'tool_result','tool_use_id':tc.id,
+                        'content':json.dumps(planning_feedback,ensure_ascii=False)})
+                    self.memory.record_tool_call(agent.name,tc.name,dict(tc.input or {}),
+                        json.dumps(planning_feedback,ensure_ascii=False),failed=False)
+                    self._progress(agent_name=agent.name,reasoning='',status='编排交付步骤',
+                        log='执行操作交回已批准节点，主协调继续编排；未执行该调用')
+                    continue
                 # ── Goal-contract hard gate ───────────────────────────────
                 capability_map = _original_func_map if tc.name.startswith('handoff_to_') else func_map
                 if tc.name not in capability_map:
@@ -4335,9 +5220,9 @@ class Session:
 
                 _is_coordination_tool = tc.name in {
                     "discover_forcefield", "inspect_forcefield",
-                    "get_tool_schema",
+                    "get_tool_schema", "inspect_runtime",
                     "task_line_query", "task_line_update", "check_job",
-                    "list_my_jobs", "diagnose_job", "recovery_state", "prepare_retry", "accept_recovered_result", "lifecycle_state", "propose_workflow_patch", "apply_workflow_patch", "discard_workflow_patch", "request_user_decision", "reconcile_watched_job", "execute_workflow", "message_workflow_node", "resolve_local_workflow_write", "retarget_queued_job", "cancel_watched_job", "revalidate_workflow_node_outputs","finish_workflow_node",
+                    "list_my_jobs", "diagnose_job", "recovery_state", "prepare_retry", "accept_recovered_result", "lifecycle_state", "propose_workflow_patch", "apply_workflow_patch", "discard_workflow_patch", "request_user_decision", "reconcile_watched_job", "execute_workflow", "message_workflow_node", "resolve_local_workflow_write", "retarget_queued_job", "cancel_watched_job", "revalidate_workflow_node_outputs","finish_workflow_node", "requeue_local_preparation", "prepare_cdft_partial_recovery",
                 }
                 if self._current_line_id and not tc.name.startswith("handoff_to_") and not _is_coordination_tool:
                     try:
@@ -4690,6 +5575,7 @@ class Session:
                 _use_map = _original_func_map if tc.name.startswith('handoff_to_') else func_map
                 func = _use_map.get(tc.name)
                 session_bindings = {
+                    'handoff_to_operations':self._delegate_operations,
                     'record_workflow_draft': self._record_workflow_draft,
                     'task_line_query': self._task_line_query,
                     'task_line_update': self._task_line_update,
@@ -4700,6 +5586,7 @@ class Session:
                     'apply_workflow_patch': self._apply_workflow_patch,
                     'discard_workflow_patch': self._discard_workflow_patch,
                     'request_user_decision': self._request_user_decision,
+                    'resolve_preparation_defaults': self._resolve_preparation_defaults,
                     'reconcile_watched_job': self._reconcile_watched_job,
                     'execute_workflow': self._on_workflow_start,
                     'retarget_queued_job': self._retarget_queued_job,
@@ -4707,8 +5594,11 @@ class Session:
                     'message_workflow_node': self._on_workflow_message,
                     'resolve_local_workflow_write': self._on_workflow_resolve,
                     'revalidate_workflow_node_outputs': self._on_workflow_revalidate,
+                    'inspect_workflow_result': self._on_workflow_result_inspect,
                     'finish_workflow_node': self._finish_workflow_node,
                     'repair_workflow_runtime_inputs': self._repair_workflow_runtime_inputs,
+                    'requeue_local_preparation': self._requeue_local_preparation,
+                    'prepare_cdft_partial_recovery': self._prepare_cdft_partial_recovery,
                 }
                 # Binding is not authorization. Only exposed capabilities can
                 # be replaced with their session-aware implementation.
@@ -4717,12 +5607,15 @@ class Session:
                 recovery_key = attempt_id = None
                 if func is not None:
                     try:
-                        from .control_policy import role_denial
+                        from .control_policy import role_denial,operations_authority_required
                         denied = role_denial(agent.name, tc.name)
                         if denied:
                             tool_results.append({'type': 'tool_result', 'tool_use_id': tc.id,
                                 'content': json.dumps({'blocked': True, 'executed': False, 'reason': denied})})
                             continue
+                        if (agent.name=='operations' and operations_authority_required(tc.name)
+                                and not self._has_workflow_control_authority()):
+                            raise PermissionError('administrative recovery delegation is absent or superseded')
                         if self._on_tool_guard:
                             guard = self._on_tool_guard(tc.name, dict(tc.input or {}))
                             if guard:
@@ -4881,13 +5774,10 @@ class Session:
                             'error': str(e), 'exception_type': type(e).__name__}, ensure_ascii=False, default=str)
                         self.memory.record_error(f"{tc.name}: {e}", agent_name=agent.name)
                 
-                if len(result_str) > 50000:
-                    result_str = result_str[:50000] + "\n... (truncated)"
-
                 # Record structured parameters + failure bit in memory.  Older
                 # code stored a truncated string, making parameter-aware retry
                 # checks impossible and causing identical bad calls to repeat.
-                _call_failed = bool(failure_reason(result_str)) and tc.name not in self._DIAGNOSTIC_TOOLS
+                _call_failed = bool(tool_failure_reason(tc.name,result_str))
                 result_facts = result_object(result_str)
                 not_executed = bool(result_facts.get('blocked') or result_facts.get('skipped') or result_facts.get('executed') is False)
                 if recovery_key and attempt_id:
@@ -4908,6 +5798,9 @@ class Session:
                     wire_result = {'result': wire_result}
                 wire_result['evidence_ref'] = {'call_id': evidence_call['call_id'],
                                              'time': evidence_call['time'], 'tool': tc.name}
+                if self._evidence_root is not None and self._on_checkpoint:
+                    wire_result['evidence_ref']['path'] = str(
+                        self._evidence_root / (evidence_call['call_id'] + '.json'))
                 if recovery_key:
                     self.memory.tool_call_log[-1]['recovery_key'] = recovery_key
                     self.memory.tool_call_log[-1]['workflow_step_id'] = _node_step_id
@@ -5000,6 +5893,16 @@ class Session:
                 print(f"  ⚠️ reconciliation pass failed: {_recon_e}", flush=True)
 
             self.messages.append({"role": "user", "content": tool_results})
+            if coordinator_denials>=3:
+                from .coordinator_custody import bounded_stop_reply
+                self.context['coordinator_custody_stop']={'status':'planning_incomplete',
+                    'blocked_attempts':coordinator_denials,'automatic_retry':False,
+                    'goal_version':self.goal_contract.version,
+                    'plan_version':self.goal_contract.approved_plan_version}
+                self.task_complete=False
+                self.last_text=bounded_stop_reply()
+                self._checkpoint('coordinator_execution_custody_stop')
+                return self.last_text
 
             # Count new evidence/real execution changes, not fresh call IDs.
             # Guard failures and schema rejections participate too, so their
@@ -5009,6 +5912,25 @@ class Session:
                 'user_paused': runtime.get('user_paused'), 'nodes': {k: {field: n.get(field) for field in
                     ('status', 'phase', 'job_ids', 'contract', 'error')} for k, n in runtime.get('nodes', {}).items()}}
             replies = {r.get('tool_use_id'): r.get('content') for r in tool_results if r.get('type') == 'tool_result'}
+            from .failure_budget import progress_epoch
+            epoch = progress_epoch(self.goal_contract.to_dict(), runtime, self.context.get('workflow_draft'))
+            bounded_failure = None
+            for call in tool_calls:
+                if call.id not in replies: continue
+                observed = result_object(replies[call.id])
+                evidence = observed.get('evidence_ref') or {}
+                # Synthetic skipped tool results are not actual attempts.
+                if not isinstance(evidence, dict) or evidence.get('tool') != call.name: continue
+                bounded_failure = repeated_failures.observe(call.name, call.input, observed, epoch) or bounded_failure
+            if bounded_failure:
+                self.context['bounded_repeated_failure'] = bounded_failure
+                self._pending_handoff = None
+                self.task_complete = False
+                self.last_text = ('当前任务尚未完成：工具 ' + bounded_failure['tool'] +
+                    ' 在任务状态未取得新进展时重复遇到同一故障，已停止本轮自动重试。'
+                    '请查看已记录的失败证据；已有运行中的作业按原状态继续。')
+                self._checkpoint('bounded_repeated_failure')
+                return self.last_text
             for call in tool_calls:
                 if call.id not in replies: continue
                 receipt = reflection_progress.observe(call.name, call.input, replies[call.id], execution_state)
@@ -5053,7 +5975,8 @@ class Session:
             # ── 快速委派提醒 ─────────────────────────────────────────────
             # 调度器如果连续多轮只调用基础工具不委派，提醒它尽快委派
             if (agent.name == "lead-orchestrator"
-                    and not (self._runtime_snapshot and self._runtime_snapshot().get('status') in {'active','needs_user'})
+                    and self.goal_contract.execution_mode == 'workflow'
+                    and not (self._runtime_snapshot and self._runtime_snapshot())
                     and (self.goal_contract.approved_nodes or any(
                         is_submission(c.get('tool'), c.get('params', {})) for c in self.memory.tool_call_log))
                     and any(f.__name__.startswith('handoff_to_') for f in agent.functions)):
@@ -5253,7 +6176,8 @@ class Session:
             for block in response.content:
                 if hasattr(block, "text"):
                     final_text += block.text
-            self.task_complete = True
+            self._answer_completion_candidate = True
+            self.task_complete = not getattr(self, '_defer_scientific_delivery', False)
             self.last_text = final_text
             print(f"  📝 Forced report at max rounds ({len(final_text)} chars)", flush=True)
             return final_text
@@ -5456,7 +6380,8 @@ class Session:
             tool_name = tool_info["tool"]
             if tool_name == 'user_decision':
                 decision = {**tool_info['params'], 'answer': user_message, 'source': 'authenticated_user', 'time': time.time(),
-                            'goal_version': self.goal_contract.version}
+                            'goal_version': self.goal_contract.version,
+                            'control_source':copy.deepcopy(self._operation_control_source())}
                 self.memory.record_user_preference('decision:' + decision['decision_id'], decision)
 
             if tool_name == "failure_decision":
@@ -5670,6 +6595,10 @@ class Session:
         if (pending.get('tool') == 'user_decision'
                 and not params.get('recovery_key') and not params.get('candidate_job_id')):
             self._recover_validated_preflight_draft(wake_after_restore=True)
+        if self._pending_user_interaction:
+            from .preparation_defaults import pending_default_review
+            review=pending_default_review(self)
+            if review:self.context['preflight_recovery_ready']=review
         return True
 
     def hydrate_from_transcript(self, messages_history: List[Dict[str, Any]]) -> bool:

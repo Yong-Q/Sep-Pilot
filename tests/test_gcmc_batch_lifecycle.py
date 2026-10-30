@@ -5,7 +5,10 @@ from agents.watch_context import clear_context, set_context
 
 
 def _charged_cif(path: Path):
-    path.write_text("data_x\nloop_\n_atom_site_label\n_atom_site_charge\nC1 0.0\n")
+    path.write_text("data_x\n_cell_length_a 30\n_cell_length_b 30\n_cell_length_c 30\n"
+                    "_cell_angle_alpha 90\n_cell_angle_beta 90\n_cell_angle_gamma 90\n"
+                    "loop_\n_atom_site_label\n_atom_site_type_symbol\n_atom_site_fract_x\n"
+                    "_atom_site_fract_y\n_atom_site_fract_z\n_atom_site_charge\nC1 C 0 0 0 0.0\n")
 
 
 def test_batch_executor_passes_scoped_branch_and_registers_jobwatch(tmp_path, monkeypatch):
@@ -68,9 +71,22 @@ def test_one_batch_job_runs_independent_material_gas_branches_with_bounded_paral
     _charged_cif(inputs / "a.cif")
     _charged_cif(inputs / "b.cif")
     captured = {}
-    monkeypatch.setattr(slurm, "stage_raspa_local_files", lambda *a, **k: None)
-    monkeypatch.setattr(slurm, "submit_and_return", lambda **kwargs: captured.update(kwargs) or {
-        "submitted": True, "job_id": "42", "work_dir": kwargs["work_dir"]})
+    submitted=[];staged=[]
+    import shutil
+    def stage_exact_cif(directory, forcefield, molecule, definition, cif, **kwargs):
+        destination=Path(directory);destination.mkdir(parents=True,exist_ok=True)
+        source=Path(cif);raw=source.read_bytes();target=destination/source.name
+        shutil.copy2(source,target)
+        assert target.read_bytes()==raw
+        staged.append((target,raw))
+    # This test exercises native geometry and batch concurrency, not a site FF install.
+    monkeypatch.setattr(slurm, "stage_raspa_local_files", stage_exact_cif)
+    monkeypatch.setattr(slurm, "_raspa_composition", lambda *a, **k: {})
+    monkeypatch.setattr(slurm, "stage_raspa_local_shell", lambda **k: "# controlled fixture; no scientific executable")
+    def submit_once(**kwargs):
+        submitted.append(kwargs);captured.update(kwargs)
+        return {"submitted": True, "job_id": "42", "work_dir": kwargs["work_dir"]}
+    monkeypatch.setattr(slurm, "submit_and_return", submit_once)
 
     result = slurm.submit_gcmc_batch(str(inputs), gases=["CO2", "N2"],
                                      output_dir=str(tmp_path / "output"), cpus_per_task=3)
@@ -82,3 +98,6 @@ def test_one_batch_job_runs_independent_material_gas_branches_with_bounded_paral
     assert 'wait "${PIDS[0]}"' in script
     assert 'if (( FAILURES > 0 ))' in script
     assert captured["cpus_per_task"] == 3
+    assert len(submitted)==1
+    assert len(staged)==4 and len({str(path)for path,raw in staged})==4
+    assert all(path.read_bytes()==raw for path,raw in staged)

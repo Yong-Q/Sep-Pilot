@@ -1,0 +1,29 @@
+# critical constants: Temperature [T], Pressure [Pa], and Acentric factor [-]#Chemical Engineering Science Volume 124, 3 March 2015, Pages 144-153
+282.34
+ 5039996.6925
+0.0864516
+# Number Of Atoms
+6
+# Number Of Groups
+1
+# Alkane-group
+rigid
+# number of atoms
+6
+# atomic positions
+0 CH2  0.108   0.017  -0.010
+1 CH2  1.438   0.049   0.009
+2 CH3_H -0.413  -0.654  -0.686
+3 CH3_H -0.464   0.660   0.651
+4 CH3_H 2.011  -0.595  -0.650
+5 CH3_H 1.959   0.719   0.686
+# Chiral centers Bond  BondDipoles Bend  UrayBradley InvBend  Torsion Imp. Torsion Bond/Bond Stretch/Bend Bend/Bend Stretch/Torsion Bend/Torsion IntraVDW IntraCoulomb
+               0    5            0    0            0       0        0            0         0            0         0               0            0        0            0
+# Bond stretch: atom n1-n2, type, parameters
+0 1 RIGID_BOND
+0 2 RIGID_BOND
+0 3 RIGID_BOND
+1 4 RIGID_BOND
+1 5 RIGID_BOND
+# Number of config moves
+0

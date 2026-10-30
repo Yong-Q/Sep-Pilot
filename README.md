@@ -31,17 +31,64 @@ Sep-Pilot separates research decisions, workflow execution, and evidence review.
 | **Adsorption specialists** | GCMC, Henry, framework MD, pore analysis, and String/TST workflows. | Produce domain outputs and evidence for their assigned nodes. |
 | **Analyst specialists** | Classical cDFT, charges, binding energy, VASP, feature extraction, and ML preparation. | Consume declared inputs and publish structured results. |
 | **Harness maintainer** | Creates inputs, checks structures and environments, and prepares scheduler jobs. | Owns setup and job plumbing, not scientific conclusions. |
-| **Communicator** | Searches source-linked literature and assembles evidence-backed reports. | Keeps literature leads separate from calculation results. |
+| **Communicator and report reviewer** | Author and independently review a scientific document from completed results, tables and figures. | Preserve source identities, units, uncertainties and unsupported claims as explicit gaps. |
+| **Scientific owner review** | Inspect the current calculation attempt and its actual native output before acceptance. | Uses a separate lifecycle lane and cannot accept another attempt or user's result. |
+| **Operations** | Repair placement and execution plumbing under the current delegated user instruction. | Does not create scientific execution authority or bypass native acceptance. |
 | **Monitor and supervisor** | Observe resources, scheduler state, lifecycle, and evidence completeness. | Read-only: they never submit, cancel, or mutate scientific jobs. |
-| **Patcher** | Repairs framework code and runs focused checks after a diagnosed failure. | Cannot launch user calculations or alter user result files. |
+| **Patcher** | Diagnoses failures and returns repair proposals and check results. | Framework edits require an available controlled repair executor and actual change evidence; a proposed patch is not an applied fix. |
+
+```mermaid
+flowchart TD
+    U[Researcher: objective and changes] <--> L[Lead orchestrator]
+    L --> G[Versioned goal and executable DAG]
+    G --> R[Runtime: dependencies, leases and attempt ownership]
+    R --> S[Domain specialists and registered scientific tools]
+    S --> J[Slurm: configured external engines and MPI]
+    J --> E[Native results, scheduler receipts and source hashes]
+    E --> V[Independent scientific owner review]
+    V -->|accepted current attempt| R
+    R --> A[Analyst: inspect completed tables and design figures]
+    A --> B[Python OS sandbox: code, logs and PNG artifacts]
+    E --> C[Communicator: source-grounded scientific report]
+    B --> C
+    C --> Q[Separate report reviewer and native evidence checks]
+    Q --> D[Owned artifacts: report, figures and source data]
+    D --> U
+    M[Monitor and supervisor: observe and propose] -. events .-> L
+    E -. events .-> M
+    P[Operations and patcher: bounded diagnosed repair] -. proposal .-> L
+    H[Session and role memory: checkpoints and evidence references] -. restore .-> L
+    H -. context .-> S
+```
+
+Scientific acceptance and report review have separate purposes. A scheduler's
+`COMPLETED` state does not prove convergence, and a report reviewer does not
+change a solver result. The scientific owner examines the current attempt's
+native evidence; the communicator and its separate reviewer check that the
+report's claims, material identities, numbers, methods and units follow those
+sources. Figure code runs in the existing Python OS sandbox, with bounded
+correction from actual execution logs. Retained PNGs and scripts remain linked
+to their input tables; image generation alone does not establish visual or
+scientific acceptance.
+
+Researchers can continue an already authorized analysis with report and figure
+nodes without repeating the same approval. The native control layer checks the
+actual delta and current user turn: changing materials, methods, physical
+conditions or scientific execution still follows the original planning rules.
+Recovery keeps successful branches and original failure evidence, while an
+unconfirmed submission retains its ownership until it can be reconciled.
+
+Acceptance evidence is versioned separately from the scientific calculation. When validation rules change, the runtime rebuilds an outdated pending dossier from the same owned native files; it does not rerun the solver or mark the result accepted automatically. Collection paths, figure publication and report inputs must resolve to observed artifacts from the current attempt. Missing residuals or convergence proof remain explicit gaps.
 
 The durable workflow store keeps goal versions, leases, attempts, scheduler receipts, artifacts, and evidence history. Independent branches can run in parallel while leases prevent conflicting writes. A `prefinish` result means that a tool returned and still needs evidence validation; only the current node and attempt can complete the workflow. Recoverable failures are diagnosed and repaired, while completed branches and their receipts remain available after an interruption.
 
 Scientific programs stay outside the release. Deployment-specific paths are supplied through `config/runtime.json` or `BIMEM_RUNTIME_CONFIG`, so users can point MD and String workflows at their own LAMMPS, MPI, and String installations. The public source does not include scientific binaries, accounts, API keys, or private scheduler settings.
 
+[Runtime verification and recovery](docs/runtime-recovery.md) documents scoped read-only queries, evidence-backed retries, user-installed engines and the distinction between regression checks and scientific delivery acceptance.
+
 ### 中文说明
 
-主智能体负责澄清目标、生成并审核任务图；专业智能体分别处理吸附、MD、cDFT、结构和分析任务。所有任务都经过统一工作流运行时调度，节点带有依赖、资源锁、尝试记录、作业回执和证据。Monitor 与 Supervisor 只读监控，Patcher 只修复框架代码，不会替用户提交或修改科学计算。独立分支可以并行执行，中断后依靠持久化检查点继续，已完成结果不会被覆盖。
+主智能体负责澄清目标、生成并审核任务图；专业智能体分别处理吸附、MD、cDFT、结构和分析任务。所有任务都经过统一工作流运行时调度，节点带有依赖、资源锁、尝试记录、作业回执和证据。Monitor 与 Supervisor 只读监控；Patcher 负责诊断与修复建议，代码修改须由可用的受控修复执行器实施并提供实际证据，不能把建议回报成已修复。独立分支可以并行执行，中断后依靠持久化检查点继续，已完成结果不会被覆盖。
 
 ## Features
 

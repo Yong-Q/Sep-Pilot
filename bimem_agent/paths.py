@@ -15,6 +15,8 @@ RUNTIME_CONFIG_PATH = (
     Path(_RUNTIME_CONFIG_OVERRIDE).expanduser()
     if _RUNTIME_CONFIG_OVERRIDE else CONFIG_ROOT / "runtime.json"
 )
+if not RUNTIME_CONFIG_PATH.is_absolute():
+    RUNTIME_CONFIG_PATH = (PROJECT_ROOT / RUNTIME_CONFIG_PATH).resolve()
 
 
 @lru_cache(maxsize=1)
@@ -51,7 +53,8 @@ def _resolve_path(raw: str) -> Path:
     path = Path(raw).expanduser()
     if path.is_absolute():
         return path
-    return (PROJECT_ROOT / path).resolve()
+    # Preserve interpreter/installation symlinks, particularly virtualenv Python.
+    return Path(os.path.abspath(PROJECT_ROOT / path))
 
 
 def get_config_path(section: str, key: str) -> Path:

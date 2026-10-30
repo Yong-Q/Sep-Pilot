@@ -1,3 +1,4 @@
+from tests.native_child_capture import native_source
 """Failures observed in evaluator5: no real LLM or scheduler submissions."""
 import json
 from types import SimpleNamespace
@@ -38,8 +39,9 @@ def plan_node(tmp_path):
 
 
 def test_approval_activates_runtime_after_checkpoint_not_legacy_dispatch(tmp_path, monkeypatch):
+    set_context('tester', 'c1')
     store = TaskLineStore(str(tmp_path / 'lines.json'))
-    store.begin_line('c1')
+    store.begin_line('c1', username='tester', conv_id='c1')
     monkeypatch.setattr('agents.task_line.get_store', lambda: store)
     s = session(tmp_path)
     s._current_line_id = 'c1'
@@ -311,10 +313,11 @@ def test_cdft_artifacts_follow_timestamped_job_receipt_not_preparation_root(tmp_
 
 
 def test_zero_inputs_is_failure_and_gas_defaults_are_disjoint(tmp_path, monkeypatch):
+    monkeypatch.setattr('agents.registry._cdft_adapter_bootstrap', lambda *args: ('', []))
     monkeypatch.setattr('agents.registry.get_config', lambda: AgentConfig(api_key='test', project_root=tmp_path))
     captured = []
     def process(argv, **kw):
-        captured.append(argv[-1])
+        captured.append(native_source(argv, kw))
         return SimpleNamespace(returncode=0, stdout='{"n_inputs": 0}', stderr='')
     monkeypatch.setattr('subprocess.run', process)
     set_context('tester', 'c1', 'analyst')

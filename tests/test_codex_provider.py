@@ -17,6 +17,25 @@ TOOLS = [{"name": "read_file", "description": "Read a file", "input_schema": {
 }}]
 
 
+@pytest.fixture(autouse=True)
+def isolated_cli_runtime(tmp_path, monkeypatch):
+    """Provide synthetic mount sources without requiring host CLI installations."""
+    runtime = tmp_path / 'runtime'
+    binaries = runtime / 'bin'
+    binaries.mkdir(parents=True)
+    for name in ('bwrap', 'node', 'codex'):
+        executable = binaries / name
+        executable.write_text('#!/bin/sh\nexit 97\n')
+        executable.chmod(0o700)
+    auth_home = tmp_path / 'fake-codex-home'
+    auth_home.mkdir()
+    (auth_home / 'auth.json').write_text('{"fixture": true}')
+    monkeypatch.setenv('CODEX_HOME', str(auth_home))
+    monkeypatch.setattr('agents.codex_provider.shutil.which',
+                        lambda name: str(binaries / name) if name in {'bwrap', 'node', 'codex'} else None)
+    return binaries, auth_home
+
+
 def _host_answer(command):
     return Path(command[command.index("--bind") + 1]) / "answer.json"
 
@@ -48,6 +67,14 @@ def test_tool_proposal_returns_claude_compatible_block(monkeypatch):
     assert "/opt/node/bin/codex" in cmd
     assert "--ephemeral" in cmd
     assert "--ignore-user-config" in cmd
+    cli = cmd[cmd.index('/opt/node/bin/codex') + 1:]
+    disabled = {cli[index + 1] for index, value in enumerate(cli[:-1]) if value == '--disable'}
+    assert disabled == {'shell_tool', 'shell_snapshot', 'apps', 'plugins', 'hooks',
+                        'multi_agent', 'code_mode', 'view_image', 'image_generation',
+                        'browser_use', 'computer_use', 'sleep_tool', 'tool_suggest'}
+    overrides = {cli[index + 1] for index, value in enumerate(cli[:-1]) if value == '-c'}
+    assert {'mcp_servers={}', 'web_search="disabled"', 'agents.enabled=false'} <= overrides
+    assert 'unified_exec' not in disabled
     assert [cmd[cmd.index("--sandbox") + 1], cmd[cmd.index("--model") + 1]] == ["read-only", "gpt-6-sol"]
     assert "model_reasoning_effort=\"medium\"" in cmd
     assert "OPENAI_API_KEY" not in captured["kwargs"]["env"]
@@ -133,3 +160,27 @@ def test_proxy_userinfo_is_never_forwarded(monkeypatch):
         _child_env()
     assert "name" not in str(error.value)
     assert "password" not in str(error.value)
+
+
+def test_missing_runtime_is_rejected_before_cli(monkeypatch):
+    monkeypatch.setattr('agents.codex_provider.shutil.which', lambda _: None)
+    monkeypatch.setattr('agents.codex_provider._invoke_cli',
+                        lambda *a, **kw: pytest.fail('unavailable runtime must not execute'))
+    with pytest.raises(CodexProviderError, match='runtime is unavailable'):
+        call_codex_model('', [], TOOLS)
+
+
+def test_unsupported_runtime_layout_is_rejected(tmp_path, monkeypatch):
+    outside = tmp_path / 'outside-codex'
+    outside.write_text('synthetic executable')
+    original = __import__('agents.codex_provider', fromlist=['shutil']).shutil.which
+    monkeypatch.setattr('agents.codex_provider.shutil.which',
+                        lambda name: str(outside) if name == 'codex' else original(name))
+    with pytest.raises(CodexProviderError, match='layout is unsupported'):
+        call_codex_model('', [], TOOLS)
+
+
+def test_missing_synthetic_auth_is_rejected(tmp_path, monkeypatch):
+    monkeypatch.setenv('CODEX_HOME', str(tmp_path / 'missing-home'))
+    with pytest.raises(CodexProviderError, match='account is unavailable'):
+        call_codex_model('', [], TOOLS)

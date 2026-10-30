@@ -19,7 +19,7 @@ def test_research_draft_is_persisted_without_execution_and_shows_real_edges():
              for i in range(5)]
     session._record_workflow_draft(nodes, completion_criteria='Validated final report from all five stages')
     assert writes[-1][0]['context']['workflow_draft']['nodes'][4]['depends_on'] == ['s3']
-    conv = ConversationState(conv_id='draft-only-regression', username='123')
+    conv = ConversationState(conv_id='draft-only-regression', username='demo-user')
     conv.session = session
     graph = _workflow_state(conv)['graph_projection']
     assert graph['source'] == 'workflow_draft' and len(graph['nodes']) == 5
@@ -78,10 +78,10 @@ def test_user123_session_graph_is_scoped_and_required(index, prompt):
     assert session._chain_required_block("generate_structure") == ""
     assert "approved DAG owns delegation" in session._chain_required_block("handoff_to_harness")
 
-    conv = ConversationState(conv_id=f"case-{index}", username="123")
+    conv = ConversationState(conv_id=f"case-{index}", username="demo-user")
     conv.session = session
     view = _workflow_state(conv)
-    assert view["scope"] == {"username": "123", "conv_id": f"case-{index}"}
+    assert view["scope"] == {"username": "demo-user", "conv_id": f"case-{index}"}
     graph = view["goal_contract"]["approved_nodes"]
     assert [node["step_id"] for node in graph] == [f"s{index}_generate", f"s{index}_calculate"]
     assert graph[1]["depends_on"] == [graph[0]["step_id"]]
@@ -93,21 +93,21 @@ def test_fifteen_user123_graphs_never_cross_session_scope():
         session = Session()
         session.goal_contract = GoalContract.from_user_message(CASES[index])
         session.goal_contract.approved_nodes = copy.deepcopy(_contracts(index))
-        conv = ConversationState(conv_id=f"case-{index}", username="123")
+        conv = ConversationState(conv_id=f"case-{index}", username="demo-user")
         conv.session = session
         graphs.append(_workflow_state(conv))
     for index, graph in enumerate(graphs):
         nodes=graph["goal_contract"]["approved_nodes"]
         roots={node["arguments"].get("output_dir") for node in nodes if node["arguments"].get("output_dir")}
         assert roots == {f"runs/123/case-{index}/structures"}
-        assert graph["scope"] == {"username":"123","conv_id":f"case-{index}"}
+        assert graph["scope"] == {"username":"demo-user","conv_id":f"case-{index}"}
 
 
 def test_interrupted_complex_goal_exposes_honest_planning_state_not_empty_dag():
     session = Session()
     session._current_line_id = "interrupted-before-plan"
     session.goal_contract = GoalContract.from_user_message(CASES[0])
-    conv = ConversationState(conv_id="interrupted-before-plan", username="123")
+    conv = ConversationState(conv_id="interrupted-before-plan", username="demo-user")
     conv.session = session
     conv.interrupt_requested = True
 

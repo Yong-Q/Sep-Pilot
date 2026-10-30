@@ -1,0 +1,594 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           8
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3385415117E+01
+    0.3019299600E+02
+    0.3385415117E+01
+    0.3019299600E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Charmm22  
+Atom Names
+CF1       
+CF1       
+CF1       
+CF1       
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3652684732E+01
+    0.2113509720E+02
+    0.3652684732E+01
+    0.2113509720E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Charmm22  
+Atom Names
+CF2       
+CF2       
+CF2       
+CF2       
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.4098134089E+01
+    0.1006433200E+02
+    0.4098134089E+01
+    0.1006433200E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Charmm22  
+Atom Names
+CF3       
+CF3       
+CF3       
+CF3       
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.2351972608E+01
+    0.1409006480E+02
+    0.2351972608E+01
+    0.1409006480E+02
+Mass
+    0.1008000000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Charmm22  
+Atom Names
+HF1       
+HF1       
+HF1       
+HF1       
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.2316336659E+01
+    0.1509649800E+02
+    0.2316336659E+01
+    0.1509649800E+02
+Mass
+    0.1008000000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Charmm22  
+Atom Names
+HF2       
+HF2       
+HF2       
+HF2       
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.2904329811E+01
+    0.6793424100E+02
+    0.2904329811E+01
+    0.6793424100E+02
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Charmm22  
+Atom Names
+F1        
+F1        
+F1        
+F1        
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.2904329811E+01
+    0.5283774300E+02
+    0.2904329811E+01
+    0.5283774300E+02
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Charmm22  
+Atom Names
+F2        
+F2        
+F2        
+F2        
+Atom Type Number
+           8
+Nonbond Coefficients
+    0.2850875888E+01
+    0.4881201020E+02
+    0.2850875888E+01
+    0.4881201020E+02
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Charmm22  
+Atom Names
+F3        
+F3        
+F3        
+F3        
+Number of Bonded Terms
+           8
+Bond Type Number
+           1
+Bond Style
+           2
+Bond Coefficients
+    0.1374000000E+01
+    0.2113509720E+06
+Vibration Order
+wild      
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F1         CF1       
+Bond Type Number
+           2
+Bond Style
+           2
+Bond Coefficients
+    0.1353000000E+01
+    0.1756225934E+06
+Vibration Order
+wild      
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F2         CF2       
+Bond Type Number
+           3
+Bond Style
+           2
+Bond Coefficients
+    0.1340000000E+01
+    0.1333523990E+06
+Vibration Order
+wild      
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F3         CF3       
+Bond Type Number
+           4
+Bond Style
+           2
+Bond Coefficients
+    0.1520000000E+01
+    0.8554682200E+05
+Vibration Order
+wild      
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CF1        CT3       
+Bond Type Number
+           5
+Bond Style
+           2
+Bond Coefficients
+    0.1520000000E+01
+    0.9963688680E+05
+Vibration Order
+wild      
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CF2        CT3       
+Bond Type Number
+           6
+Bond Style
+           2
+Bond Coefficients
+    0.1520000000E+01
+    0.1258041500E+06
+Vibration Order
+wild      
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+CF3        CT3       
+CF3        CT2       
+CF3        CF1       
+Bond Type Number
+           7
+Bond Style
+           2
+Bond Coefficients
+    0.1082800000E+01
+    0.1721000772E+06
+Vibration Order
+wild      
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CF1        HF1       
+Bond Type Number
+           8
+Bond Style
+           2
+Bond Coefficients
+    0.1082800000E+01
+    0.1741129436E+06
+Vibration Order
+wild      
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CF2        HF2       
+Number of Angle Terms
+          11
+Angle Type Number
+           1
+Angle Style
+           5
+Angle Coefficients
+    0.1070000000E+03
+    0.7548249000E+05
+    0.2170000000E+01
+    0.5032166000E+04
+Angle Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F2         CF2        F2        
+Angle Type Number
+           2
+Angle Style
+           5
+Angle Coefficients
+    0.1070000000E+03
+    0.5937955880E+05
+    0.2155000000E+01
+    0.1509649800E+05
+Angle Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F3         CF3        F3        
+Angle Type Number
+           3
+Angle Style
+           5
+Angle Coefficients
+    0.1120000000E+03
+    0.2214153040E+05
+    0.2369000000E+01
+    0.1509649800E+05
+Angle Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+F1         CF1        CT3       
+F1         CF1        CF3       
+Angle Type Number
+           4
+Angle Style
+           5
+Angle Coefficients
+    0.1120000000E+03
+    0.2516083000E+05
+    0.2357000000E+01
+    0.1509649800E+05
+Angle Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F2         CF2        CT3       
+Angle Type Number
+           5
+Angle Style
+           5
+Angle Coefficients
+    0.1120000000E+03
+    0.2113509720E+05
+    0.2357000000E+01
+    0.1509649800E+05
+Angle Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+F3         CF3        CT3       
+F3         CF3        CT2       
+F3         CF3        CF1       
+Angle Type Number
+           6
+Angle Style
+           5
+Angle Coefficients
+    0.1120000000E+03
+    0.1559971460E+05
+    0.2168000000E+01
+    0.1509649800E+04
+Angle Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+CT3        CF1        HF1       
+CF3        CF1        HF1       
+Angle Type Number
+           7
+Angle Style
+           5
+Angle Coefficients
+    0.1120000000E+03
+    0.1610293120E+05
+    0.2168000000E+01
+    0.1509649800E+04
+Angle Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CT3        CF2        HF2       
+Angle Type Number
+           8
+Angle Style
+           5
+Angle Coefficients
+    0.1088900000E+03
+    0.2893495450E+05
+    0.1997000000E+01
+    0.2516083000E+04
+Angle Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F1         CF1        HF1       
+Angle Type Number
+           9
+Angle Style
+           5
+Angle Coefficients
+    0.1088900000E+03
+    0.2108477554E+05
+    0.1980000000E+01
+    0.2516083000E+04
+Angle Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+F2         CF2        HF2       
+Angle Type Number
+          10
+Angle Style
+           5
+Angle Coefficients
+    0.1084000000E+03
+    0.1786418930E+05
+    0.1746000000E+01
+    0.5233452640E+04
+Angle Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+HF1        CF1        HF1       
+Angle Type Number
+          11
+Angle Style
+           5
+Angle Coefficients
+    0.1140000000E+03
+    0.2684660561E+05
+    0.2561000000E+01
+    0.4025732800E+04
+Angle Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CF3        CF1        CF3       
+Number of Torsion Terms
+           3
+Torsion Type Number
+           1
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.9309507100E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+wild       CT3        CF1        wild      
+wild       CF3        CF1        wild      
+Torsion Type Number
+           2
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.8957255480E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       CT3        CF2        wild      
+Torsion Type Number
+           3
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.1000000000E+01
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.7950822280E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Charmm22  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       CT3        CF3        wild      
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

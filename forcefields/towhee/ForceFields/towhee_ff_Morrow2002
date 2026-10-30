@@ -1,0 +1,1851 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+          33
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3207235385E+01
+    0.2513678530E+02
+    0.3207235385E+01
+    0.2513678530E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.5600000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+C2        
+C2        
+C2        
+C2        
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3207235385E+01
+    0.2513678530E+02
+    0.3207235385E+01
+    0.2513678530E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1410000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+C4        
+C4        
+C4        
+C4        
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3207235385E+01
+    0.2513678530E+02
+    0.3207235385E+01
+    0.2513678530E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.2170000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+C5        
+C5        
+C5        
+C5        
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.4053589168E+01
+    0.1010282280E+02
+    0.4053589168E+01
+    0.1010282280E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1570000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+C6        
+C6        
+C6        
+C6        
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.4053589168E+01
+    0.1010282280E+02
+    0.4053589168E+01
+    0.1010282280E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.9500000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+C7        
+C7        
+C7        
+C7        
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.3581412847E+01
+    0.2814357780E+02
+    0.3581412847E+01
+    0.2814357780E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.1220000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+C8        
+C8        
+C8        
+C8        
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.3581412847E+01
+    0.2814357780E+02
+    0.3581412847E+01
+    0.2814357780E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.2560000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+C9        
+C9        
+C9        
+C9        
+Atom Type Number
+           8
+Nonbond Coefficients
+    0.3634866770E+01
+    0.3920857420E+02
+    0.3634866770E+01
+    0.3920857420E+02
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+   -0.2090000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+C10       
+C10       
+C10       
+C10       
+Atom Type Number
+           9
+Nonbond Coefficients
+    0.3029055642E+01
+    0.4534243090E+02
+    0.3029055642E+01
+    0.4534243090E+02
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+F         
+F         
+F         
+F         
+Atom Type Number
+          10
+Nonbond Coefficients
+    0.3029055642E+01
+    0.4534243090E+02
+    0.3029055642E+01
+    0.4534243090E+02
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+F1        
+F1        
+F1        
+F1        
+Atom Type Number
+          11
+Nonbond Coefficients
+    0.3029055642E+01
+    0.4534243090E+02
+    0.3029055642E+01
+    0.4534243090E+02
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+F2        
+F2        
+F2        
+F2        
+Atom Type Number
+          12
+Nonbond Coefficients
+    0.3029055642E+01
+    0.4534243090E+02
+    0.3029055642E+01
+    0.4534243090E+02
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+F3        
+F3        
+F3        
+F3        
+Atom Type Number
+          13
+Nonbond Coefficients
+    0.3029055642E+01
+    0.4534243090E+02
+    0.3029055642E+01
+    0.4534243090E+02
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+F4        
+F4        
+F4        
+F4        
+Atom Type Number
+          14
+Nonbond Coefficients
+    0.3029055642E+01
+    0.4534243090E+02
+    0.3029055642E+01
+    0.4534243090E+02
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+F5        
+F5        
+F5        
+F5        
+Atom Type Number
+          15
+Nonbond Coefficients
+    0.3029055642E+01
+    0.4534243090E+02
+    0.3029055642E+01
+    0.4534243090E+02
+Mass
+    0.1899800000E+02
+Element
+ F
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+F6        
+F6        
+F6        
+F6        
+Atom Type Number
+          16
+Nonbond Coefficients
+    0.1603617693E+01
+    0.2309216640E+02
+    0.1603617693E+01
+    0.2309216640E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1770000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H1        
+H1        
+H1        
+H1        
+Atom Type Number
+          17
+Nonbond Coefficients
+    0.2615678636E+01
+    0.3968966100E+01
+    0.2615678636E+01
+    0.3968966100E+01
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1810000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H2        
+H2        
+H2        
+H2        
+Atom Type Number
+          18
+Nonbond Coefficients
+    0.2615678636E+01
+    0.3968966100E+01
+    0.2615678636E+01
+    0.3968966100E+01
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.2070000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H3        
+H3        
+H3        
+H3        
+Atom Type Number
+          19
+Nonbond Coefficients
+    0.2351972616E+01
+    0.1106499640E+02
+    0.2351972616E+01
+    0.1106499640E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1250000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H4        
+H4        
+H4        
+H4        
+Atom Type Number
+          20
+Nonbond Coefficients
+    0.2351972616E+01
+    0.1106499640E+02
+    0.2351972616E+01
+    0.1106499640E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.7300000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H5        
+H5        
+H5        
+H5        
+Atom Type Number
+          21
+Nonbond Coefficients
+    0.2351972616E+01
+    0.1106499640E+02
+    0.2351972616E+01
+    0.1106499640E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1420000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H6        
+H6        
+H6        
+H6        
+Atom Type Number
+          22
+Nonbond Coefficients
+    0.2387608565E+01
+    0.1106499640E+02
+    0.2387608565E+01
+    0.1106499640E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.5500000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H7        
+H7        
+H7        
+H7        
+Atom Type Number
+          23
+Nonbond Coefficients
+    0.2387608565E+01
+    0.1106499640E+02
+    0.2387608565E+01
+    0.1106499640E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4500000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H8        
+H8        
+H8        
+H8        
+Atom Type Number
+          24
+Nonbond Coefficients
+    0.2387608565E+01
+    0.1407178890E+02
+    0.2387608565E+01
+    0.1407178890E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.5500000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H9        
+H9        
+H9        
+H9        
+Atom Type Number
+          25
+Nonbond Coefficients
+    0.2387608565E+01
+    0.1407178890E+02
+    0.2387608565E+01
+    0.1407178890E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.1000000000E-02
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H10       
+H10       
+H10       
+H10       
+Atom Type Number
+          26
+Nonbond Coefficients
+    0.2387608565E+01
+    0.1407178890E+02
+    0.2387608565E+01
+    0.1407178890E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+   -0.2900000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H11       
+H11       
+H11       
+H11       
+Atom Type Number
+          27
+Nonbond Coefficients
+    0.2387608565E+01
+    0.1407178890E+02
+    0.2387608565E+01
+    0.1407178890E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+   -0.9900000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H12       
+H12       
+H12       
+H12       
+Atom Type Number
+          28
+Nonbond Coefficients
+    0.2387608565E+01
+    0.1202717000E+02
+    0.2387608565E+01
+    0.1202717000E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.5100000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H13       
+H13       
+H13       
+H13       
+Atom Type Number
+          29
+Nonbond Coefficients
+    0.2387608565E+01
+    0.1202717000E+02
+    0.2387608565E+01
+    0.1202717000E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.4000000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H14       
+H14       
+H14       
+H14       
+Atom Type Number
+          30
+Nonbond Coefficients
+    0.2387608565E+01
+    0.1202717000E+02
+    0.2387608565E+01
+    0.1202717000E+02
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+null 
+Base Charge 
+    0.7500000000E-01
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+H15       
+H15       
+H15       
+H15       
+Atom Type Number
+          31
+Nonbond Coefficients
+    0.3296325257E+01
+    0.1006674129E+03
+    0.3296325257E+01
+    0.1006674129E+03
+Mass
+    0.1400700000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+    0.1110000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+N1        
+N1        
+N1        
+N1        
+Atom Type Number
+          32
+Nonbond Coefficients
+    0.3296325257E+01
+    0.1006674129E+03
+    0.3296325257E+01
+    0.1006674129E+03
+Mass
+    0.1400700000E+02
+Element
+ N
+Bond Pattern
+null 
+Base Charge 
+    0.1330000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+N3        
+N3        
+N3        
+N3        
+Atom Type Number
+          33
+Nonbond Coefficients
+    0.3830864488E+01
+    0.2944251216E+03
+    0.3830864488E+01
+    0.2944251216E+03
+Mass
+    0.3097400000E+02
+Element
+ P
+Bond Pattern
+null 
+Base Charge 
+   -0.9040000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Morrow2002
+Atom Names
+P         
+P         
+P         
+P         
+Number of Bonded Terms
+          15
+Bond Type Number
+           1
+Bond Style
+           2
+Bond Coefficients
+    0.1470000000E+01
+    0.1107822629E+06
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C6         N3        
+Bond Type Number
+           2
+Bond Style
+           2
+Bond Coefficients
+    0.1483000000E+01
+    0.1107822629E+06
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C7         N1        
+Bond Type Number
+           3
+Bond Style
+           2
+Bond Coefficients
+    0.1382000000E+01
+    0.2014190160E+06
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C5         N1        
+C4         N3        
+Bond Type Number
+           4
+Bond Style
+           2
+Bond Coefficients
+    0.1337000000E+01
+    0.2014190160E+06
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C2         N1        
+C2         N3        
+Bond Type Number
+           5
+Bond Style
+           2
+Bond Coefficients
+    0.1361000000E+01
+    0.2064584002E+06
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C4         C5        
+Bond Type Number
+           6
+Bond Style
+           1
+Bond Coefficients
+    0.1078000000E+01
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C2         H1        
+Bond Type Number
+           7
+Bond Style
+           1
+Bond Coefficients
+    0.1078000000E+01
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C4         H2        
+C5         H3        
+Bond Type Number
+           8
+Bond Style
+           1
+Bond Coefficients
+    0.1089000000E+01
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+C6         H4        
+C6         H5        
+C6         H6        
+Bond Type Number
+           9
+Bond Style
+           1
+Bond Coefficients
+    0.1091000000E+01
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C7         H7        
+C7         H8        
+Bond Type Number
+          10
+Bond Style
+           1
+Bond Coefficients
+    0.1096000000E+01
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           4
+Atom Names
+C8         H9        
+C8         H10       
+C9         H11       
+C9         H12       
+Bond Type Number
+          11
+Bond Style
+           1
+Bond Coefficients
+    0.1093000000E+01
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+C10        H13       
+C10        H14       
+C10        H15       
+Bond Type Number
+          12
+Bond Style
+           2
+Bond Coefficients
+    0.1530000000E+01
+    0.1007155216E+06
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C7         C8        
+Bond Type Number
+          13
+Bond Style
+           2
+Bond Coefficients
+    0.1534000000E+01
+    0.1120451157E+06
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C8         C9        
+Bond Type Number
+          14
+Bond Style
+           2
+Bond Coefficients
+    0.1530000000E+01
+    0.1120451157E+06
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C9         C10       
+Bond Type Number
+          15
+Bond Style
+           2
+Bond Coefficients
+    0.1646000000E+01
+    0.1310720987E+06
+Vibration Order
+wild      
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           7
+Atom Names
+P          F         
+P          F1        
+P          F2        
+P          F3        
+P          F4        
+P          F5        
+P          F6        
+Number of Angle Terms
+          22
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1126000000E+03
+    0.7050327054E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C8         C7         N1        
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1083000000E+03
+    0.6546388631E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C5         N1         C2        
+C4         N3         C2        
+Angle Type Number
+           3
+Angle Style
+           1
+Angle Coefficients
+    0.1259000000E+03
+    0.6546388631E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C7         N1         C2        
+C7         N1         C5        
+Angle Type Number
+           4
+Angle Style
+           1
+Angle Coefficients
+    0.1258000000E+03
+    0.6546388631E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C6         N3         C2        
+C6         N3         C4        
+Angle Type Number
+           5
+Angle Style
+           1
+Angle Coefficients
+    0.1096000000E+03
+    0.1510612552E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+H4         C6         N3        
+H5         C6         N3        
+H6         C6         N3        
+Angle Type Number
+           6
+Angle Style
+           1
+Angle Coefficients
+    0.1255000000E+03
+    0.1259244699E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+H1         C2         N1        
+H1         C2         N3        
+Angle Type Number
+           7
+Angle Style
+           1
+Angle Coefficients
+    0.1072000000E+03
+    0.6546388631E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+N1         C5         C4        
+N3         C4         C5        
+Angle Type Number
+           8
+Angle Style
+           1
+Angle Coefficients
+    0.1091000000E+03
+    0.6546388631E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+N1         C2         N3        
+Angle Type Number
+           9
+Angle Style
+           1
+Angle Coefficients
+    0.1308000000E+03
+    0.1259244699E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+H2         C4         C5        
+H3         C5         C4        
+Angle Type Number
+          10
+Angle Style
+           1
+Angle Coefficients
+    0.1093000000E+03
+    0.1787237462E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+H4         C6         Hwild     
+H5         C6         Hwild     
+H6         C6         Hwild     
+Angle Type Number
+          11
+Angle Style
+           1
+Angle Coefficients
+    0.1221000000E+03
+    0.1259244699E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+N1         C5         H3        
+N3         C4         H2        
+Angle Type Number
+          12
+Angle Style
+           1
+Angle Coefficients
+    0.1072000000E+03
+    0.1787237462E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H7         C7         H8        
+Angle Type Number
+          13
+Angle Style
+           1
+Angle Coefficients
+    0.1115000000E+03
+    0.1681398366E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+H7         C7         C8        
+H8         C7         C8        
+Angle Type Number
+          14
+Angle Style
+           1
+Angle Coefficients
+    0.1095000000E+03
+    0.1681398366E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+H9         C8         C7        
+H10        C8         C7        
+Angle Type Number
+          15
+Angle Style
+           1
+Angle Coefficients
+    0.1116000000E+03
+    0.2940643065E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C7         C8         C9        
+C8         C9         C10       
+Angle Type Number
+          16
+Angle Style
+           1
+Angle Coefficients
+    0.1064000000E+03
+    0.1736723348E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Hwild      C8         Hwild     
+Hwild      C9         Hwild     
+Angle Type Number
+          17
+Angle Style
+           1
+Angle Coefficients
+    0.1097000000E+03
+    0.1739128782E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C8         C9         Hwild     
+C9         C10        Hwild     
+Angle Type Number
+          18
+Angle Style
+           1
+Angle Coefficients
+    0.1097000000E+03
+    0.1739128782E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+H9         C8         C9        
+H10        C8         C9        
+Angle Type Number
+          19
+Angle Style
+           1
+Angle Coefficients
+    0.1097000000E+03
+    0.1739128782E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+H11        C9         C10       
+H12        C9         C10       
+Angle Type Number
+          20
+Angle Style
+           1
+Angle Coefficients
+    0.1076000000E+03
+    0.1787237462E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+H13        C10        Hwild     
+H14        C10        Hwild     
+H15        C10        Hwild     
+Angle Type Number
+          21
+Angle Style
+           1
+Angle Coefficients
+    0.1068000000E+03
+    0.1510612552E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Nwild      C7         H7        
+Nwild      C7         H8        
+Angle Type Number
+          22
+Angle Style
+           1
+Angle Coefficients
+    0.9000000000E+02
+    0.9774481059E+05
+Angle Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Fwild      P          Fwild     
+Number of Torsion Terms
+          14
+Torsion Type Number
+           1
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.7047921620E+04
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           5
+Atom Names
+C2         N1         C5         C4        
+C2         N3         C4         C5        
+N1         C5         C4         N3        
+N1         C2         N3         C4        
+N3         C2         N1         C5        
+Torsion Type Number
+           2
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.1515423420E+04
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+H1         C2         N1         C5        
+H1         C2         N3         C4        
+Torsion Type Number
+           3
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.1006674129E+04
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+H2         C4         C5         H3        
+Torsion Type Number
+           4
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.0000000000E+00
+    0.1000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+C4         C5         N1         C7        
+C5         C4         N3         C6        
+N1         C7         C8         C9        
+Torsion Type Number
+           5
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.0000000000E+00
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           4
+Atom Names
+C4         N3         C6         Hwild     
+C5         N1         C7         Hwild     
+N1         C7         C8         H9        
+N1         C7         C8         H10       
+Torsion Type Number
+           6
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.5051411400E+02
+    0.1000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+C2         N3         C7         C8        
+C2         N1         C7         C8        
+Torsion Type Number
+           7
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.1010282280E+03
+    0.1000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C5         N1         C7         C8        
+Torsion Type Number
+           8
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.8058203900E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Hwild      C9         C10        Hwild     
+Torsion Type Number
+           9
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.9862279400E+02
+    0.2000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           6
+Atom Names
+H7         C7         C8         C9        
+H8         C7         C8         C9        
+C2         N1         C7         Hwild     
+C2         N3         C6         Hwild     
+C7         C8         C9         H11       
+C7         C8         C9         H12       
+Torsion Type Number
+          10
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.8058203900E+02
+    0.1000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C8         C9         C10        Hwild     
+Torsion Type Number
+          11
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.1515423420E+04
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           4
+Atom Names
+H2         C4         N3         C2        
+H3         C5         N1         C2        
+N1         C5         C4         H2        
+N3         C4         C5         H3        
+Torsion Type Number
+          12
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.0000000000E+00
+    0.2000000000E+01
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           6
+Atom Names
+N1         C2         N3         C6        
+N3         C2         N1         C7        
+H1         C2         N3         C6        
+H1         C2         N1         C7        
+H2         C4         N3         C6        
+H3         C5         N1         C7        
+Torsion Type Number
+          13
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.7577117100E+02
+    0.1000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C7         C8         C9         C10       
+Torsion Type Number
+          14
+Torsion Style
+           3
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.9862279400E+02
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           6
+Atom Names
+H7         C7         C8         H9        
+H7         C7         C8         H10       
+H8         C7         C8         H9        
+H8         C7         C8         H10       
+Hwild      C8         C9         C10       
+Hwild      C8         C9         Hwild     
+Number of Improper Terms
+           2
+Improper Type Number
+           1
+Improper Form
+           2
+Improper Style
+           1
+Improper Coefficients
+    0.6013585000E+02
+    0.0000000000E+00
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+C2         N3         N1         H1        
+C4         N3         C5         H2        
+C5         N1         C4         H3        
+Improper Type Number
+           2
+Improper Form
+           2
+Improper Style
+           1
+Improper Coefficients
+    0.7216302000E+02
+    0.0000000000E+00
+Force Field Name
+Morrow2002
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+N1         C5         C2         C7        
+N3         C4         C2         C6        
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           8
+Bond Increment Type Number
+           1
+Bond Increment Value
+    0.3935000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Morrow2002
+Atom Names
+P          F         
+Bond Increment Type Number
+           2
+Bond Increment Value
+    0.4210000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Morrow2002
+Atom Names
+P          F1        
+Bond Increment Type Number
+           3
+Bond Increment Value
+    0.4260000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Morrow2002
+Atom Names
+P          F2        
+Bond Increment Type Number
+           4
+Bond Increment Value
+    0.3680000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Morrow2002
+Atom Names
+P          F3        
+Bond Increment Type Number
+           5
+Bond Increment Value
+    0.3680000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Morrow2002
+Atom Names
+P          F4        
+Bond Increment Type Number
+           6
+Bond Increment Value
+    0.3640000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Morrow2002
+Atom Names
+P          F5        
+Bond Increment Type Number
+           7
+Bond Increment Value
+    0.4140000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Morrow2002
+Atom Names
+P          F6        
+Bond Increment Type Number
+           8
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Morrow2002
+Atom Names
+wild       wild      

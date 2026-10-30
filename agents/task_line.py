@@ -26,7 +26,7 @@ from pathlib import Path
 from .slurm import normalize_job_id
 from typing import Any, Dict, List, Optional
 
-LINE_FILE = str(Path(__file__).resolve().parents[1] / 'data' / 'state' / 'task_lines.json')
+LINE_FILE = os.environ.get('BIMEM_TASK_LINE_FILE') or str(Path(__file__).resolve().parents[1] / 'data' / 'state' / 'task_lines.json')
 LEGACY_LINE_FILE = os.path.join(tempfile.gettempdir(), 'bimem_task_line.json')
 
 
@@ -51,13 +51,13 @@ class TaskLineStore:
     def _load(self) -> None:
         try:
             source = self._file
-            if self._file == LINE_FILE and not os.path.isfile(source):
+            if self._file == LINE_FILE and not os.environ.get('BIMEM_TASK_LINE_FILE') and not os.path.isfile(source):
                 source = LEGACY_LINE_FILE
             if os.path.isfile(source):
                 d = json.loads(Path(source).read_text())
                 if isinstance(d, dict):
                     self._lines = d
-                    if (self._file == LINE_FILE and source == self._file and os.path.isfile(LEGACY_LINE_FILE)
+                    if (self._file == LINE_FILE and not os.environ.get('BIMEM_TASK_LINE_FILE') and source == self._file and os.path.isfile(LEGACY_LINE_FILE)
                             and os.path.getmtime(LEGACY_LINE_FILE) > os.path.getmtime(self._file)):
                         legacy = json.loads(Path(LEGACY_LINE_FILE).read_text())
                         for key, value in legacy.items():
@@ -298,7 +298,7 @@ class TaskLineStore:
                 line["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
                 self._save()
 
-    def apply_workflow_patch(self, line_id, changes, base_version, new_version, reason, project_root=None, *, runtime_nodes=None):
+    def apply_workflow_patch(self, line_id, changes, base_version, new_version, reason, project_root=None, *, runtime_nodes=None, control_valid=None):
         from .workflow_patch import patched_graph
         with self._lock, self._process_guard():
             username, conv_id = _scope()
@@ -306,6 +306,9 @@ class TaskLineStore:
             line = self._lines.get(str(line_id))
             if not line:
                 raise ValueError('workflow line does not exist')
+            if control_valid is not None and not control_valid():
+                raise ValueError('workflow control was superseded before plan commit')
+            line = json.loads(json.dumps(line))
             version = int(line.get('plan_version') or max((s.get('plan_version', 0) for s in line.get('steps', [])), default=0))
             if version != int(base_version):
                 raise ValueError('workflow changed since patch proposal; propose again')
@@ -329,6 +332,9 @@ class TaskLineStore:
             line['steps'] = nodes
             line['plan_version'] = int(new_version)
             line['updated_at'] = time.strftime('%Y-%m-%d %H:%M:%S')
+            if control_valid is not None and not control_valid():
+                raise ValueError('workflow control was superseded before plan commit')
+            self._lines[str(line_id)] = line
             self._save()
             return json.loads(json.dumps(line))
 

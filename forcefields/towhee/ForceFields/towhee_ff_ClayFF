@@ -1,0 +1,662 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+          24
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+h*        
+h*        
+h*        
+generic   
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+ho        
+ho        
+ho        
+generic   
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3165541314E+01
+    0.7819985964E+02
+    0.3165541314E+01
+    0.7819985964E+02
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+o*        
+o*        
+o*        
+generic   
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.3165541314E+01
+    0.7819985964E+02
+    0.3165541314E+01
+    0.7819985964E+02
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+oh        
+oh        
+oh        
+generic   
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.3165541314E+01
+    0.7819985964E+02
+    0.3165541314E+01
+    0.7819985964E+02
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+ob        
+ob        
+ob        
+generic   
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.3165541314E+01
+    0.7819985964E+02
+    0.3165541314E+01
+    0.7819985964E+02
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+obos      
+obos      
+obos      
+generic   
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.3165541314E+01
+    0.7819985964E+02
+    0.3165541314E+01
+    0.7819985964E+02
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+obts      
+obts      
+obts      
+generic   
+Atom Type Number
+           8
+Nonbond Coefficients
+    0.3165541314E+01
+    0.7819985964E+02
+    0.3165541314E+01
+    0.7819985964E+02
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+obss      
+obss      
+obss      
+generic   
+Atom Type Number
+           9
+Nonbond Coefficients
+    0.3165541314E+01
+    0.7819985964E+02
+    0.3165541314E+01
+    0.7819985964E+02
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+ohs       
+ohs       
+ohs       
+generic   
+Atom Type Number
+          10
+Nonbond Coefficients
+    0.3302026998E+01
+    0.9261701523E-03
+    0.3302026998E+01
+    0.9261701523E-03
+Mass
+    0.2808600000E+02
+Element
+Si
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+st        
+st        
+st        
+generic   
+Atom Type Number
+          11
+Nonbond Coefficients
+    0.4271235710E+01
+    0.6691774347E-03
+    0.4271235710E+01
+    0.6691774347E-03
+Mass
+    0.2698200000E+02
+Element
+Al
+Bond Pattern
+p3   
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+ao        
+metal     
+metal     
+generic   
+Atom Type Number
+          12
+Nonbond Coefficients
+    0.3302026998E+01
+    0.9261701523E-03
+    0.3302026998E+01
+    0.9261701523E-03
+Mass
+    0.2698200000E+02
+Element
+Al
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+at        
+metal     
+metal     
+generic   
+Atom Type Number
+          13
+Nonbond Coefficients
+    0.5264320507E+01
+    0.4543945255E-03
+    0.5264320507E+01
+    0.4543945255E-03
+Mass
+    0.2430500000E+02
+Element
+Mg
+Bond Pattern
+p3   
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+mgo       
+metal     
+metal     
+generic   
+Atom Type Number
+          14
+Nonbond Coefficients
+    0.5264320507E+01
+    0.4543945255E-03
+    0.5264320507E+01
+    0.4543945255E-03
+Mass
+    0.2430500000E+02
+Element
+Mg
+Bond Pattern
+s?   
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+mgh       
+metal     
+metal     
+generic   
+Atom Type Number
+          15
+Nonbond Coefficients
+    0.5566691531E+01
+    0.2531078855E-02
+    0.5566691531E+01
+    0.2531078855E-02
+Mass
+    0.4008000000E+02
+Element
+Ca
+Bond Pattern
+p3   
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+cao       
+metal     
+metal     
+generic   
+Atom Type Number
+          16
+Nonbond Coefficients
+    0.5566691531E+01
+    0.2531078855E-02
+    0.5566691531E+01
+    0.2531078855E-02
+Mass
+    0.4008000000E+02
+Element
+Ca
+Bond Pattern
+s?   
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+cah       
+metal     
+metal     
+generic   
+Atom Type Number
+          17
+Nonbond Coefficients
+    0.4906179224E+01
+    0.4543945255E-02
+    0.4906179224E+01
+    0.4543945255E-02
+Mass
+    0.5584700000E+02
+Element
+Fe
+Bond Pattern
+p3   
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+feo       
+metal     
+metal     
+generic   
+Atom Type Number
+          18
+Nonbond Coefficients
+    0.4210120058E+01
+    0.4543945255E-02
+    0.4210120058E+01
+    0.4543945255E-02
+Mass
+    0.6941000000E+01
+Element
+Li
+Bond Pattern
+p3   
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+lio       
+metal     
+metal     
+generic   
+Atom Type Number
+          19
+Nonbond Coefficients
+    0.2350012631E+01
+    0.6546847966E+02
+    0.2350012631E+01
+    0.6546847966E+02
+Mass
+    0.2299000000E+02
+Element
+Na
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+Na        
+null      
+null      
+null      
+Atom Type Number
+          20
+Nonbond Coefficients
+    0.3334010261E+01
+    0.5032166000E+02
+    0.3334010261E+01
+    0.5032166000E+02
+Mass
+    0.3909800000E+02
+Element
+ K
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+K         
+null      
+null      
+null      
+Atom Type Number
+          21
+Nonbond Coefficients
+    0.3831042655E+01
+    0.5032166000E+02
+    0.3831042655E+01
+    0.5032166000E+02
+Mass
+    0.1329000000E+03
+Element
+Cs
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+Cs        
+null      
+null      
+null      
+Atom Type Number
+          22
+Nonbond Coefficients
+    0.2871990188E+01
+    0.5032166000E+02
+    0.2871990188E+01
+    0.5032166000E+02
+Mass
+    0.4008000000E+02
+Element
+Ca
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+Ca        
+null      
+null      
+null      
+Atom Type Number
+          23
+Nonbond Coefficients
+    0.3816610095E+01
+    0.2365118020E+02
+    0.3816610095E+01
+    0.2365118020E+02
+Mass
+    0.1373300000E+03
+Element
+Ba
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+Ba        
+null      
+null      
+null      
+Atom Type Number
+          24
+Nonbond Coefficients
+    0.4399970574E+01
+    0.5037198166E+02
+    0.4399970574E+01
+    0.5037198166E+02
+Mass
+    0.3545300000E+02
+Element
+Cl
+Bond Pattern
+ion  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+ClayFF    
+Atom Names
+Cl        
+null      
+null      
+null      
+Number of Bonded Terms
+           2
+Bond Type Number
+           1
+Bond Style
+           2
+Bond Coefficients
+    0.1000000000E+01
+    0.2788498803E+06
+Vibration Order
+wild      
+Force Field Name
+ClayFF    
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+o*         h*        
+oh         ho        
+ohs        ho        
+Bond Type Number
+           2
+Bond Style
+           7
+Bond Coefficients
+Vibration Order
+wild      
+Force Field Name
+ClayFF    
+Number of Atoms with Same Parameters  
+           4
+Atom Names
+metal      oh        
+metal      ob        
+metal      obts      
+metal      obss      
+Number of Angle Terms
+           2
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1094700000E+03
+    0.2303202250E+05
+Angle Order
+wild           
+Force Field Name
+ClayFF    
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+h*         o*         h*        
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1094700000E+03
+    0.1509649800E+05
+Angle Order
+wild           
+Force Field Name
+ClayFF    
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+metal      oh         ho        
+metal      ohs        ho        
+Number of Torsion Terms
+           0
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

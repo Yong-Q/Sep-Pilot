@@ -92,33 +92,39 @@ def test_profiles_recognize_native_content_without_global_result_filename(tmp_pa
         "data_charged\nloop_\n_atom_site_label\n_atom_site_charge\nC1 -0.125\nH1 0.125\n")
     cases.append((method_node(charge, "run_pacman_charge"), "finite_charge_column"))
 
-    cdft = tmp_path / "cdft"; cdft.mkdir()
-    (cdft / "summary.from-program").write_text(
-        "MOF,total_density_molec_A3,CO2_henry_mol_L_atm\na,0.005,12.5\nb,0.006,13.5\n")
-    cases.append((method_node(cdft, "run_cdft", arguments={"action": "pipeline"}),
-                  "finite_adsorption_or_vext"))
-
-    gcmc = tmp_path / "gcmc"; gcmc.mkdir()
-    (gcmc / "native-log.anything").write_text(
-        "Simulation finished\nAverage loading absolute [mol/kg framework] 2.75 +/- 0.03\n")
-    cases.append((method_node(gcmc, "run_gcmc_isotherm"), "finite_loading_and_completion"))
+    from tests.native_protocol_cases import cdft_batch,gcmc_case
+    cdft = tmp_path / "cdft"
+    cdft_args=cdft_batch(cdft)
+    cases.append((method_node(cdft,"run_cdft",arguments=cdft_args),"finite_adsorption_or_vext"))
+    gcmc = tmp_path / "gcmc"
+    gcmc_case(gcmc)
+    gcmc_args={'gas':'CO2','temperature':298,'cycles':1000,'force_field':'UFF','guest_ff':'TraPPE',
+        'pressure_start':1,'pressure_end':1,'n_pressure_points':1,'unit_cells':'2 2 2'}
+    cases.append((method_node(gcmc,"run_gcmc_isotherm",arguments=gcmc_args),"finite_loading_and_completion"))
 
     for index, (node, required_fact) in enumerate(cases):
-        dossier = build_validation_dossier(node, f"profile-{index}", tmp_path / "evidence")
+        dossier = build_validation_dossier(node, f"profile-{index}", tmp_path / "evidence",limits=ValidationLimits(sample_count=32))
         assert dossier["verdict"] == "pass"
         assert any(sample["facts"].get(required_fact) for sample in dossier["samples"])
         if node["contract"]["tool"] == "run_cdft":
-            assert len(dossier["successful_artifacts"]) == 1
+            assert dossier['counts']=={'attempted':2,'succeeded':2,'failed':0}
+            assert dossier["successful_artifacts"]==[str(cdft/'results.csv'),
+                str(cdft/'input_dir/amber/output.dat'),str(cdft/'input_dir/birch/output.dat')]
+            assert dossier['method_facts']['cdft_native']['scientific_convergence']is None
 
 
 def test_nonfinite_and_low_success_batch_require_recovery(tmp_path):
     root = tmp_path / "batch"; root.mkdir()
+    from tests.native_protocol_cases import gcmc_case
     values = ["1.0", "nan", "failed", "inf"]
     for index, value in enumerate(values):
         text = (f"Simulation finished\nAverage loading absolute [mol/kg framework] {value}\n"
                 if value != "failed" else "Simulation failed: convergence error\n")
-        (root / f"program-output-{index}").write_text(text)
-    node = method_node(root, "run_gcmc_isotherm", arguments={"min_success_ratio": 0.60})
+        text='Number of unitcells [a]: 2\nNumber of unitcells [b]: 2\nNumber of unitcells [c]: 2\n'+text
+        gcmc_case(root,pressure=1e5*10**index,text=text)
+    node = method_node(root,"run_gcmc_isotherm",arguments={'min_success_ratio':0.60,
+        'gas':'CO2','temperature':298,'cycles':1000,'force_field':'UFF','guest_ff':'TraPPE',
+        'pressure_start':1,'pressure_end':1000,'n_pressure_points':4,'unit_cells':'2 2 2'})
 
     dossier = build_validation_dossier(node, "bad-batch", tmp_path / "evidence")
 

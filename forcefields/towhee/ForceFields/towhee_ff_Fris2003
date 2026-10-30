@@ -1,0 +1,233 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           3
+Potential Type
+12-9-6                        
+Classical Mixrule
+Explicit                      
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.0000000000E+00
+    0.6488911934E+08
+   -0.1232796131E+07
+Nonbond Coefficients
+    0.0000000000E+00
+    0.1777740029E+08
+   -0.4359842947E+06
+Nonbond Coefficients
+    0.3200612706E+10
+    0.0000000000E+00
+   -0.1014005898E+07
+Mass
+    0.2898200000E+02
+Element
+Si
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Fris2003  
+Atom Names
+Si        
+Si        
+Si        
+Si        
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.0000000000E+00
+    0.3736804701E+07
+   -0.1559731489E+06
+Nonbond Coefficients
+    0.5580611725E+09
+    0.0000000000E+00
+   -0.3742670599E+06
+Mass
+    0.1599900000E+02
+Element
+O 
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Fris2003  
+Atom Names
+O         
+O         
+O         
+O         
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.2838031377E+10
+    0.0000000000E+00
+   -0.1053814577E+07
+Mass
+    0.1503470000E+02
+Element
+C 
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Fris2003  
+Atom Names
+CH3       
+CH3       
+CH3       
+CH3       
+Number of Bonded Terms
+           2
+Bond Type Number
+           1
+Bond Style
+           2
+Bond Coefficients
+    0.1640000000E+01
+    0.1761861960E+06
+Vibration Order
+wild      
+Force Field Name
+Fris2003  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Si         O         
+Bond Type Number
+           2
+Bond Style
+           2
+Bond Coefficients
+    0.1900000000E+01
+    0.9543502819E+05
+Vibration Order
+wild      
+Force Field Name
+Fris2003  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Si         CH3       
+Number of Angle Terms
+           4
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1464600000E+03
+    0.7115482724E+04
+Angle Order
+wild           
+Force Field Name
+Fris2003  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Si         O          Si        
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1078200000E+03
+    0.4755396870E+05
+Angle Order
+wild           
+Force Field Name
+Fris2003  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+O          Si         O         
+Angle Type Number
+           3
+Angle Style
+           1
+Angle Coefficients
+    0.1092400000E+03
+    0.2514573350E+05
+Angle Order
+wild           
+Force Field Name
+Fris2003  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH3        Si         CH3       
+Angle Type Number
+           4
+Angle Style
+           1
+Angle Coefficients
+    0.1106900000E+03
+    0.2514573350E+05
+Angle Order
+wild           
+Force Field Name
+Fris2003  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+O          Si         CH3       
+Number of Torsion Terms
+           2
+Torsion Type Number
+           1
+Torsion Style
+           3
+One-Four Nonbond Logical
+ F
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.1132237320E+03
+    0.1000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Fris2003  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Si         O          Si         O         
+Torsion Type Number
+           2
+Torsion Style
+           3
+One-Four Nonbond Logical
+ F
+Number of Torsion Loops
+           1
+Torsion Coefficients
+    0.5032165888E+01
+    0.3000000000E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+Fris2003  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Si         O          Si         CH3       
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0

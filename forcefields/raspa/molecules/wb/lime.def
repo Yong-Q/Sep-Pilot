@@ -1,0 +1,70 @@
+# critical constants: Temperature [T], Pressure [Pa], and Acentric factor [-]. Created by AutoFF
+653
+ 2819996.34
+0.380863
+#Number Of Atoms
+26
+#Number Of Group
+1
+# lime-group
+rigid
+#number of atoms
+26
+# atomic positions
+0      C_L         0.719000   -0.043000   -0.366000
+1      C_L          0.042000   -1.208000    0.353000
+2      C_L          0.038000    1.284000   -0.018000
+3      C_L        -1.441000   -1.299000   -0.017000
+4      C_L         -2.140000    0.038000   -0.038000
+5      C_L         -1.460000    1.197000   -0.022000
+6      C_L          2.167000    0.006000    0.013000
+7      C_L         -3.639000   -0.002000   -0.080000
+8      C_L          3.150000   -0.170000   -1.107000
+9      C_L         2.563000    0.197000    1.280000
+10     H_L        0.624000   -0.208000   -1.448000
+11     H_L          0.113000   -1.096000    1.444000
+12     H_L          0.532000   -2.158000    0.105000
+13     H_L          0.347000    2.043000   -0.748000
+14     H_L          0.333000    1.665000    0.967000
+15     H_L         -1.936000   -1.968000    0.697000
+16     H_L         -1.540000   -1.757000   -1.009000
+17     H_L         -2.000000    2.140000   -0.019000
+18     H_L         -3.979000   -0.542000   -0.970000
+19     H_L         -4.078000    1.001000   -0.110000
+20     H_L         -4.031000   -0.511000    0.807000
+21     H_L          3.007000   -1.142000   -1.590000
+22     H_L          3.016000    0.617000   -1.857000
+23     H_L          4.187000   -0.122000   -0.757000
+24     H_L          3.617000    0.230000    1.536000
+25     H_L          1.861000    0.323000    2.097000
+# Chiralcenters Bond BondDipoles Bend UrayBradley InvBend Torsion Imp.Torsion Bond/Bond Stretch/Bend Bend/Bend Stretch/Torsion Bend/Torsion IntraVDW IntraCoulomb
+0  26  0  0  0  0  0  0  0  0  0  0  0  0
+# Bond stretch: atom n1-n2, type, parameters
+0          1          RIGID_BOND
+0          2          RIGID_BOND
+0          6          RIGID_BOND
+0          10         RIGID_BOND
+1          3          RIGID_BOND
+1          11         RIGID_BOND
+1          12         RIGID_BOND
+2          5          RIGID_BOND
+2          13         RIGID_BOND
+2          14         RIGID_BOND
+3          4          RIGID_BOND
+3          15         RIGID_BOND
+3          16         RIGID_BOND
+4          5          RIGID_BOND
+4          7          RIGID_BOND
+5          17         RIGID_BOND
+6          8          RIGID_BOND
+6          9          RIGID_BOND
+7          18         RIGID_BOND
+7          19         RIGID_BOND
+7          20         RIGID_BOND
+8          21         RIGID_BOND
+8          22         RIGID_BOND
+8          23         RIGID_BOND
+9          24         RIGID_BOND
+9          25         RIGID_BOND
+# Number of config moves
+0

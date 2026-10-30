@@ -76,8 +76,12 @@ def render_sbatch_script(
     # Tool-specific default arguments must not discard the resource agent's
     # estimate. Explicit user choices were preserved when that envelope formed.
     from .watch_context import get_context
-    allocation = get_context().get('resource_allocation') or {}
+    context = get_context()
+    allocation = context.get('resource_allocation') or {}
     if allocation.get('resource_review_id'):
+        from .resource_policy import validate_gpu_allocation
+        validate_gpu_allocation(allocation, context.get('tool_name', ''), gres)
+        gres = allocation.get('gres', gres)
         memory_mb = allocation.get('memory_mb', memory_mb)
         partition = allocation.get('partition', partition)
         nodelist = allocation.get('nodelist', nodelist)
@@ -89,6 +93,15 @@ def render_sbatch_script(
             "递归调用错误: command 包含 'sbatch submit.sh'，这会导致无限递归提交。"
             "请使用正确的模拟命令，例如: run_sim simulation.input"
         )
+
+    if memory_mb is None and not allocation.get('resource_review_id'):
+        from .placement_budget import memory_ceiling, project_policy
+        ceiling = memory_ceiling(project_policy(), nodelist=nodelist, partition=partition)
+        if ceiling is not None:
+            # A caller omitted RAM: render the operator's finite default into
+            # this header, instead of inheriting a possibly whole-node default.
+            # This is a cap/default, never evidence the scientific case fits.
+            memory_mb = ceiling * int(cpus_per_task) * int(ntasks)
 
     logs_dir = os.path.join(work_dir, "logs")
     output = output or f"{logs_dir}/{job_name}_%j.out"
@@ -131,7 +144,11 @@ def render_sbatch_script(
             lines.append(f"export {key}={shlex.quote(val)}")
 
     lines.extend(["", command, ""])
-    return "\n".join(lines)
+    script = "\n".join(lines)
+    from .placement_budget import submission_flags
+    # The same final script guard also covers duplicate extra_directives.
+    submission_flags(script, reviewed_allocation=allocation)
+    return script
 
 
 # ── Job Submission ──────────────────────────────────────────────────
@@ -161,6 +178,10 @@ def _record_submission_receipt(func):
 @_record_submission_receipt
 def submit_sbatch_local(script_content: str, work_dir: str) -> Dict[str, Any]:
     """Submit a SLURM job locally via sbatch."""
+    from .placement_budget import submission_flags, clean_submission_environment
+    from .watch_context import get_context
+    flags = submission_flags(script_content, reviewed_allocation=get_context().get('resource_allocation'))
+    scoped = any(flag.startswith(('--mem=', '--mem-per-cpu=')) for flag in flags)
     script_path = os.path.join(work_dir, "submit.sh")
     os.makedirs(work_dir, exist_ok=True)
 
@@ -170,8 +191,9 @@ def submit_sbatch_local(script_content: str, work_dir: str) -> Dict[str, Any]:
 
     try:
         result = subprocess.run(
-            ["sbatch", script_path],
+            ["sbatch", *flags, script_path],
             capture_output=True, text=True, timeout=30,
+            **({'env': clean_submission_environment()} if scoped else {}),
         )
         job_id = None
         if result.returncode == 0:
@@ -216,6 +238,10 @@ def submit_sbatch_remote(
     host = host or remote_cfg.get("host", "gpu2")
     submit_command = remote_cfg.get("submit_command", "sbatch")
 
+    from .placement_budget import submission_flags, clean_submission_environment
+    from .watch_context import get_context
+    flags = submission_flags(script_content, reviewed_allocation=get_context().get('resource_allocation'))
+    scoped = any(flag.startswith(('--mem=', '--mem-per-cpu=')) for flag in flags)
     script_path = os.path.join(work_dir, "submit.sh")
     os.makedirs(work_dir, exist_ok=True)
 
@@ -224,7 +250,12 @@ def submit_sbatch_remote(
 
     try:
         result = subprocess.run(
-            ["ssh", host, submit_command, script_path],
+            (["ssh", host, shlex.join(['env',
+                *[value for key in sorted(('SBATCH_MEM_PER_NODE','SBATCH_MEM_PER_CPU','SBATCH_MEM_PER_GPU',
+                    'SBATCH_CPUS_PER_TASK','SBATCH_NTASKS','SBATCH_NPROCS','SBATCH_NODES','SBATCH_NODELIST',
+                    'SBATCH_PARTITION','SBATCH_NTASKS_PER_NODE')) for value in ('-u',key)],
+                *shlex.split(submit_command), *flags, script_path])]
+             if scoped else ["ssh", host, submit_command, *flags, script_path]),
             capture_output=True, text=True, timeout=30,
         )
         job_id = None
@@ -298,9 +329,9 @@ def submit_job(
 # ── Job Status ──────────────────────────────────────────────────────
 
 # Terminal (non-running) SLURM states that mean the job is no longer executing.
-TERMINAL_STATES = {"COMPLETED", "FAILED", "TIMEOUT", "CANCELLED", "NODE_FAIL", "OUT_OF_MEMORY", "OUT_OF_ME+"}
 # States that indicate the job FAILED (as opposed to cleanly COMPLETED).
 FAILURE_STATES = {"FAILED", "TIMEOUT", "CANCELLED", "NODE_FAIL", "OUT_OF_MEMORY", "OUT_OF_ME+", "PREEMPTED", "REVOKED", "BOOT_FAIL", "DEADLINE"}
+TERMINAL_STATES = FAILURE_STATES | {"COMPLETED"}
 
 
 # ── squeue short-code → canonical job state (ai2-kit absorb) ──────────
@@ -320,9 +351,12 @@ SQUEUE_TRANSLATE = {
     'F':  ("FAILED", True, True),
     'NF': ("NODE_FAIL", True, True),
     'RV': ("REVOKED", True, True),
-    'SE': ("SPECIAL_EXIT", True, True),
+    'SE': ("SPECIAL_EXIT", False, False),  # held for requeue; resources/outcome not released
     'TO': ("TIMEOUT", True, True),
     'DL': ("DEADLINE", True, True),
+    'PR': ("PREEMPTED", True, True),
+    'OOM': ("OUT_OF_MEMORY", True, True),
+    'BF': ("BOOT_FAIL", True, True),
 }
 
 # squeue %T emits long names (e.g. "RUNNING") while %t emits short codes
@@ -338,15 +372,42 @@ _SQUEUE_LONG_TO_SHORT = {
 }
 
 
+def normalize_slurm_state(raw: str) -> Dict[str, Any]:
+    """Canonical scheduler state, preserving native text for audit.
+
+    sacct can append 'by <UID>' to CANCELLED or '+' when its field is
+    truncated (SchedMD sacct State documentation). Only known states and
+    unique truncated long-name prefixes are accepted; ambiguous text is never
+    promoted to COMPLETED/CANCELLED. Active-state alias semantics are retained.
+    """
+    original = str(raw or '')
+    token = original.strip().upper()
+    annotation = re.fullmatch(r'(CANCELLED)\+?\s+BY\s+\d+\+?', token)
+    if annotation:
+        token = annotation[1]
+    known = {state for state in _SQUEUE_LONG_TO_SHORT if '+' not in state}
+    if token.endswith('+'):
+        prefix = token[:-1]
+        matches = [state for state in known if state.startswith(prefix)]
+        if prefix in known or prefix in SQUEUE_TRANSLATE:
+            token = prefix
+        elif len(matches) == 1:
+            token = matches[0]
+    if token in FAILURE_STATES:
+        state, terminal, failed = token, True, True
+    else:
+        short = _SQUEUE_LONG_TO_SHORT.get(token, token)
+        state, terminal, failed = SQUEUE_TRANSLATE.get(short, (token, False, False))
+    return {'status': state, 'raw_status': original, 'terminal': terminal, 'failed': failed}
+
+
 def translate_squeue_state(short: str) -> Dict[str, Any]:
     """Map a squeue state token — short code ('R', 'CD', 'F') OR long name
     ('RUNNING', 'COMPLETED', 'FAILED') — to a canonical {status, terminal,
     failed} dict. Unknown tokens are treated as terminal (the job is not
     running); the caller decides how to classify further."""
-    norm = _SQUEUE_LONG_TO_SHORT.get(short, short)
-    status, terminal, failed = SQUEUE_TRANSLATE.get(
-        norm, (short, True, False))
-    return {"status": status, "terminal": terminal, "failed": failed}
+    normalized = normalize_slurm_state(short)
+    return {key: normalized[key] for key in ('status', 'terminal', 'failed')}
 
 
 # ── Batch squeue query with TTL cache (ai2-kit absorb) ────────────────
@@ -409,7 +470,7 @@ def batch_fetch_states(job_ids: Optional[List[str]] = None, ttl: float = BATCH_S
     if job_ids is not None:
         wanted = {str(j) for j in job_ids}
         states = {k: v for k, v in states.items() if k in wanted}
-    return {jid: {**translate_squeue_state(value['short']), 'pending_reason':value.get('pending_reason',''),
+    return {jid: {**normalize_slurm_state(value['short']), 'pending_reason':value.get('pending_reason',''),
                   'estimated_start':value.get('estimated_start','')} if isinstance(value,dict) else translate_squeue_state(value)
             for jid, value in states.items()}
 
@@ -542,17 +603,20 @@ def check_job_status(job_id: str, host: str = "", work_dir: str = "") -> Dict[st
 
     # If still unknown, the job may have finished and fallen out of accounting.
     # Treat "not found in squeue nor sacct" as terminal (finished).
-    is_terminal = status in TERMINAL_STATES or status in ("", "UNKNOWN")
+    normalized = normalize_slurm_state(status)
+    status = normalized['status']
+    is_terminal = normalized['terminal'] or status in ("", "UNKNOWN")
 
     result: Dict[str, Any] = {
         "job_id": job_id,
         "status": status,
+        "raw_status": normalized['raw_status'],
         "pending_reason": pending_reason,
         "elapsed": elapsed,
         "node": node,
         "host": result_host,
         "terminal": is_terminal,
-        "failed": status in FAILURE_STATES,
+        "failed": normalized['failed'],
     }
     if _scontrol_exit_code:
         result["exit_code"] = _scontrol_exit_code
@@ -1108,77 +1172,58 @@ def ensure_local_raspa_share() -> str:
     return LOCAL_RASPA_SHARE
 
 
-def stage_raspa_local_files(
-    work_dir: str,
-    forcefield: str,
-    mol_name: str,
-    mol_def: str,
-    cif_path: str = "",
-) -> List[str]:
-    """Python-side staging of LOCAL RASPA files into a run folder.
+def _raspa_composition(forcefield, molecule_name, molecule_def):
+    """Pure source resolver used equally by inspection, preflight and staging."""
+    from .raspa_assets import compose_raspa_assets
+    share = LOCAL_RASPA_SHARE if Path(LOCAL_RASPA_SHARE, 'forcefield', forcefield).is_dir() else RASPA_SHARE
+    references = {preset['forcefield'] for preset in GAS_PRESETS.values()
+                  if preset['molecule_name'] == molecule_name and preset['molecule_definition'] == molecule_def}
+    reference = next(iter(references)) if len(references) == 1 else None
+    return compose_raspa_assets(share, forcefield=forcefield, molecule_name=molecule_name,
+                               molecule_def=molecule_def, guest_reference=reference)
 
-    Copies the force-field defs, the molecule .def and (optionally) the CIF
-    into `work_dir` from the project-local mirror — so the agent can inspect /
-    edit the copies BEFORE the job runs and RASPA resolves them from ./ at run
-    time. The external RASPA2 share is never touched. Returns the staged file
-    list.
-    """
+
+def stage_raspa_local_files(work_dir, forcefield, mol_name, mol_def, cif_path='', *, composition=None):
+    """Stage one immutable, source-bound job-local model, never global edits."""
     import shutil
-    ensure_local_raspa_share()
-    os.makedirs(work_dir, exist_ok=True)
-    staged: List[str] = []
-    ff_src = os.path.join(LOCAL_RASPA_SHARE, "forcefield", forcefield)
-    for fname in ("pseudo_atoms.def", "force_field.def", "force_field_mixing_rules.def"):
-        src = os.path.join(ff_src, fname)
-        if os.path.isfile(src):
-            dst = os.path.join(work_dir, fname)
-            try:
-                shutil.copy2(src, dst)
-                staged.append(dst)
-            except OSError:
-                pass
-    mol_src = os.path.join(LOCAL_RASPA_SHARE, "molecules", mol_def, f"{mol_name}.def")
-    if os.path.isfile(mol_src):
-        dst = os.path.join(work_dir, f"{mol_name}.def")
-        try:
-            shutil.copy2(mol_src, dst)
-            staged.append(dst)
-        except OSError:
-            pass
+    from .raspa_assets import stage_raspa_assets
+    composition = composition or _raspa_composition(forcefield, mol_name, mol_def)
+    staged = stage_raspa_assets(work_dir, composition)
     if cif_path and os.path.isfile(cif_path):
-        try:
-            dst = os.path.join(work_dir, os.path.basename(cif_path))
-            shutil.copy2(cif_path, dst)
-            staged.append(dst)
-        except OSError:
-            pass
+        destination = Path(work_dir) / os.path.basename(cif_path)
+        if destination.exists() or destination.is_symlink():
+            if destination.is_symlink() or destination.read_bytes() != Path(cif_path).read_bytes():
+                raise ValueError('existing local CIF differs; choose a fresh job directory')
+        else:
+            shutil.copy2(cif_path, destination)
+        staged.append(str(destination))
     return staged
 
 
-def stage_raspa_local_shell(
-    work_var: str = "WORK_DIR",
-    ff_var: str = "FORCEFIELD",
-    gas_var: str = "GAS",
-    gasdef_var: str = "GAS_DEF",
-) -> str:
-    """Shell snippet that stages LOCAL force-field + molecule-definition copies
-    into a job working directory (RASPA2 'local mode').
+def stage_raspa_local_shell(work_var='WORK_DIR', ff_var='FORCEFIELD', gas_var='GAS', gasdef_var='GAS_DEF', *, compositions=None):
+    """Verify the exact pre-staged composition; never recopy a base over it."""
+    import shlex, sys
+    from .raspa_assets import composition_sha256
+    if not compositions:
+        raise ValueError('shell staging requires an executor-bound composition manifest')
+    lines = [f'  case "${{{ff_var}}}/${{{gasdef_var}}}/${{{gas_var}}}" in']
+    seen = {}
+    for composition in compositions:
+        manifest = composition.manifest
+        key = '/'.join(manifest[field] for field in ('forcefield', 'molecule_def', 'molecule_name'))
+        digest = composition_sha256(manifest)
+        if key in seen:
+            if seen[key] != digest: raise ValueError('conflicting RASPA composition for one native selector')
+            continue
+        seen[key] = digest
+        lines.append('    ' + shlex.quote(key) + ') RASPA_COMPOSITION_SHA=' + shlex.quote(digest) + ' ;;')
+    lines.extend(['    *) echo "Unapproved RASPA local composition" >&2; exit 2 ;;', '  esac'])
+    script = str(Path(__file__).with_name('raspa_assets.py'))
+    lines.append('  ' + shlex.quote(sys.executable) + ' ' + shlex.quote(script)
+        + f' verify --directory "${{{work_var}}}" --manifest-sha "$RASPA_COMPOSITION_SHA"'
+        + ' || { echo "Local RASPA composition verification failed" >&2; exit 2; }')
+    return '\n'.join(lines)
 
-    RASPA2 resolves ./pseudo_atoms.def, ./force_field.def,
-    ./force_field_mixing_rules.def and ./<gas>.def in the CWD FIRST and only
-    falls back to $RASPA_DIR/share/raspa/... afterwards. By copying the files
-    from the project-local mirror into the run dir we guarantee the agent's
-    force-field fixes only ever touch per-job copies — never the external
-    RASPA2 installation.
-    """
-    ensure_local_raspa_share()
-    return "\n".join([
-        f"  # Local-mode: stage force-field + molecule defs from project mirror",
-        f"  cp \"{LOCAL_RASPA_SHARE}/forcefield/${ff_var}/pseudo_atoms.def\" \"${work_var}/\" 2>/dev/null || true",
-        f"  cp \"{LOCAL_RASPA_SHARE}/forcefield/${ff_var}/force_field.def\" \"${work_var}/\" 2>/dev/null || true",
-        f"  cp \"{LOCAL_RASPA_SHARE}/forcefield/${ff_var}/force_field_mixing_rules.def\" \"${work_var}/\" 2>/dev/null || true",
-        f"  cp \"{LOCAL_RASPA_SHARE}/molecules/${gasdef_var}/${gas_var}.def\" \"${work_var}/\" 2>/dev/null || true",
-    ])
 
 # Per-gas molecule definition / force field / charge settings.
 # CRITICAL: not every gas exists in every molecule-definition dir —
@@ -1496,7 +1541,7 @@ def validate_gcmc_inputs(
     n_points: int = 10,
     n_cycles: int = 50000,
     force_field: str = "GenericMOFs",
-    unit_cells: str = "2 2 2",
+    unit_cells: Optional[str] = None,
     molecule_def: str = "TraPPE",
 ) -> Dict[str, Any]:
     """PRE-SUBMISSION validation of a GCMC job.
@@ -1594,13 +1639,11 @@ def validate_gcmc_inputs(
                 gas_atoms = _parse_molecule_atoms(gas_def)
                 missing = [a for a in gas_atoms if a not in ff_atoms]
                 if missing:
-                    errors.append(
-                        f"力场 '{ff}' 缺少客体分子的伪原子参数: {', '.join(missing)}"
-                    )
-                    fixes["force_field"] = (
-                        f"气体 {gas!r} 的默认力场是 {preset.get('forcefield', 'GenericMOFs')}，"
-                        f"若已指定力场请改用它；或在 {ff}/pseudo_atoms.def 中补充这些原子"
-                    )
+                    try:
+                        _raspa_composition(ff, preset['molecule_name'], molecule_def or preset['molecule_definition'])
+                    except (OSError, ValueError, KeyError) as error:
+                        errors.append(f"力场 '{ff}' 的客体原生参数闭包未验证: {error}")
+                        fixes['force_field'] = 'Keep the requested framework/guest models; provide reviewed missing native parameters, never substitute another force field.'
 
                 # 3b. Check if force field has framework atom types from CIF
                 # This catches cases like GenericMOFs missing Ni for Ni-MOF-74
@@ -1693,69 +1736,21 @@ def validate_gcmc_inputs(
     if n_cycles < 1000:
         warnings.append(f"MC 循环数偏少: {n_cycles} (统计可能不足，建议 ≥10000)")
 
-    # 7. Unit cells
-    try:
-        ucs = [int(x) for x in unit_cells.split()]
-        if len(ucs) == 3 and all(u > 0 for u in ucs):
-            n_uc = ucs[0] * ucs[1] * ucs[2]
-            if n_uc > 27:
-                warnings.append(f"UnitCells 乘积 {n_uc} 较大，内存/时间开销高，建议 ≤27")
-
-            # Check if unit cell size is sufficient for cutoff radius
-            # RASPA requires: unit_cell_length * n_cells >= 2 * cutoff_radius
-            # Default cutoff is12 Å, so minimum box size is24 Å
-            cutoff_radius =12.0  # Default RASPA cutoff
-            min_box_size =2 * cutoff_radius  #24 Å
-
-            # Try to read CIF to get unit cell parameters
-            if cif_path and os.path.exists(cif_path):
-                try:
-                    with open(cif_path, 'r') as f:
-                        cif_content = f.read()
-
-                    # Extract unit cell parameters from CIF
-                    import re
-                    a_match = re.search(r'_cell_length_a\s+([\d.]+)', cif_content)
-                    b_match = re.search(r'_cell_length_b\s+([\d.]+)', cif_content)
-                    c_match = re.search(r'_cell_length_c\s+([\d.]+)', cif_content)
-
-                    if a_match and b_match and c_match:
-                        a = float(a_match.group(1))
-                        b = float(b_match.group(1))
-                        c = float(c_match.group(1))
-
-                        # Check each direction
-                        box_a = a * ucs[0]
-                        box_b = b * ucs[1]
-                        box_c = c * ucs[2]
-
-                        if box_a < min_box_size:
-                            warnings.append(
-                                f"a方向盒子尺寸不足: {a}×{ucs[0]}={box_a:.1f} Å < {min_box_size} Å (2×cutoff)。"
-                                f"建议增加a方向unit cells至 ≥{int(min_box_size/a)+1}"
-                            )
-                        if box_b < min_box_size:
-                            warnings.append(
-                                f"b方向盒子尺寸不足: {b}×{ucs[1]}={box_b:.1f} Å < {min_box_size} Å (2×cutoff)。"
-                                f"建议增加b方向unit cells至 ≥{int(min_box_size/b)+1}"
-                            )
-                        if box_c < min_box_size:
-                            warnings.append(
-                                f"c方向盒子尺寸不足: {c}×{ucs[2]}={box_c:.1f} Å < {min_box_size} Å (2×cutoff)。"
-                                f"建议增加c方向unit cells至 ≥{int(min_box_size/c)+1}"
-                            )
-                except Exception:
-                    pass  # CIF parsing failed, skip unit cell size check
-        else:
-            warnings.append(f"UnitCells 格式异常: '{unit_cells}' (期望如 '2 2 2')")
-    except Exception:
-        warnings.append(f"UnitCells 格式异常: '{unit_cells}' (期望如 '2 2 2')")
+    # 7. Real minimum-image face heights; warnings do not alter explicit cells.
+    from .gcmc_geometry import derive_gcmc_geometry
+    geometry = derive_gcmc_geometry(cif_path, 12.0, unit_cells)
+    if not geometry.get('ok'):
+        errors.append('CIF lattice/UnitCells geometry could not be verified: ' + geometry.get('reason', 'unknown'))
+        fixes['unit_cells'] = 'Provide a complete valid CIF cell and either auto or three positive integer multipliers.'
+    else:
+        warnings.extend(geometry.get('warning_codes', []))
 
     return {
         "ok": len(errors) == 0,
         "errors": errors,
         "warnings": warnings,
         "fixes": fixes,
+        "geometry_proof": geometry,
     }
 
 
@@ -1793,7 +1788,7 @@ def submit_gcmc_isotherm(
     n_cycles: int = 50000,
     force_field: str = "",
     guest_ff: str = "",
-    unit_cells: str = "2 2 2",
+    unit_cells: Optional[str] = None,
     charge_method: str = "Ewald",  # Ewald | Wolf | None (None => dispersion-only)
     output_base: str = "",
     mode: str = "auto",
@@ -1809,6 +1804,12 @@ def submit_gcmc_isotherm(
             "message": "\u274c charge_method \u53c2\u6570\u975e\u6cd5\uff0c\u672a\u63d0\u4ea4\u4f5c\u4e1a\u3002\u53ef\u9009 'Ewald' / 'Wolf' / 'None'\u3002",
         }
     from .registry import _normalize_cif_for_raspa
+    from .gcmc_geometry import derive_gcmc_geometry
+    geometry = derive_gcmc_geometry(cif_path, 12.0, unit_cells)
+    if not geometry.get('ok'):
+        return {'submitted': False, 'failed': True, 'error_code': 'INVALID_GCMC_GEOMETRY',
+            'error': 'Actual CIF geometry/explicit cell multipliers cannot be verified.', 'geometry': geometry}
+    unit_cells = geometry['unit_cells_string']
 
     # ── PRE-SUBMISSION validation: catch guaranteed-to-fail jobs before
     # they waste a SLURM slot (missing CIF, uninstalled gas .def, force field
@@ -1869,6 +1870,14 @@ def submit_gcmc_isotherm(
             }
     # Script references the stable staged copy (survives temp-dir cleanup).
     script_cif = stable_cif
+    staged_geometry = derive_gcmc_geometry(script_cif, 12.0, unit_cells)
+    source_again = derive_gcmc_geometry(cif_path, 12.0, unit_cells)
+    if (not staged_geometry.get('ok') or not source_again.get('ok')
+            or source_again.get('cif_sha256') != geometry['cif_sha256']
+            or staged_geometry.get('lattice') != geometry['lattice']):
+        return {'submitted': False, 'failed': True, 'error_code': 'GCMC_CIF_CHANGED',
+            'error': 'CIF source/staged geometry changed before submission.'}
+    geometry['staged_source'] = staged_geometry['source']
 
     # Generate pressure points. Interface is in **bar**; RASPA's
     # `ExternalPressure` is in **Pa**, so convert bar → Pa (× 1e5) before
@@ -1898,12 +1907,13 @@ def submit_gcmc_isotherm(
     # SUBMISSION time (agent can inspect/edit copies before the job runs; the
     # sbatch script re-stages them too as a safety net). External RASPA2 share
     # is never touched.
-    for _p in pressures_pa:
-        _pdir = os.path.join(work_dir, "P_" + f"{_p:.2e}")
-        try:
-            stage_raspa_local_files(_pdir, ff, mol_name, mol_def, script_cif)
-        except Exception as e:
-            print(f"  ⚠️ pre-stage failed for {cif_name} P={_p:.2e}: {e}", flush=True)
+    try:
+        composition = _raspa_composition(ff, mol_name, mol_def)
+        for _p in pressures_pa:
+            _pdir = os.path.join(work_dir, 'P_' + f'{_p:.2e}')
+            stage_raspa_local_files(_pdir, ff, mol_name, mol_def, script_cif, composition=composition)
+    except (OSError, ValueError, KeyError) as error:
+        return {'submitted': False, 'failed': True, 'status': 'INVALID_FORCEFIELD_COMPOSITION', 'error': str(error)}
 
     # Build RASPA simulation script
     raspa_dir = get_config().raspa_path
@@ -1943,9 +1953,11 @@ def submit_gcmc_isotherm(
         "  WORK_DIR=$WORK_BASE/P_$PRESSURE",
         "  mkdir -p $WORK_DIR/Output/System_0",
         "  cp $CIF $WORK_DIR/",
+        f"  printf '%s  %s\\n' {shlex.quote(staged_geometry['cif_sha256'])} \"$WORK_DIR/$CIF_NAME.cif\" | sha256sum -c - >/dev/null || exit 65",
+
         # Local-mode: stage FF + molecule defs into the run dir (never the
         # external RASPA2 share — agent fixes only touch per-job copies).
-        *stage_raspa_local_shell().split("\n"),
+        *stage_raspa_local_shell(compositions=[composition]).split("\n"),
         "  cat > $WORK_DIR/simulation.input << SIMEOF",
         "SimulationType                MonteCarlo",
         "NumberOfCycles                $NCYCLES",
@@ -2077,6 +2089,7 @@ def submit_gcmc_isotherm(
 
     # Add helpful info for the agent
     if result.get("submitted"):
+        result["geometry_proof"] = geometry
         result["status"] = "SUBMITTED"
         result["work_dir"] = os.path.join(output_base, gas, f"{temperature}K", cif_name)
         result["note"] = (
@@ -2114,7 +2127,7 @@ def submit_gcmc_batch(
     n_cycles: int = 10000,
     forcefield: str = "",
     mode: str = "local",
-    unit_cells: str = "2 2 2",
+    unit_cells: Optional[str] = None,
     charge_method: str = "Ewald",  # Ewald | Wolf | None (None => dispersion-only)
     output_dir: str = "",
     **slurm_kwargs,
@@ -2131,12 +2144,6 @@ def submit_gcmc_batch(
         dict with submitted flag, job_id, and the list of (cif, gas) pairs.
     """
     config = get_config()
-    try:
-        ucs = [int(x) for x in str(unit_cells).split()]
-        assert len(ucs) == 3 and all(u > 0 for u in ucs)
-    except Exception:
-        return {"submitted": False, "failed": True,
-                "error": f"UnitCells 格式异常: '{unit_cells}' (期望如 '2 2 2', 正整数x3)"}
     if charge_method not in ("Ewald", "Wolf", "None"):
         return {"submitted": False, "failed": True,
                 "error": f"charge_method 非法: '{charge_method}' (可选 'Ewald' 默认 / 'Wolf' / 'None')"}
@@ -2177,6 +2184,14 @@ def submit_gcmc_batch(
                 "work_dir": work_dir,
             }
     p_pa = float(pressure) * 1e5  # bar → Pa
+    from .gcmc_geometry import derive_gcmc_geometry
+    geometry_proofs = {}
+    for cif in cifs:
+        geometry = derive_gcmc_geometry(cif, 12.0, unit_cells)
+        if not geometry.get('ok'):
+            return {'submitted': False, 'failed': True, 'error_code': 'INVALID_GCMC_GEOMETRY',
+                'error': 'Actual batch CIF geometry/explicit cell multipliers cannot be verified.', 'geometry': geometry}
+        geometry_proofs[Path(cif).stem] = geometry
 
     # Resolve per (cif, gas) settings now (Python side, validated once).
     # forcefield override applies to every (cif, gas) in the batch; otherwise
@@ -2193,26 +2208,48 @@ def submit_gcmc_batch(
                 preset["use_charges"] and charge_method != "None",
             ))
 
+    from .watch_context import get_context
+    allocation = get_context().get('resource_allocation') or {}
+    requested_cpus = allocation.get('cpus', slurm_kwargs.pop('cpus_per_task', 4))
+    workers = slurm_kwargs.pop('workers', requested_cpus)
+    if (type(requested_cpus) is not int or requested_cpus < 1
+            or type(workers) is not int or workers < 1 or workers > requested_cpus):
+        return {'submitted': False, 'failed': True, 'error': 'positive worker budget within allocated CPUs required'}
+    workers = min(workers, len(jobs))
+
     # Pre-stage LOCAL FF + molecule .def + CIF into each (cif, gas) run dir at
     # SUBMISSION time, so the agent can inspect/edit the copies before the job
     # runs. The sbatch script re-stages them too (idempotent) as a safety net.
     staged_note = []
-    for cif, cif_name, gas, mol_name, mol_def, ff, use_charges in jobs:
-        out_dir = os.path.join(work_dir, gas, f"{temperature}K", cif_name)
-        try:
-            stage_raspa_local_files(out_dir, ff, mol_name, mol_def, cif)
+    compositions = {}
+    try:
+        for cif, cif_name, gas, mol_name, mol_def, ff, use_charges in jobs:
+            key = (ff, mol_name, mol_def)
+            composition = compositions.get(key)
+            if composition is None:
+                composition = compositions[key] = _raspa_composition(ff, mol_name, mol_def)
+            out_dir = os.path.join(work_dir, gas, f'{temperature}K', cif_name)
+            stage_raspa_local_files(out_dir, ff, mol_name, mol_def, cif, composition=composition)
+            staged_cif = str(Path(out_dir) / Path(cif).name)
+            staged_geometry = derive_gcmc_geometry(staged_cif, 12.0, geometry_proofs[cif_name]['unit_cells_string'])
+            again = derive_gcmc_geometry(cif, 12.0, unit_cells)
+            if (not staged_geometry.get('ok') or not again.get('ok')
+                    or staged_geometry.get('cif_sha256') != geometry_proofs[cif_name]['cif_sha256']
+                    or again.get('cif_sha256') != geometry_proofs[cif_name]['cif_sha256']):
+                raise ValueError('actual batch CIF changed during source-bound staging')
+            geometry_proofs[cif_name].setdefault('staged_sources', {})[gas] = staged_geometry['source']
             staged_note.append(cif_name)
-        except Exception as e:
-            print(f"  ⚠️ pre-stage failed for {cif_name}+{gas}: {e}", flush=True)
+    except (OSError, ValueError, KeyError) as error:
+        return {'submitted': False, 'failed': True, 'status': 'INVALID_FORCEFIELD_COMPOSITION', 'error': str(error)}
 
     # One self-contained run_one() function; one call block per (cif, gas).
     run_body = []
     for cif, cif_name, gas, mol_name, mol_def, ff, use_charges in jobs:
         out_dir = os.path.join(work_dir, gas, f"{temperature}K", cif_name)
-        run_body.append(
-            f"launch run_one {cif_name} {gas} '{out_dir}' '{cif}' {mol_name} {mol_def} "
-            f"{ff} {use_charges} {temperature} {p_pa:.6e} {n_cycles} {unit_cells}"
-        )
+        run_body.append("launch run_one " + " ".join(shlex.quote(str(value)) for value in (
+            cif_name, gas, out_dir, cif, mol_name, mol_def, ff, use_charges,
+            temperature, f"{p_pa:.6e}", n_cycles, geometry_proofs[cif_name]["unit_cells_string"],
+            geometry_proofs[cif_name]["cif_sha256"])))
 
     command = "\n".join([
         "#!/bin/bash",
@@ -2232,10 +2269,12 @@ def submit_gcmc_batch(
         "  GAS=\"$5\"; GAS_DEF=\"$6\"; FORCEFIELD=\"$7\"; USE_CHARGES=\"$8\"",
         "  TEMP=\"$9\"; PRESSURE=\"${10}\"; NCYCLES=\"${11}\"; UC=\"${12}\"",
         "  mkdir -p \"$W/Output/System_0\"",
-        "  cp \"$CIF\" \"$W/\" 2>/dev/null || true",
+        "  CIF_SHA=\"${13}\"",
+        "  printf '%s  %s\\n' \"$CIF_SHA\" \"$W/$CIF_NAME.cif\" | sha256sum -c - >/dev/null || return 65",
+
         # Local-mode: stage FF + molecule defs into the run dir (never the
         # external RASPA2 share — agent fixes only touch per-job copies).
-        *stage_raspa_local_shell(work_var="W", ff_var="FORCEFIELD", gas_var="GAS", gasdef_var="GAS_DEF").split("\n"),
+        *stage_raspa_local_shell(work_var="W", ff_var="FORCEFIELD", gas_var="GAS", gasdef_var="GAS_DEF", compositions=list(compositions.values())).split("\n"),
         "  cat > \"$W/simulation.input\" << SIMEOF",
         "SimulationType                MonteCarlo",
         "NumberOfCycles                $NCYCLES",
@@ -2265,6 +2304,10 @@ def submit_gcmc_batch(
         "  }",
         "}",
         "MAX_PARALLEL=${SLURM_CPUS_PER_TASK:-1}",
+        "[[ $MAX_PARALLEL =~ ^[1-9][0-9]*$ ]] || { echo 'Invalid allocated CPU count'; exit 64; }",
+        f"if (( MAX_PARALLEL > {workers} )); then MAX_PARALLEL={workers}; fi",
+        "export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1",
+
         "PIDS=()",
         "FAILURES=0",
         "launch() {",
@@ -2294,11 +2337,12 @@ def submit_gcmc_batch(
         work_dir=work_dir,
         mode=mode,
         partition=slurm_kwargs.pop("partition", "compute"),
-        cpus_per_task=slurm_kwargs.pop("cpus_per_task", 4),
+        cpus_per_task=requested_cpus,
         walltime=slurm_kwargs.pop("walltime", "08:00:00"),
         **slurm_kwargs,
     )
     if result.get("submitted"):
+        result.update(planned_workers=workers, work_items=len(jobs), threads_per_worker=1, geometry_proofs=geometry_proofs)
         result["status"] = "SUBMITTED"
         result["work_dir"] = work_dir
         result["pairs"] = [{"cif": c, "gas": g} for _, c, g, *_ in jobs]

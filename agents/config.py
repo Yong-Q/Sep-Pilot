@@ -22,6 +22,7 @@ class AgentConfig:
     base_url: str = ""
     model: str = "mimo-v2.5-pro"  # Use mimo-v2.5-pro as default
     model_provider: str = "anthropic"  # anthropic API or locally logged-in codex_cli
+    coordinator_reasoning_effort: str = 'low'  # Routing only; specialists retain provider defaults.
     max_tokens: int = 16384  # Increase for longer responses
     temperature: float = 0.7  # Add temperature for more creative responses
 

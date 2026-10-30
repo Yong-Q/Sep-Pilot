@@ -1,0 +1,280 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           6
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Geometric                     
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3930000000E+01
+    0.1140000000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1502470000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+SMMKmain  
+Atom Names
+CH3long   
+C         
+CH3       
+CH3       
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3930000000E+01
+    0.9700000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1502470000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+SMMKmain  
+Atom Names
+CH3ethyl  
+C         
+CH3       
+CH3       
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3930000000E+01
+    0.7800000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1502470000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+SMMKmain  
+Atom Names
+CH3methyl 
+C         
+CH3       
+CH3       
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.3930000000E+01
+    0.4700000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1401680000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+SMMKmain  
+Atom Names
+CH2       
+C         
+CH2       
+CH2       
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.3850000000E+01
+    0.3200000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1300890000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+SMMKmain  
+Atom Names
+CH        
+C         
+CH        
+CH        
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1200100000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+SMMKmain  
+Atom Names
+C         
+C         
+C         
+C         
+Number of Bonded Terms
+           1
+Bond Type Number
+           1
+Bond Style
+           2
+Bond Coefficients
+    0.1540000000E+01
+    0.2264500000E+06
+Vibration Order
+wild      
+Force Field Name
+SMMKmain  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C         
+Number of Angle Terms
+           2
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1140000000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+SMMKmain  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       CH2        wild      
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1120000000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+SMMKmain  
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+wild       CH         wild      
+wild       C          wild      
+Number of Torsion Terms
+           3
+Torsion Type Number
+           1
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.0000000000E+00
+    0.3550300000E+03
+   -0.6819000000E+02
+    0.7913200000E+03
+Torsion Order
+wild           
+Force Field Name
+SMMKmain  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       CH2        CH2        wild      
+Torsion Type Number
+           2
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+   -0.2510600000E+03
+    0.4287300000E+03
+   -0.1118500000E+03
+    0.4412700000E+03
+Torsion Order
+wild           
+Force Field Name
+SMMKmain  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       CH2        CH         wild      
+Torsion Type Number
+           3
+Torsion Style
+          11
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.4612900000E+03
+Torsion Order
+wild           
+Force Field Name
+SMMKmain  
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+wild       CH2        C          wild      
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           1
+One-Five Type Number
+           1
+One-Five Style
+           1
+One-Five Coefficients 
+    0.3620000000E+01
+    0.4000000000E+02
+Force Field Name
+SMMKmain  
+Atom Names
+CH3methyl  wild       wild       wild       CH3methyl 
+Number of Bond Increments
+           0

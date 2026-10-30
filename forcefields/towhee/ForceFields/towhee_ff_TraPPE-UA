@@ -1,0 +1,2008 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+          29
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3390000000E+01
+    0.1160000000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3994800000E+02
+Element
+Ar
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Ar        
+none      
+none      
+none      
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3730000000E+01
+    0.1480000000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1604260000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+CH4       
+none      
+none      
+none      
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.3750000000E+01
+    0.9800000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1503470000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+CH3*(sp3) 
+Csp3      
+CH3sp3    
+CH3sp3    
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.3950000000E+01
+    0.4600000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1402680000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+CH2**(sp3)
+Csp3      
+CH2sp3    
+CH2sp3    
+Atom Type Number
+           5
+Nonbond Coefficients
+    0.3675000000E+01
+    0.8500000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1402690000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+CH2=*(sp2)
+Csp2      
+CH2sp2    
+CH2sp2    
+Atom Type Number
+           6
+Nonbond Coefficients
+    0.4680000000E+01
+    0.1000000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301890000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+CHccc(sp3)
+Csp3      
+CHsp3     
+CHsp3     
+Atom Type Number
+           7
+Nonbond Coefficients
+    0.4330000000E+01
+    0.1000000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301910000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+CHcco(sp3)
+Csp3      
+CHsp3     
+CHsp3     
+Atom Type Number
+           8
+Nonbond Coefficients
+    0.4680000000E+01
+    0.1000000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301910000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+CHccs(sp3)
+Csp3      
+CHsp3     
+CHsp3     
+Atom Type Number
+           9
+Nonbond Coefficients
+    0.3730000000E+01
+    0.4700000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301910000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+CHc=c(sp2)
+Csp2      
+CHsp2     
+CHsp2     
+Atom Type Number
+          10
+Nonbond Coefficients
+    0.3520000000E+01
+    0.5400000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301910000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+CHc=o(sp2)
+CHc=o(sp2)
+CHc=o(sp2)
+CHsp2     
+Atom Type Number
+          11
+Nonbond Coefficients
+    0.3695000000E+01
+    0.5050000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1301910000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+CHaa(aro) 
+Caro      
+CHaro     
+CHaro     
+Atom Type Number
+          12
+Nonbond Coefficients
+    0.6400000000E+01
+    0.5000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Ccccc(sp3)
+Csp3      
+Csp3      
+Csp3      
+Atom Type Number
+          13
+Nonbond Coefficients
+    0.5800000000E+01
+    0.5000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Cccco(sp3)
+Csp3      
+Csp3      
+Csp3      
+Atom Type Number
+          14
+Nonbond Coefficients
+    0.3850000000E+01
+    0.2000000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Ccc=c(sp2)
+Csp2      
+Csp2      
+Csp2      
+Atom Type Number
+          15
+Nonbond Coefficients
+    0.3820000000E+01
+    0.4000000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Ccc=o(sp2)
+Ccc=o(sp2)
+Ccc=o(sp2)
+Csp2      
+Atom Type Number
+          16
+Nonbond Coefficients
+    0.3880000000E+01
+    0.2100000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Caac(aro) 
+Caro      
+Caro      
+Caro      
+Atom Type Number
+          17
+Nonbond Coefficients
+    0.3700000000E+01
+    0.3000000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Caaa(aro) 
+Caro      
+Caro      
+Caro      
+Atom Type Number
+          18
+Nonbond Coefficients
+    0.3900000000E+01
+    0.4100000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1201100000E+02
+Element
+ C
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Cco=o(sp2)
+Cco=o(sp2)
+Cco=o(sp2)
+Cco=o(sp2)
+Atom Type Number
+          19
+Nonbond Coefficients
+    0.3110000000E+01
+    0.4000000000E+01
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.4002600000E+01
+Element
+He
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+He        
+none      
+none      
+none      
+Atom Type Number
+          20
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Ho        
+Ho        
+Ho        
+Ho        
+Atom Type Number
+          21
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Hoacid    
+Hoacid    
+Hoacid    
+Hoacid    
+Atom Type Number
+          22
+Nonbond Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1007900000E+01
+Element
+ H
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Hs        
+Hs        
+Hs        
+Hs        
+Atom Type Number
+          23
+Nonbond Coefficients
+    0.3020000000E+01
+    0.9300000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Och(sp3)  
+Och(sp3)  
+Och(sp3)  
+Och(sp3)  
+Atom Type Number
+          24
+Nonbond Coefficients
+    0.2800000000E+01
+    0.5500000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Occ(sp3)  
+Occ(sp3)  
+Occ(sp3)  
+Occ(sp3)  
+Atom Type Number
+          25
+Nonbond Coefficients
+    0.3050000000E+01
+    0.7900000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.1599900000E+02
+Element
+ O
+Bond Pattern
+sp2  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+O=c(sp2)  
+O=c(sp2)  
+O=c(sp2)  
+O=c(sp2)  
+Atom Type Number
+          26
+Nonbond Coefficients
+    0.3620000000E+01
+    0.2320000000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Sch(sp3)  
+Sch(sp3)  
+Sch(sp3)  
+Sch(sp3)  
+Atom Type Number
+          27
+Nonbond Coefficients
+    0.3580000000E+01
+    0.1990000000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Scc(sp3)  
+Scc(sp3)  
+Scc(sp3)  
+Scc(sp3)  
+Atom Type Number
+          28
+Nonbond Coefficients
+    0.3720000000E+01
+    0.1650000000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Scs(sp3)  
+Scs(sp3)  
+Scs(sp3)  
+Scs(sp3)  
+Atom Type Number
+          29
+Nonbond Coefficients
+    0.3600000000E+01
+    0.1800000000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.3206500000E+02
+Element
+ S
+Bond Pattern
+arom 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+TraPPE-UA 
+Atom Names
+Scc(aro)  
+Scc(aro)  
+Scc(aro)  
+Scc(aro)  
+Number of Bonded Terms
+          17
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.1540000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+Csp3       Csp3      
+Csp3       Csp2      
+Csp3       Caro      
+Bond Type Number
+           2
+Bond Style
+           1
+Bond Coefficients
+    0.1330000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp2       Csp2      
+Bond Type Number
+           3
+Bond Style
+           1
+Bond Coefficients
+    0.1400000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Caro       Caro      
+Bond Type Number
+           4
+Bond Style
+           1
+Bond Coefficients
+    0.1430000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp3       Och(sp3)  
+Bond Type Number
+           5
+Bond Style
+           1
+Bond Coefficients
+    0.9450000000E+00
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Och(sp3)   Ho        
+Bond Type Number
+           6
+Bond Style
+           1
+Bond Coefficients
+    0.1410000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Occ(sp3)   Csp3      
+Bond Type Number
+           7
+Bond Style
+           1
+Bond Coefficients
+    0.1229000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Ccc=o(sp2) O=c(sp2)  
+Bond Type Number
+           8
+Bond Style
+           1
+Bond Coefficients
+    0.1217000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CHc=o(sp2) O=c(sp2)  
+Bond Type Number
+           9
+Bond Style
+           1
+Bond Coefficients
+    0.1520000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+CHc=o(sp2) Csp3      
+Ccc=o(sp2) Csp3      
+Cco=o(sp2) Csp3      
+Bond Type Number
+          10
+Bond Style
+           1
+Bond Coefficients
+    0.1214000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cco=o(sp2) O=c(sp2)  
+Bond Type Number
+          11
+Bond Style
+           1
+Bond Coefficients
+    0.1364000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cco=o(sp2) Och(sp3)  
+Bond Type Number
+          12
+Bond Style
+           1
+Bond Coefficients
+    0.9700000000E+00
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Hoacid     Och(sp3)  
+Bond Type Number
+          13
+Bond Style
+           1
+Bond Coefficients
+    0.1340000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Sch(sp3)   Hs        
+Bond Type Number
+          14
+Bond Style
+           1
+Bond Coefficients
+    0.1820000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+Csp3       Sch(sp3)  
+Csp3       Scc(sp3)  
+Csp3       Scs(sp3)  
+Bond Type Number
+          15
+Bond Style
+           1
+Bond Coefficients
+    0.1710000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Caro       Scc(aro)  
+Bond Type Number
+          16
+Bond Style
+           1
+Bond Coefficients
+    0.1200000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp2       O=c(sp2)  
+Bond Type Number
+          17
+Bond Style
+           1
+Bond Coefficients
+    0.1344000000E+01
+Vibration Order
+wild      
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Csp3       O=c(sp2)  
+Number of Angle Terms
+          19
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1140000000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           4
+Atom Names
+Cwild      CH2sp3     Cwild     
+Cwild      Cwild      Sch(sp3)  
+Cwild      Cwild      Scc(sp3)  
+Cwild      Cwild      Scs(sp3)  
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1120000000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CHsp3      Cwild     
+Angle Type Number
+           3
+Angle Style
+           1
+Angle Coefficients
+    0.1094700000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Csp3       Cwild     
+Angle Type Number
+           4
+Angle Style
+           1
+Angle Coefficients
+    0.1197000000E+03
+    0.3521000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Cwild      CHsp2      Cwild     
+Cwild      Csp2       Cwild     
+Angle Type Number
+           5
+Angle Style
+           0
+Angle Coefficients
+    0.1200000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Cwild      Caro       Cwild     
+Cwild      CHaro      Cwild     
+Angle Type Number
+           6
+Angle Style
+           1
+Angle Coefficients
+    0.1094700000E+03
+    0.2520000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           6
+Atom Names
+Cwild      CH2sp3     Och(sp3)  
+Cwild      CHsp3      Och(sp3)  
+Cwild      Csp3       Och(sp3)  
+Cwild      CH2sp3     Occ(sp3)  
+Cwild      CHsp3      Occ(sp3)  
+Cwild      Csp3       Occ(sp3)  
+Angle Type Number
+           7
+Angle Style
+           1
+Angle Coefficients
+    0.1085000000E+03
+    0.2770000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Och(sp3)   Ho        
+Angle Type Number
+           8
+Angle Style
+           1
+Angle Coefficients
+    0.1120000000E+03
+    0.3020000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Occ(sp3)   Cwild     
+Angle Type Number
+           9
+Angle Style
+           1
+Angle Coefficients
+    0.1172000000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Ccc=o(sp2) Cwild     
+Angle Type Number
+          10
+Angle Style
+           1
+Angle Coefficients
+    0.1214000000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Cwild      CHc=o(sp2) O=c(sp2)  
+Cwild      Ccc=o(sp2) O=c(sp2)  
+Angle Type Number
+          11
+Angle Style
+           1
+Angle Coefficients
+    0.1070000000E+03
+    0.8800000000E+04
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Hoacid     Och(sp3)   Cco=o(sp2)
+Angle Type Number
+          12
+Angle Style
+           1
+Angle Coefficients
+    0.1230000000E+03
+    0.2015000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Och(sp3)   Cco=o(sp2) O=c(sp2)  
+Angle Type Number
+          13
+Angle Style
+           1
+Angle Coefficients
+    0.1110000000E+03
+    0.1765000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Och(sp3)   Cco=o(sp2) CH3sp3    
+Och(sp3)   Cco=o(sp2) CH2sp3    
+Angle Type Number
+          14
+Angle Style
+           1
+Angle Coefficients
+    0.1260000000E+03
+    0.2015000000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+O=c(sp2)   Cco=o(sp2) CH3sp3    
+O=c(sp2)   Cco=o(sp2) CH2sp3    
+Angle Type Number
+          15
+Angle Style
+           1
+Angle Coefficients
+    0.9600000000E+02
+    0.1691500000E+02
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Sch(sp3)   Hs        
+Angle Type Number
+          16
+Angle Style
+           1
+Angle Coefficients
+    0.9900000000E+02
+    0.2277500000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Scc(sp3)   Cwild     
+Angle Type Number
+          17
+Angle Style
+           1
+Angle Coefficients
+    0.1030000000E+03
+    0.2277500000E+05
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Scs(sp3)   Scs(sp3)  
+Angle Type Number
+          18
+Angle Style
+           0
+Angle Coefficients
+    0.1115000000E+03
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Caro       Caro       Scc(aro)  
+Angle Type Number
+          19
+Angle Style
+           0
+Angle Coefficients
+    0.9220000000E+02
+    0.1000000000E-04
+Angle Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Caro       Scc(aro)   Caro      
+Number of Torsion Terms
+          24
+Torsion Type Number
+           1
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.3550300000E+03
+   -0.6819000000E+02
+    0.7913200000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Cwild      CH2sp3     CH2sp3     Cwild     
+Cwild      CH2sp3     Cco=o(sp2) Och(sp3)  
+Torsion Type Number
+           2
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+   -0.2510600000E+03
+    0.4287300000E+03
+   -0.1118500000E+03
+    0.4412700000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Cwild      CH2sp3     CHsp3      Cwild     
+Cwild      CHsp3      CHsp3      Cwild     
+Torsion Type Number
+           3
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.4612900000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     Csp3       Cwild     
+Torsion Type Number
+           4
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.6885000000E+03
+    0.8636000000E+02
+   -0.1097700000E+03
+   -0.2822400000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+Cwild      CH2sp3     CHsp2      CH2sp2    
+Cwild      CH2sp3     CHsp2      CHsp2     
+Cwild      CH2sp3     CHsp2      Csp2      
+Torsion Type Number
+           5
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.1766200000E+03
+   -0.5334000000E+02
+    0.7699300000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Cwild      CH2sp3     CH2sp3     Och(sp3)  
+Cwild      CH2sp3     CH2sp3     Occ(sp3)  
+Torsion Type Number
+           6
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.2098200000E+03
+   -0.2917000000E+02
+    0.1879300000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     Och(sp3)   Ho        
+Torsion Type Number
+           7
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.2159600000E+03
+    0.1973300000E+03
+    0.3146000000E+02
+   -0.1739200000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CHsp3      Och(sp3)   Ho        
+Torsion Type Number
+           8
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.1635600000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Csp3       Och(sp3)   Ho        
+Torsion Type Number
+           9
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.7253500000E+03
+   -0.1637500000E+03
+    0.5582000000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+Cwild      Csp3       Occ(sp3)   Cwild     
+Cwild      CHsp3      Occ(sp3)   Cwild     
+Cwild      CH2sp3     Occ(sp3)   Cwild     
+Torsion Type Number
+          10
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.5032400000E+03
+    0.0000000000E+00
+   -0.2516200000E+03
+    0.1006470000E+04
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+Occ(sp3)   CH2sp3     CH2sp3     Occ(sp3)  
+Occ(sp3)   CH2sp3     CH2sp3     Och(sp3)  
+Och(sp3)   CH2sp3     CH2sp3     Och(sp3)  
+Torsion Type Number
+          11
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.2035580000E+04
+   -0.7369000000E+03
+    0.5784000000E+02
+   -0.2932300000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+Cwild      Cwild      Csp2       O=c(sp2)  
+Cwild      Cwild      CHsp2      O=c(sp2)  
+Torsion Type Number
+          12
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.5288000000E+02
+   -0.5205000000E+02
+    0.1846000000E+02
+    0.3063600000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     Sch(sp3)   Hs        
+Torsion Type Number
+          13
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.3676000000E+03
+   -0.2701800000E+03
+    0.5816400000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Cwild      Scc(sp3)   Cwild     
+Torsion Type Number
+          14
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.1763900000E+04
+    0.3980000000E+03
+   -0.2181600000E+04
+    0.5052500000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Scs(sp3)   Scs(sp3)   Cwild     
+Torsion Type Number
+          15
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+   -0.2510600000E+03
+    0.4287300000E+03
+   -0.1118500000E+03
+    0.4412700000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     CHsp3      Swild     
+Torsion Type Number
+          16
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.4612900000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CH2sp3     Csp3       Swild     
+Torsion Type Number
+          17
+Torsion Style
+          11
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.0000000000E+00
+    0.0000000000E+00
+    0.0000000000E+00
+    0.4000000000E+03
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+CH3sp3     CHsp3      Sch(sp3)   Hs        
+Torsion Type Number
+          18
+Torsion Style
+           1
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.1340000000E+05
+    0.3141592654E+01
+Torsion Order
+trans          
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+Cwild      CHsp2      CHsp2      Cwild     
+Cwild      Csp2       CHsp2      Cwild     
+Cwild      Csp2       Csp2       Cwild     
+Torsion Type Number
+          19
+Torsion Style
+           1
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.1240000000E+05
+    0.0000000000E+00
+Torsion Order
+cis            
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+Cwild      CHsp2      CHsp2      Cwild     
+Cwild      Csp2       CHsp2      Cwild     
+Cwild      Csp2       Csp2       Cwild     
+Torsion Type Number
+          20
+Torsion Style
+           7
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.1310000000E+03
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+CHaro      Caro       CH2sp3     Cwild     
+Caro       Caro       CH2sp3     Cwild     
+Torsion Type Number
+          21
+Torsion Style
+           7
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Torsion Coefficients
+    0.1670000000E+03
+    0.5235987631E+01
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+CHaro      Caro       CHsp2      Cwild     
+Caro       Caro       CHsp2      Cwild     
+Torsion Type Number
+          22
+Torsion Style
+          21
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.5000000000E+00
+Number of Torsion Loops
+           2
+Torsion Coefficients
+    0.1000000000E-04
+    0.3141592654E+01
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+Cwild      CHaro      CHaro      Cwild     
+Cwild      CHaro      Caro       Cwild     
+Cwild      Caro       Caro       Cwild     
+Torsion Type Number
+          23
+Torsion Style
+          17
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.6300000000E+03
+    0.1562400000E+04
+    0.3141592654E+01
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           3
+Atom Names
+O=c(sp2)   Cco=o(sp2) Och(sp3)   Hoacid    
+CH3sp3     CH2sp3     Cco=o(sp2) O=c(sp2)  
+CH2sp3     CH2sp3     Cco=o(sp2) O=c(sp2)  
+Torsion Type Number
+          24
+Torsion Style
+          17
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.6300000000E+03
+    0.1562400000E+04
+    0.0000000000E+00
+Torsion Order
+wild           
+Force Field Name
+TraPPE-UA 
+Number of Atoms with Same Parameters  
+           2
+Atom Names
+CH3sp3     Cco=o(sp2) Och(sp3)   Hoacid    
+CH2sp3     Cco=o(sp2) Och(sp3)   Hoacid    
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           2
+One-Five Type Number
+           1
+One-Five Style
+           2
+One-Five Coefficients 
+    0.4000000000E+08
+Force Field Name
+TraPPE-UA 
+Atom Names
+Ho         wild       wild       wild       Occ(sp3)  
+One-Five Type Number
+           2
+One-Five Style
+           2
+One-Five Coefficients 
+    0.7500000000E+08
+Force Field Name
+TraPPE-UA 
+Atom Names
+Ho         wild       wild       wild       Och(sp3)  
+Number of Bond Increments
+          22
+Bond Increment Type Number
+           1
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Csp3       Csp3      
+Bond Increment Type Number
+           2
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Csp3       Csp2      
+Bond Increment Type Number
+           3
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Csp3       Caro      
+Bond Increment Type Number
+           4
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Csp2       Csp2      
+Bond Increment Type Number
+           5
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Caro       Caro      
+Bond Increment Type Number
+           6
+Bond Increment Value
+    0.4350000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Ho         Och(sp3)  
+Bond Increment Type Number
+           7
+Bond Increment Value
+    0.2650000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Csp3       Och(sp3)  
+Bond Increment Type Number
+           8
+Bond Increment Value
+    0.2500000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Csp3       Occ(sp3)  
+Bond Increment Type Number
+           9
+Bond Increment Value
+    0.4300000000E-01
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+CHc=o(sp2) Csp3      
+Bond Increment Type Number
+          10
+Bond Increment Value
+    0.4820000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+CHc=o(sp2) O=c(sp2)  
+Bond Increment Type Number
+          11
+Bond Increment Value
+    0.4240000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Ccc=o(sp2) O=c(sp2)  
+Bond Increment Type Number
+          12
+Bond Increment Value
+   -0.4500000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+O=c(sp2)   Cco=o(sp2)
+Bond Increment Type Number
+          13
+Bond Increment Value
+    0.1200000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Csp3       Cco=o(sp2)
+Bond Increment Type Number
+          14
+Bond Increment Value
+   -0.9000000000E-01
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Och(sp3)   Cco=o(sp2)
+Bond Increment Type Number
+          15
+Bond Increment Value
+    0.3700000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Hoacid     Och(sp3)  
+Bond Increment Type Number
+          16
+Bond Increment Value
+    0.1710000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Csp3       Sch(sp3)  
+Bond Increment Type Number
+          17
+Bond Increment Value
+    0.1500000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Csp3       Scc(sp3)  
+Bond Increment Type Number
+          18
+Bond Increment Value
+    0.1770000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Csp3       Scs(sp3)  
+Bond Increment Type Number
+          19
+Bond Increment Value
+    0.2060000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Hs         Sch(sp3)  
+Bond Increment Type Number
+          20
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Caro       Scc(aro)  
+Bond Increment Type Number
+          21
+Bond Increment Value
+    0.1500000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Csp3       Occ(sp3)  
+Bond Increment Type Number
+          22
+Bond Increment Value
+   -0.1500000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+TraPPE-UA 
+Atom Names
+Occ(sp3)   Cco=o(sp2)

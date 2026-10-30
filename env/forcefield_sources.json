@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "scientific_policy": {
+    "framework_default_forcefield": "UFF",
+    "approved_opls_missing_parameter_fallback": "UFF",
+    "fallback_requires": ["verified OPLS parameter gap", "record affected atoms/terms, source and reason in the chain", "validate mixed-model conventions and cross interactions"],
+    "conversion_unavailable_is_not_parameter_absence": true,
+    "framework_charge_sources": ["PACMOF", "PACMAN"],
+    "preserve_approved_existing_cif_charges": true,
+    "never_assign_framework_charges_from_forcefield": true,
+    "never_force_net_charge_to_zero": true
+  },
+  "collections": {
+    "towhee": {
+      "source_root": "/opt/towhee/8.2.1",
+      "source_directory": "ForceFields",
+      "project_directory": "forcefields/towhee/ForceFields",
+      "catalog": "forcefields/towhee/catalog.json",
+      "source_version": "8.2.1",
+      "copy_policy": "preserve_original_bytes_and_names_no_overwrite",
+      "formats": ["towhee_ff"],
+      "engine_converters": {"raspa": "not_implemented", "lammps": "not_implemented", "cdft": "not_implemented"},
+      "upstream_documentation": "https://towhee.sourceforge.net/towhee_ff.html"
+    }
+  }
+}

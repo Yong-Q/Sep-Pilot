@@ -165,9 +165,9 @@ def canonical_expected_outputs(outputs, project_root, relative_root=None):
 def operational_patch(existing_steps, changes, project_root=None):
     """Typed contract comparison, never classification of the user's words.
 
-    Only node/partition moves with identical science and resource budgets are
-    covered here. Changed methods, inputs, densities, budgets or dependencies
-    remain explicit model-led user decisions.
+    Placement, derived output locations and report wording may change within
+    the approved scientific scope. Methods, inputs, densities and budgets
+    remain protected.
     """
     old = {n['step_id']: n for n in existing_steps}
     # Paths, native artifact declarations, locks and scheduler allocations are
@@ -200,8 +200,18 @@ def operational_patch(existing_steps, changes, project_root=None):
             return False
         if output_semantics(before.get('expected_outputs', [])) != output_semantics(after.get('expected_outputs', [])):
             return False
-        science_before = {k: v for k, v in before.get('arguments', {}).items() if k not in scheduling}
-        science_after = {k: v for k, v in after.get('arguments', {}).items() if k not in scheduling}
+        mechanical = scheduling
+        if before.get('tool') == 'generate_scientific_report':
+            # Editing presentation is part of producing the requested report.
+            # Its source_steps, mode and output acceptance still stay protected;
+            # these fields never grant a scientific tool new instructions.
+            mechanical = scheduling | {'title', 'instructions'}
+        elif before.get('tool') == 'run_cdft' and before.get('arguments', {}).get('action') == 'inputs':
+            # Input preparation produces this directory. Submission consumes
+            # it, so the same field remains a protected input for that action.
+            mechanical = scheduling | {'input_dir'}
+        science_before = {k: v for k, v in before.get('arguments', {}).items() if k not in mechanical}
+        science_after = {k: v for k, v in after.get('arguments', {}).items() if k not in mechanical}
         if science_before != science_after:
             return False
     return bool(changes)
@@ -535,6 +545,20 @@ def complete_compute_contract(node, step_id, project_root, conversation_root):
     from .output_contract import output_path, normalize_output
     from fnmatch import fnmatchcase
     result = copy.deepcopy(node)
+    if result.get('tool') in {'run_gcmc_isotherm', 'run_gcmc_batch'}:
+        from .gcmc_results import native_output_contract
+        original=[normalize_output(value) for value in result.get('expected_outputs',[])]
+        if len(original)>1:return result
+        if original:
+            spec=original[0]
+            if (spec['kind']=='directory' and not spec.get('pattern','').endswith('.data')
+                    or spec['kind']=='file' and not Path(spec['path']).name.endswith('.data')):
+                return result
+        native=native_output_contract(result['tool'],result.get('arguments',{}))
+        if native is not None:
+            if original:native[0]['min_count']=original[0].get('min_count',1)
+            result['expected_outputs']=native
+        return result
     if result.get('tool') == 'generate_scientific_report':
         args = result.setdefault('arguments', {})
         dependencies = list(result.get('depends_on', []))
@@ -551,6 +575,33 @@ def complete_compute_contract(node, step_id, project_root, conversation_root):
                     candidates.append(str(output_path(output, Path(conversation_root))))
             if len(candidates) == 1:
                 args['output_path'] = candidates[0]
+        return result
+    if result.get('tool') == 'run_string_tst':
+        args = result.setdefault('arguments', {})
+        if not args.get('output_dir'):
+            args['output_dir'] = str(Path(conversation_root) / 'tst' / 'nodes' / hashlib.sha256(step_id.encode()).hexdigest()[:24])
+        gas = args.get('gas')
+        if isinstance(gas, str) and re.fullmatch(r'[A-Za-z][A-Za-z0-9_+\-]*', gas):
+            # Native paths are manifest-driven and can be nested arbitrarily.
+            # These two canonical files are relative to the actual execution
+            # root, including any fresh attempt selected by the adapter.
+            prefix = f'string_input_{gas}'
+            result['expected_outputs'] = [
+                {'kind': 'file', 'path': f'{prefix}/manifest.csv'},
+                {'kind': 'file', 'path': f'{prefix}/string_results.json'},
+            ]
+        return result
+    if result.get('tool')=='run_cdft' and result.get('arguments',{}).get('action')=='collect_recovery':
+        args=result['arguments'];manifest=Path(args.get('partial_recovery_manifest') or '')
+        if not manifest.is_absolute() or manifest.name!='recovery_manifest.json' or not manifest.is_relative_to(Path(conversation_root)):
+            raise ValueError('cDFT recovery collection requires one owned immutable preparation manifest')
+        target=str(manifest.parent/'merged/results.csv')
+        expected=[{'kind':'file','path':target}]
+        from .output_contract import normalize_output
+        declared=[normalize_output(value) for value in result.get('expected_outputs',[])]
+        if args.get('output',target)!=target or declared and declared!=expected:
+            raise ValueError('cDFT recovery collection cannot drop or redirect output acceptance requirements')
+        args['output']=target;result['expected_outputs']=expected
         return result
     if result.get('tool') != 'run_cdft' or result.get('arguments', {}).get('action', 'pipeline') not in {'pipeline', 'submit'}:
         return result

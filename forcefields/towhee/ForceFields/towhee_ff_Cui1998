@@ -1,0 +1,218 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           4
+Potential Type
+Lennard-Jones                 
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.4600000000E+01
+    0.7900000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.6900500000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Cui1998   
+Atom Names
+CF3(T)    
+CF3(T)    
+CF3(T)    
+CF3(T)    
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.4600000000E+01
+    0.3000000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.5000700000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Cui1998   
+Atom Names
+CF2(T)    
+CF2(T)    
+CF2(T)    
+CF2(T)    
+Atom Type Number
+           3
+Nonbond Coefficients
+    0.4650000000E+01
+    0.1000000000E+03
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.6900500000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Cui1998   
+Atom Names
+CF3(M)    
+CF3(M)    
+CF3(M)    
+CF3(M)    
+Atom Type Number
+           4
+Nonbond Coefficients
+    0.4650000000E+01
+    0.3000000000E+02
+    0.0000000000E+00
+    0.0000000000E+00
+Mass
+    0.5000700000E+02
+Element
+ C
+Bond Pattern
+null 
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Cui1998   
+Atom Names
+CF2(M)    
+CF2(M)    
+CF2(M)    
+CF2(M)    
+Number of Bonded Terms
+           1
+Bond Type Number
+           1
+Bond Style
+           1
+Bond Coefficients
+    0.1540000000E+01
+Vibration Order
+wild      
+Force Field Name
+Cui1998   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      Cwild     
+Number of Angle Terms
+           2
+Angle Type Number
+           1
+Angle Style
+           1
+Angle Coefficients
+    0.1146000000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+Cui1998   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CF2(T)     Cwild     
+Angle Type Number
+           2
+Angle Style
+           1
+Angle Coefficients
+    0.1140000000E+03
+    0.3125000000E+05
+Angle Order
+wild           
+Force Field Name
+Cui1998   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CF2(M)     Cwild     
+Number of Torsion Terms
+           2
+Torsion Type Number
+           1
+Torsion Style
+          10
+One-Four Nonbond Logical
+ F
+Number of Torsion Loops
+           7
+Torsion Coefficients
+    0.5954000000E+03
+   -0.2827000000E+03
+    0.1355200000E+04
+    0.6800000000E+04
+   -0.7875300000E+04
+   -0.1416800000E+05
+    0.9213700000E+04
+    0.4123700000E+04
+Torsion Order
+wild           
+Force Field Name
+Cui1998   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CF2(T)     CF2(T)     Cwild     
+Torsion Type Number
+           2
+Torsion Style
+          22
+One-Four Nonbond Logical
+ F
+Torsion Coefficients
+    0.2696000000E+03
+    0.5036000000E+03
+    0.6799000000E+03
+    0.3000000000E+01
+    0.4206000000E+03
+    0.3000000000E+02
+Torsion Order
+wild           
+Force Field Name
+Cui1998   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+Cwild      CF2(M)     CF2(M)     Cwild     
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           1
+Bond Increment Type Number
+           1
+Bond Increment Value
+    0.0000000000E+00
+Bond Increment Order
+wild      
+Force Field Name
+Cui1998   
+Atom Names
+wild       wild      

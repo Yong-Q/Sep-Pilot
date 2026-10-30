@@ -1,0 +1,124 @@
+towhee_ff Version
+          15
+Number of Nonbonded Types
+           2
+Potential Type
+Hard 2580 Multistep           
+Classical Mixrule
+Lorentz-Berthelot             
+Atom Type Number
+           1
+Nonbond Coefficients
+    0.3630000000E+01
+   -0.8400000000E+02
+   -0.7390000000E+02
+   -0.3590000000E+02
+   -0.1750000000E+02
+    0.0000000000E+00
+Mass
+    0.1503452000E+02
+Element
+ C
+Bond Pattern
+s    
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Cui2002   
+Atom Names
+CH3       
+C         
+C         
+C         
+Atom Type Number
+           2
+Nonbond Coefficients
+    0.3570000000E+01
+   -0.3010000000E+02
+   -0.2580000000E+02
+   -0.2580000000E+02
+   -0.2290000000E+02
+    0.0000000000E+00
+Mass
+    0.1402658000E+02
+Element
+ C
+Bond Pattern
+sp3  
+Base Charge 
+    0.0000000000E+00
+Polarizability
+    0.1000000000E+01
+Force Field Name
+Cui2002   
+Atom Names
+CH2       
+C         
+C         
+C         
+Number of Bonded Terms
+           1
+Bond Type Number
+           1
+Bond Style
+          10
+Bond Coefficients
+    0.1370000000E+01
+    0.1730000000E+01
+    0.0000000000E+00
+Vibration Order
+wild      
+Force Field Name
+Cui2002   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C         
+Number of Angle Terms
+           1
+Angle Type Number
+           1
+Angle Style
+          13
+Angle Coefficients
+    0.1100405254E+03
+    0.2360000000E+01
+    0.2720000000E+01
+    0.0000000000E+00
+Angle Order
+wild           
+Force Field Name
+Cui2002   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C          C         
+Number of Torsion Terms
+           1
+Torsion Type Number
+           1
+Torsion Style
+           8
+One-Four Nonbond Logical
+ T
+One-Four Coulombic Scaling
+    0.0000000000E+00
+Torsion Coefficients
+Torsion Order
+wild           
+Force Field Name
+Cui2002   
+Number of Atoms with Same Parameters  
+           1
+Atom Names
+C          C          C          C         
+Number of Improper Terms
+           0
+Number of Angle-Angle Terms
+           0
+Number of One-Five Types
+           0
+Number of Bond Increments
+           0
